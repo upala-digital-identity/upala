@@ -134,6 +134,10 @@ contract AccountRecovery {
 	    	recover();
 	}
 
+    function reject() onlyApprover onlyInitialized onlyOnce {
+        //... ???
+    }
+
 	// todo cannot remove weight <100 only replace
 
 	function resetApprovals() {
