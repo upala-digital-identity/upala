@@ -1,4 +1,4 @@
-contract TypesRegister {
+contract GroupTypesRegister {
     function start(address) external returns (uint) {}
 }
 
@@ -12,12 +12,13 @@ contract Group {
 	byte8 groupType = "Hash-Of-Registered-GroupType";
 	byte8[] allowedMemberTypes;  // list of allowed types hashes (not applicable for lowest level groups)
 
-	// members and scores
+	// members and scores d
 	// address[] members;
 	mapping(address => uint8) membersScores;  // 0-100% Personhood; 0 - not a member?
 	
 	// 
 	address admin;  // either a trusted user or a voting contract
+	// sets entering condition including income pool (income) management, types of groups to be invited
 
 
 	modifier onlyAdmin() {
@@ -36,27 +37,30 @@ contract Group {
 		membersScores[member] = newScore;
 	}
 
+	// Pool
+	function encreasePool() external payable {  //onlyAdmin? //or anyone?
+		pool+= msg.value;
+	}
+
 	
 	// Bots
 	//function attack(uint personhoodScore, bytes8 proofOfScore) {
-	function attack(attackPath[]) {
+	function attack(address[] _path) {
 		// ... descend the path and do harm!!!
+		calculateScore(msg.sender, _path);
 		reward = maxBotReward * personhoodScore;
 		msg.sender.send(reward);
 	}
 
 	// Apps
-	function checkScore(address candidate, uint personhoodScore, bytes8 proofOfScore) returns (bool) {
-		/// !!!!!!!!!!!!!!!!! how ??? !!!!!!!!!!!!!!!!! 
-		require (scoreIsCorrect(msg.sender, personhoodScore, proofOfScore));
-		/// !!!!!!!!!!!!!!!!! how ??? !!!!!!!!!!!!!!!!! 
-
-		return (scoreIsCorrect(candidate, personhoodScore, proofOfScore));
+	function checkScore(address candidate, address[] _path) returns (uint8) {
+		// ... descend the path and calc score!!!
+		return (calculateScore(candidate, _path));
 
 	}
 
 	// RageQuit???
 	function rageQuit() onlyMember {
-
+		rageQuitTrigger();  // exit conditions defined for the group
 	}
 }
