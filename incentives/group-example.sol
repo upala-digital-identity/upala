@@ -1,39 +1,72 @@
 pragma solidity ^0.5.0;
 
+/*/// WARNING
+
+Icredibly dirty and raw code here. Just to show the concept.
+
+/// WARNING */
+
 interface IUpalaGroup {
 
-// function getPoolSize()
-// function getMaxBotReward()
-// function getMemberScore(address member) 
+	function getPoolSize() {}
+	function getMaxBotReward() {}
+	function isLocked() {}
 
-// function attack(address[] _path)
-// function rageQuit()
+	function getMemberScore(address member) {}
 
+	function attack(address[] path) {}
+	function rewardBot(address _botAddress, uint _user_score) {}
+	function rageQuit() {}
 }
 
 contract UpalaGroup is IUpalaGroup {
 
-    // Honey pot
-	uint pool;  // Eth pool of the group
-	uint maxBotReward;  // 
+	// Locks the contract if it fails to pay a bot
+	// Cryptoeconimic constrain forcing contracts to maintain correct declaredPool size
+	// Enables contracts to chose any token, but requires them to pay bot rewards in eth (or DAI)
+	bool isLocked = false;   
 
-	// members and scores
+	uint declaredPool;  // Eth (or DAI?) pool of the group // Honey pot
+	uint maxBotReward;
+
 	mapping(address => uint8) membersScores;  // 0-100% Personhood; 0 - not a member?
 
-	function getMemberScore(address member) returns (uint8) {
-		// ... descend the path and calc score!!!
-		return (membersScores[member]);
-
+	// A member of a group is either a subgroup or a user.
+	function getMemberScore(address _member) returns (uint8) {
+		if (isLocked == false) {
+			return (membersScores[_member]);
+		} else {
+			return 0;
+		}
 	}
 
-	// Bots
-	//function attack(uint personhoodScore, bytes8 proofOfScore) {
-	// ... descend the path and do harm!!!
-	function attack(address[] _path) {
-		calculateScore(msg.sender, _path);
-		reward = maxBotReward * personhoodScore;
-		msg.sender.send(reward);
-		// refund by subgroups - pull rewards. 
+	// Ascends the path in groups hierarchy and calculate user score
+	function calculateUserScore(address _user, address[] _path) internal returns (uint8) {
+		uint8 _user_score = 0;
+		for (uint i=_path.length-1; i<=0; i--) {
+			_user_score = _user_score*address[i].getMemberScore(_user);
+        }
+		return _user_score;
+	}
+	
+	function rewardBot(address _botAddress, uint _user_score) onlySuper {  // by a contract above? HOW!?
+		_reward = maxBotReward * _user_score / 100;
+		if (address(this).balance <  _reward) {
+			isLocked = true;  // penalty for hurting bot rights! (the utmost prerogative!)
+			// break
+		}
+		_botAddress.send(_reward);  // Eth used for simplicity. Will probably be changed to DAI
+		declaredPool -= _reward;
+	}
+
+	function attack(address[] _path) onlyMember {
+		uint8 _user_score = 0;
+		uint _reward = 0;
+		// Ascend the path and do harm!!!
+		for (uint i=_path.length-1; i<=0; i--) {
+			_user_score = _user_score*address[i].getMemberScore(_user);
+			address[i].rewardBot(msg.sender, _user_score);
+        }
 	}
 
 	// RageQuit???
@@ -42,8 +75,14 @@ contract UpalaGroup is IUpalaGroup {
 	}
 }
 
+contract ForProfitScoreProviderExample is UpalaGroup {
+	
+	function calculateUserScore (address user, ) external payable {
+		// charge, return score 
+	}
+}
 
-
+/*
 contract Group is UpalaGroup, Ownable {
 	
 	// Group and members types
@@ -69,5 +108,5 @@ contract Group is UpalaGroup, Ownable {
 	function encreasePool() external payable {  //onlyAdmin? //or anyone?
 		pool+= msg.value;
 	}
-
 }
+*/
