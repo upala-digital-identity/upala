@@ -26,7 +26,13 @@ contract UpalaGroup is IUpalaGroup {
 	// Enables contracts to chose any token, but requires them to pay bot rewards in eth (or DAI)
 	bool isLocked = false;   
 
-	uint declaredPool;  // Eth (or DAI?) pool of the group // Honey pot
+	// Eth (or DAI?) pool of the group // Honey pot
+	// The pool is "declared" because it can differ from the actual pool. 
+	// It allows group specific tokens
+	// If using locks, is this necessary at all?
+	uint declaredPool;
+
+	// The most important obligation of a group is to pay bot rewards.   
 	uint maxBotReward;
 
 	mapping(address => uint8) membersScores;  // 0-100% Personhood; 0 - not a member?
@@ -49,7 +55,7 @@ contract UpalaGroup is IUpalaGroup {
 		return _user_score;
 	}
 	
-	function rewardBot(address _botAddress, uint _user_score) onlySuper {  // by a contract above? HOW!?
+	function rewardBot(address _botAddress, uint _user_score) onlySuper {  // HOW!? todo try from bottom
 		_reward = maxBotReward * _user_score / 100;
 		if (address(this).balance <  _reward) {
 			isLocked = true;  // penalty for hurting bot rights! (the utmost prerogative!)
