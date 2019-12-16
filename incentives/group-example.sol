@@ -55,7 +55,8 @@ contract UpalaGroup is IUpalaGroup {
 		return _user_score;
 	}
 	
-	function rewardBot(address _botAddress, uint _user_score) onlySuper {  // HOW!? todo try from bottom
+	// Bot exlosion
+	function rewardBot(address _botAddress, uint _user_score) onlyMember { 
 		_reward = maxBotReward * _user_score / 100;
 		if (address(this).balance <  _reward) {
 			isLocked = true;  // penalty for hurting bot rights! (the utmost prerogative!)
@@ -65,14 +66,13 @@ contract UpalaGroup is IUpalaGroup {
 		declaredPool -= _reward;
 	}
 
-	function attack(address[] _path) onlyMember {
-		uint8 _user_score = 0;
-		uint _reward = 0;
-		// Ascend the path and do harm!!!
-		for (uint i=_path.length-1; i<=0; i--) {
-			_user_score = _user_score*address[i].getMemberScore(_user);
-			address[i].rewardBot(msg.sender, _user_score);
-        }
+	// bottom-up recursive attack
+	function attack(address[] _path, address _bot, uint8 _score) onlyMember {
+	 	address nextGroup = _path[_path.length-1];
+	 	address[] _newPath = _path.pop();
+		uint8 _user_score = _score * membersScores[msg.sender];
+		rewardBot(_bot, _user_score);
+		nextGroup.attack(_newPath, _bot, _user_score);
 	}
 
 	// RageQuit???
@@ -88,6 +88,14 @@ contract ForProfitScoreProviderExample is UpalaGroup {
 	}
 }
 
+
+// In order to be destroyable there must be a user entity or a ledger of users. 
+contract User {
+	function attack (address[] _path) {
+		address _target = address[0];
+		_target.attack(_path);
+	}
+}
 /*
 contract Group is UpalaGroup, Ownable {
 	
