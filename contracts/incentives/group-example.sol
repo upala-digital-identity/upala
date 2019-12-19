@@ -14,7 +14,7 @@ contract IUpalaGroup {
 
 	function getMemberScore(address) external view returns (uint8);
 
-	function attack(address[] calldata, address payable, uint8) external;
+	function attack(address[] calldata, address payable, uint) external;
 	// function rageQuit() external;
 }
 
@@ -23,7 +23,7 @@ contract UpalaGroup is IUpalaGroup{
 	// Locks the contract if it fails to pay a bot
 	// Cryptoeconimic constrain forcing contracts to maintain correct declaredPool size
 	// Enables contracts to chose any token, but requires them to pay bot rewards in eth (or DAI)
-	bool locked = false;   
+	bool locked = false;
 
 	// Eth (or DAI?) pool of the group // Honey pot
 	// The pool is "declared" because it can differ from the actual pool. 
@@ -38,6 +38,7 @@ contract UpalaGroup is IUpalaGroup{
     // membersScores[this.address] = 0; todo. cannot be member of self
     
     modifier onlyMember() {
+        require(msg.sender != address(this));
         require(membersScores[msg.sender] > 0);
         _;
     }
@@ -45,12 +46,14 @@ contract UpalaGroup is IUpalaGroup{
 
 	// Ascends the path in groups hierarchy and calculates user score
 	// User is represented by an Upala Group too
-	function calculateUserScore(address _user, address[] memory _path) internal view returns (uint8) {
-		uint8 _user_score = 0;
-		for (uint i=_path.length-1; i<=0; i--) {
-			_user_score = _user_score * IUpalaGroup(_path[i]).getMemberScore(_user);
-			//user_score = 1;
-        }
+	function calculateScore(address _member, address[] memory _path) internal view returns (uint8) {
+	    require(_path.length !=0, "path too short");
+		uint8 _user_score = IUpalaGroup(_path[_path.length-1]).getMemberScore(_member);	
+    	// _path[i] - group address
+    	// _path[i+1] - member address
+    	for (uint i=_path.length-2; i<=0; i--) {
+    		_user_score = _user_score * IUpalaGroup(_path[i]).getMemberScore(_path[i+1]);
+		}
 		return _user_score;
 	}
 	
@@ -62,15 +65,19 @@ contract UpalaGroup is IUpalaGroup{
 			// break
 		}
 		_botAddress.send(_reward);  // Eth used for simplicity. Will probably be changed to DAI
+		// require(token.transfer(address(guildBank), _reward), "token transfer failed");
 	}
 
 	// bottom-up recursive attack
-	function attack(address[] calldata _path, address payable _bot, uint8 _score) external onlyMember {
+	function attack(address[] calldata _path, address payable _bot, uint _remainingReward) external onlyMember {
+	    // calculate maxBotReward and payout the sum starting from the bottom. Stop when the sum is payed.
+	 	uint _currentGroupReward = this.getMaxBotReward() * this.getMemberScore(msg.sender);  // todo is this simplification correct?
 	 	IUpalaGroup nextUpalaGroup = IUpalaGroup(_path[_path.length-1]);
-	 	address[] memory _newPath = _path;
-		uint8 _user_score = _score * membersScores[msg.sender];
-		rewardBot(_bot, _user_score);
-		nextUpalaGroup.attack(popFromMemoryArray_Hacked(_newPath), _bot, _user_score);
+	 	
+	 	rewardBot(_bot, _currentGroupReward);
+		
+		address[] memory _newPath = _path;
+		nextUpalaGroup.attack(popFromMemoryArray_Hacked(_newPath), _bot, _remainingReward - _currentGroupReward);
 	}
 
 	
@@ -116,9 +123,13 @@ contract UpalaUser is UpalaGroup {
     
     bool exploded = false;
     
-    function Explode (address[] calldata _path, uint8 _score) external {  // public for testing
+    // path
+    function Explode (address[] calldata _path) external {  // public for testing
+        
         require (!exploded, "already exploded");
-        IUpalaGroup(_path[_path.length-1]).attack(_path, msg.sender, _score);
+        
+        uint _rewardToClaim = IUpalaGroup(_path[0]).getMaxBotReward() * calculateScore(msg.sender, _path);
+        IUpalaGroup(_path[_path.length-1]).attack(_path, msg.sender, _rewardToClaim);
         exploded = true;
     }
     
@@ -136,8 +147,8 @@ contract SimpleMembershipGroup is UpalaGroup {
 }
 
 contract ScoreProvider is SimpleMembershipGroup {
-	function getUserScore (address _user, address[] calldata _path) external payable returns (uint8) {
-		return calculateUserScore(_user, _path);
+	function getUserScore (address member, address[] calldata _path) external payable returns (uint8) {
+		return calculateScore(member, _path);
 	}
 }
 
