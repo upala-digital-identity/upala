@@ -136,6 +136,13 @@ contract UpalaUser is UpalaGroup {
     // todo payable fallback?
 }
 
+/* todo consider:
+
+- gas costs for calculation and for the attack (consider path length limitation)
+- invitations. what if a very expensive group adds a cheap group. Many could decide to explode
+
+*/
+
     /*****************
     EXAMPLES OF GROUPS 
 	*****************/
@@ -147,8 +154,14 @@ contract SimpleMembershipGroup is UpalaGroup {
 }
 
 contract ScoreProvider is SimpleMembershipGroup {
+    
+    mapping(address => uint8) cachedUserScores;
+    
 	function getUserScore (address member, address[] calldata _path) external payable returns (uint8) {
 		return calculateScore(member, _path);
+	}
+	function getUserScoreCached (address user) external payable returns (uint8) {
+	    return cachedUserScores[user];
 	}
 }
 
