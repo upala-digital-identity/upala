@@ -45,6 +45,18 @@ contract UpalaGroup is IUpalaGroup, Ownable{
         require(membersScores[msg.sender] > 0);
         _;
     }
+    
+    // attacks and contract changes go in turn
+    // prevent front-runnig bot attack. Allows botnets to coordinate. 
+    modifier botsTurn() {
+        require(currentTimestampMinute() < 5);
+        _;
+    }
+    
+    modifier humansTurn() {
+        require(currentTimestampMinute() >= 5);
+        _;
+    }
 	
 	constructor (address _approvedToken) public {
 	    approvedToken = IERC20(_approvedToken);
@@ -55,13 +67,14 @@ contract UpalaGroup is IUpalaGroup, Ownable{
 	*****/
 	
 	// todo consider front-runnig bot attack
-	function setMemberScore(address member, uint8 score) external onlyOwner {
+	function setMemberScore(address member, uint8 score) external humansTurn onlyOwner {
 	    require(member != address(this));  // cannot be member of self. todo what about owner? 
 	    membersScores[member] = score;
 	}
 	
-	// todo try to get rid of it. Try another reward algorith. 
-	function acceptInvitation(address superiorGroup, bool isAccepted) external onlyOwner {
+	// todo try to get rid of it. Try another reward algorith
+	// note Hey, with this function we can go down the path
+	function acceptInvitation(address superiorGroup, bool isAccepted) external humansTurn onlyOwner {
 	    require(superiorGroup != address(this));
 	    acceptedInvitations[superiorGroup] = isAccepted;
 	}
@@ -98,7 +111,7 @@ contract UpalaGroup is IUpalaGroup, Ownable{
 	}
 
 	// bottom-up recursive attack
-	function attack(address[] calldata path, address payable bot, uint remainingReward) external onlyMember {
+	function attack(address[] calldata path, address payable bot, uint remainingReward) external onlyMember botsTurn {
 	    // calculate maxBotReward and payout the sum starting from the bottom. Stop when the sum is payed.
 	 	uint currentGroupReward = maxBotReward * membersScores[msg.sender];  // todo is this simplification correct?
 	 	IUpalaGroup nextUpalaGroup = IUpalaGroup(path[path.length-1]);
@@ -144,6 +157,12 @@ contract UpalaGroup is IUpalaGroup, Ownable{
 	 	}
 	 	
 	}
+	
+	function currentTimestampMinute () internal view returns (uint) {
+        return now % 3600 / 60;
+    }
+    
+    
 }
 
 // In order to be destroyable there must be a user entity or a ledger of users. 
