@@ -31,8 +31,6 @@ contract UpalaLedger is IUpalaGroup, UpalaTimer{
     	bool locked;
     	bool registered;
     	
-	    uint balance;
-    	
     	// The most important obligation of a group is to pay bot rewards.
     	// Actual bot reward depends on user score
     	uint maxBotReward;
@@ -40,55 +38,100 @@ contract UpalaLedger is IUpalaGroup, UpalaTimer{
     	mapping(address => uint8) membersScores;  // 0-100% Personhood; 0 - not a member
         mapping(address => bool) acceptedInvitations;  // true for accepting membership in a superior group
 	}
-	mapping(address => Group) Groups;
+	mapping(address => Group) groups;
 	
 	// Users
 	struct User {
-	    uint balance;
+	    bool registered;
 	    bool exploded;
 	}
-	mapping(address => User) Users;
+	mapping(address => User) users;
+	
+	mapping(address => uint) balances;
     
     
     constructor (address _approvedToken) public {
 	    approvedToken = IERC20(_approvedToken);
 	}
 	
-    modifier onlyRegistered() {
-        require(Groups[msg.sender].registered == true);
+	/************************
+	REGISTER GROUPS AND USERS
+	************************/
+	// spam protection + self sustainability.
+	// +separate Users from Groups
+	
+    modifier onlyGroups() {
+        require(groups[msg.sender].registered == true);
         _;
     }
+    
+    modifier onlyUsers() {
+        require(users[msg.sender].registered == true);
+        _;
+    }
+	
+	function registerNewGroup(address newGroup) external payable {
+	    require(msg.value == registrationFee);
+	    require(groups[newGroup].registered == false);
+	    require(users[newGroup].registered == false);
+	    groups[newGroup].registered == true;
+	}
+	
+    function registerNewUser(address newUser) external payable {
+	    require(msg.value == registrationFee);
+	    require(groups[newGroup].registered == false);
+	    require(users[newUser].registered == false);
+	    users[newUser].registered == true;
+	}
+	
 	
 	/**********
 	GROUP ADMIN
 	***********/
 	
-	// spam protection + self susteinability. Anyone can register a group
-	function registerNewGroup(address newGroup) external payable {
-	    require(msg.value == registrationFee);
-	    require(Groups[newGroup].registered == false);
-	    Groups[newGroup].registered == true;
+	function setMaxBotReward(uint maxBotReward) external humansTurn onlyGroups {
+	    groups[msg.sender].maxBotReward = maxBotReward;
 	}
 	
 	// todo consider front-runnig bot attack
-	function setMemberScore(address member, uint8 score) external humansTurn onlyRegistered {
+	function setMemberScore(address member, uint8 score) external humansTurn onlyGroups {
 	    require(member != msg.sender);  // cannot be member of self. todo what about owner? 
 	    require(score <= 100);
-	    Groups[msg.sender].membersScores[member] = score;
+	    groups[msg.sender].membersScores[member] = score;
 	}
 	
 	// todo try to get rid of it. Try another reward algorith
 	// note Hey, with this function we can go down the path
 	// + additional spam protection
-	function acceptInvitation(address superiorGroup, bool isAccepted) external humansTurn onlyRegistered {
+	function acceptInvitation(address superiorGroup, bool isAccepted) external humansTurn onlyGroups {
 	    require(superiorGroup != msg.sender);
-	    Groups[msg.sender].acceptedInvitations[superiorGroup] = isAccepted;
+	    groups[msg.sender].acceptedInvitations[superiorGroup] = isAccepted;
 	}
+	
+
 	
 	// Pool management
 	
-	// function addFunds
-	// function setMaxBotReward
+	function addFunds(uint amount) external humansTurn onlyGroups {
+	    require(approvedToken.transferFrom(msg.sender, address(this), amount), "token transfer to pool failed");
+	    balances[msg.sender].add(amount);
+	}
+	
+	// todo what if a group withdraws just before the botsTurn and others cannot react?
+	// build declare and push. 
+	function withdrawFromPool(uint amount) external humansTurn onlyGroups {
+	    _withdraw(msg.sender, amount);
+	}
+	
+	function withdrawBotReward() external botsTurn onlyUsers  {
+	    _withdraw(msg.sender, balances[msg.sender]);
+	}
+	
+	function _withdraw(address recipient, uint amount) internal {
+	    balances[recipient].sub(amount);
+	    require(approvedToken.transfer(recipient, amount), "token transfer to bot failed");
+	}
+	
 	// function approveGroup - let superior group spend current group funds. 
 
 	/*******************
@@ -96,15 +139,15 @@ contract UpalaLedger is IUpalaGroup, UpalaTimer{
 	********************/
 	
 	// Descends the path in groups hierarchy and calculates user score
-	// User is represented by an Upala Group too
-	function calculateScore(address[] calldata path) external view onlyRegistered returns (uint8, uint) {
+	// the topmost group must be msg.sendet
+	function calculateScore(address[] calldata path) external view onlyGroups returns (uint8, uint) {
 	    require(path.length !=0, "path too short");
 	    require(path.length <= maxPathLength, "path too long");
 		
 		// the topmost group is the msg.sender
 		address group = msg.sender;
 		address member = path[0];
-		uint8  member_score = Groups[group].membersScores[member] / 100;
+		uint8  member_score = Groups[group].membersScores[member];
 		
 		for (uint i=1; i<=path.length-1; i++) {
 		    group = path[i-1];
@@ -121,7 +164,7 @@ contract UpalaLedger is IUpalaGroup, UpalaTimer{
 	function attack(address[] calldata path) external botsTurn {
 	    
 	    address bot = msg.sender;
-	    require(Users[bot].exploded == false, "bot already exploded");
+	    require(users[bot].exploded == false, "bot already exploded");
 	    
 	    // calculate totalReward
 	    uint[] memory botRewards;
@@ -146,15 +189,15 @@ contract UpalaLedger is IUpalaGroup, UpalaTimer{
 		    reward = totalBotReward * totalMaxBotReward / botRewards[i];
 		    
 		    // transfer to user (bot)
-		    Groups[path[i]].balance.sub(reward);
-		    Users[bot].balance.add(reward);
+		    balances[path[i]].sub(reward);
+		    balances[[bot]].add(reward);
 		    
     		// contract must have sufficient funds to pay bot rewards for the next attack
-    		if (Groups[path[i]].balance < Groups[path[i]].maxBotReward) {
+    		if (balances[path[i]] < Groups[path[i]].maxBotReward) {
     			Groups[path[i]].locked = true;  // penalty for hurting bot rights! (the utmost prerogative!)
     		}
 		}
-		Users[bot].exploded = true;
+		users[bot].exploded = true;
 	}
 
 	
@@ -176,7 +219,7 @@ contract UpalaLedger is IUpalaGroup, UpalaTimer{
 	}
 	
 	function getPoolSize(address group) external view returns (uint) {
-	    return Groups[group].balance;
+	    return balances[group];
 	}
 	
 	function isLocked(address group) external view returns (bool) {
