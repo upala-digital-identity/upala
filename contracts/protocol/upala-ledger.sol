@@ -14,8 +14,41 @@ The code is under heavy developement
 
 import "../oz/token/ERC20/ERC20.sol";
 import "../oz/math/SafeMath.sol";
-import "../protocol/upala-group.sol";
+// import "../protocol/upala-group.sol";
 // import "@openzeppelin/contracts/ownership/Ownable.sol";  // production
+
+contract IUpalaGroup {
+
+	function getMaxBotReward(address) external view returns (uint) ;
+	function getPoolSize(address) external view returns (uint);
+	function isLocked(address) external view returns (bool);
+
+	function getMemberScore(address, address) external view returns (uint8);
+
+	function attack(address[] calldata, address payable, uint) external;
+	// function rageQuit() external;
+	
+	function addFunds(uint) external;
+	function withdrawFromPool(uint) external;
+}
+
+contract UpalaTimer {
+    // attacks and contract changes go in turn
+    // prevent front-runnig bot attack. Allows botnets to coordinate. 
+    modifier botsTurn() {
+        require(currentTimestampMinute() < 5);
+        _;
+    }
+    
+    modifier humansTurn() {
+        require(currentTimestampMinute() >= 5);
+        _;
+    }
+    
+    function currentTimestampMinute () internal view returns (uint) {
+        return now % 3600 / 60;
+    }
+}
 
 contract UpalaLedger is IUpalaGroup, UpalaTimer{
     using SafeMath for uint256;
@@ -23,6 +56,7 @@ contract UpalaLedger is IUpalaGroup, UpalaTimer{
     IERC20 public approvedToken;    // default = dai
     uint registrationFee = 1 wei;   // spam protection + susteinability
     uint maxPathLength = 10;        // the maximum depth of hierarchy - ensures attack gas cost is always lower than block maximum.
+    
     // Groups
 	struct Group {
 	    // Locks the contract if it fails to pay a bot
@@ -47,6 +81,7 @@ contract UpalaLedger is IUpalaGroup, UpalaTimer{
 	}
 	mapping(address => User) users;
 	
+	// Accounting
 	mapping(address => uint) balances;
     
     
@@ -79,7 +114,7 @@ contract UpalaLedger is IUpalaGroup, UpalaTimer{
 	
     function registerNewUser(address newUser) external payable {
 	    require(msg.value == registrationFee);
-	    require(groups[newGroup].registered == false);
+	    require(groups[newUser].registered == false);
 	    require(users[newUser].registered == false);
 	    users[newUser].registered == true;
 	}
@@ -108,9 +143,9 @@ contract UpalaLedger is IUpalaGroup, UpalaTimer{
 	    groups[msg.sender].acceptedInvitations[superiorGroup] = isAccepted;
 	}
 	
-
-	
-	// Pool management
+	/********************
+	GROUP Pool management
+	********************/
 	
 	function addFunds(uint amount) external humansTurn onlyGroups {
 	    require(approvedToken.transferFrom(msg.sender, address(this), amount), "token transfer to pool failed");
@@ -132,8 +167,7 @@ contract UpalaLedger is IUpalaGroup, UpalaTimer{
 	    require(approvedToken.transfer(recipient, amount), "token transfer to bot failed");
 	}
 	
-	// function approveGroup - let superior group spend current group funds. 
-
+    
 	/*******************
 	SCORE AND BOT REWARD
 	********************/
@@ -147,15 +181,15 @@ contract UpalaLedger is IUpalaGroup, UpalaTimer{
 		// the topmost group is the msg.sender
 		address group = msg.sender;
 		address member = path[0];
-		uint8  member_score = Groups[group].membersScores[member];
+		uint8  member_score = groups[group].membersScores[member];
 		
 		for (uint i=1; i<=path.length-1; i++) {
 		    group = path[i-1];
 		    member = path[i];
-    		member_score *= Groups[group].membersScores[member] / 100;
+    		member_score *= groups[group].membersScores[member] / 100;
 		}
 		
-		return (member_score, member_score * Groups[msg.sender].maxBotReward);
+		return (member_score, member_score * groups[msg.sender].maxBotReward);
 	}   
 
 	// experimental
@@ -170,14 +204,14 @@ contract UpalaLedger is IUpalaGroup, UpalaTimer{
 	    uint[] memory botRewards;
 
 	    // bot reward and user score in the closest group above the user (bot)
-	    uint8 user_score = Groups[path[path.length-1]].membersScores[bot];
-	    uint totalMaxBotReward = user_score * Groups[path[path.length-1]].maxBotReward;
+	    uint8 user_score = groups[path[path.length-1]].membersScores[bot];
+	    uint totalMaxBotReward = user_score * groups[path[path.length-1]].maxBotReward;
 	    botRewards[path.length-1] = totalMaxBotReward;
 	    
         // calculate all possible bot rewards
     	for (uint i=path.length-2; i<=0; i--) {
-    		user_score *= Groups[path[i]].membersScores[path[i+1]] / 100;
-    		botRewards[i] = user_score * Groups[path[i]].maxBotReward;
+    		user_score *= groups[path[i]].membersScores[path[i+1]] / 100;
+    		botRewards[i] = user_score * groups[path[i]].maxBotReward;
     		totalMaxBotReward += botRewards[i];
 		}
 		
@@ -190,11 +224,11 @@ contract UpalaLedger is IUpalaGroup, UpalaTimer{
 		    
 		    // transfer to user (bot)
 		    balances[path[i]].sub(reward);
-		    balances[[bot]].add(reward);
+		    balances[bot].add(reward);
 		    
     		// contract must have sufficient funds to pay bot rewards for the next attack
-    		if (balances[path[i]] < Groups[path[i]].maxBotReward) {
-    			Groups[path[i]].locked = true;  // penalty for hurting bot rights! (the utmost prerogative!)
+    		if (balances[path[i]] < groups[path[i]].maxBotReward) {
+    			groups[path[i]].locked = true;  // penalty for hurting bot rights! (the utmost prerogative!)
     		}
 		}
 		users[bot].exploded = true;
@@ -207,15 +241,15 @@ contract UpalaLedger is IUpalaGroup, UpalaTimer{
 	
 	// A member of a group is either a subgroup or a user.
 	function getMemberScore(address group, address member) external view returns (uint8) {
-		if (Groups[group].locked == false) {
-			return (Groups[group].membersScores[member]);
+		if (groups[group].locked == false) {
+			return (groups[group].membersScores[member]);
 		} else {
 			return 0;
 		}
 	}
 	
 	function getMaxBotReward(address group) external view returns (uint) {
-	    return Groups[group].maxBotReward;
+	    return groups[group].maxBotReward;
 	}
 	
 	function getPoolSize(address group) external view returns (uint) {
@@ -223,11 +257,52 @@ contract UpalaLedger is IUpalaGroup, UpalaTimer{
 	}
 	
 	function isLocked(address group) external view returns (bool) {
-	    return Groups[group].locked;
+	    return groups[group].locked;
 	}
 
 }
 
+contract SharedResponsibility {
+    using SafeMath for uint256;
+
+    
+    IERC20 public approvedToken;
+    IUpalaGroup public upala;
+    
+    mapping (address => uint) sharesBalances;
+    uint totalShares;
+    
+    constructor (address _upala, address _approvedToken) public {
+	    approvedToken = IERC20(_approvedToken);
+	    upala = IUpalaGroup(_upala);
+	    // todo add initial funds
+	}
+	
+	// share responisibiity by buying SHARES
+	function buyPoolShares(uint payment) external {
+	    uint poolSize = upala.getPoolSize(address(this));
+	    uint shares = payment.mul(totalShares).div(poolSize);
+	    
+	    totalShares += shares;
+	    sharesBalances[msg.sender] += shares;
+	    
+	    approvedToken.transferFrom(msg.sender, address(this), payment);
+	    upala.addFunds(payment);
+	}
+	
+    function withdrawPoolShares(uint sharesToWithdraw) external returns (bool) {
+        
+        require(sharesBalances[msg.sender] >= sharesToWithdraw);
+        uint poolSize = upala.getPoolSize(address(this));
+        uint amount = poolSize.mul(sharesToWithdraw).div(totalShares);
+        
+        sharesBalances[msg.sender].sub(sharesToWithdraw);
+        totalShares.sub(sharesToWithdraw);
+        
+        upala.withdrawFromPool(amount);
+        return approvedToken.transfer(msg.sender, amount);
+    }
+}
 
 /* todo consider:
 
@@ -236,6 +311,7 @@ contract UpalaLedger is IUpalaGroup, UpalaTimer{
 - loops in social graphs. is nonReentrant enough?
 - who is the owner? it can set scores and it can be a member
 - restirict pool size changes 
+- transfer user ownership (minimal user contract)
 
 done:
 - front-runnig a bot attack
