@@ -262,7 +262,7 @@ contract UpalaLedger is IUpalaGroup, UpalaTimer{
 
 }
 
-contract SharedResponsibility {
+contract SharedResponsibility is UpalaTimer {
     using SafeMath for uint256;
 
     
@@ -276,6 +276,8 @@ contract SharedResponsibility {
 	    approvedToken = IERC20(_approvedToken);
 	    upala = IUpalaGroup(_upala);
 	    // todo add initial funds
+	    // todo a bankrupt policy? what if balance is 0 or very close to 0, after a botnet attack.
+	    // too much delution problem 
 	}
 	
 	// share responisibiity by buying SHARES
