@@ -1,11 +1,5 @@
 pragma solidity ^0.5.0;
 
-/*
-
-Upala protocol as a ledger. 
-
-*/
-
 /*/// WARNING
 
 The code is under heavy developement
@@ -14,10 +8,21 @@ The code is under heavy developement
 
 import "../oz/token/ERC20/ERC20.sol";
 import "../oz/math/SafeMath.sol";
-// import "../protocol/upala-group.sol";
 // import "@openzeppelin/contracts/ownership/Ownable.sol";  // production
 
-contract IUpalaGroup {
+
+/*
+
+The Upala contract is the protocol itself. 
+Identity systems can use this contract to comply with universal bot explosion rules. 
+These identity systems will then be compatible. 
+
+Upala-native identity systems are presumed to consist of groups of many levels.
+Each group is a smart contract with arbitary logic.
+
+*/
+
+contract IUpala {
 
 	function getMaxBotReward(address) external view returns (uint) ;
 	function getPoolSize(address) external view returns (uint);
@@ -32,9 +37,13 @@ contract IUpalaGroup {
 	function withdrawFromPool(uint) external;
 }
 
+/*
+Bot attacks and contract changes by group dmins go in turn.
+The timet prevents front-runnig bot attack, allows botnets to coordinate. 
+The Upala timer is to be inherited by all Upala groups.
+*/
 contract UpalaTimer {
-    // attacks and contract changes go in turn
-    // prevent front-runnig bot attack. Allows botnets to coordinate. 
+
     modifier botsTurn() {
         require(currentTimestampMinute() < 5);
         _;
@@ -50,7 +59,8 @@ contract UpalaTimer {
     }
 }
 
-contract UpalaLedger is IUpalaGroup, UpalaTimer{
+// The Upala ledger (protocol)
+contract Upala is IUpala, UpalaTimer{
     using SafeMath for uint256;
     
     IERC20 public approvedToken;    // default = dai
@@ -58,23 +68,32 @@ contract UpalaLedger is IUpalaGroup, UpalaTimer{
     uint maxPathLength = 10;        // the maximum depth of hierarchy - ensures attack gas cost is always lower than block maximum.
     
     // Groups
+    // Groups are outside contracts with arbitary logic
 	struct Group {
 	    // Locks the contract if it fails to pay a bot
     	// Cryptoeconimic constrain forcing contracts to maintain sufficient pool size
     	// Enables contracts to use funds in any way if they are able to pay bot rewards
     	bool locked;
+    	
+    	// Ensures that a group can be registered only once
     	bool registered;
     	
     	// The most important obligation of a group is to pay bot rewards.
+    	// A group can set its own maximum bot reward
     	// Actual bot reward depends on user score
     	uint maxBotReward;
-    
+        
+        // A group sets scores to it's members
     	mapping(address => uint8) membersScores;  // 0-100% Personhood; 0 - not a member
+        
+        // A group may or may become a member of a superior group
         mapping(address => bool) acceptedInvitations;  // true for accepting membership in a superior group
 	}
 	mapping(address => Group) groups;
 	
 	// Users
+	// Ensures that users and groups are different entities
+	// Ensures that an exploded bot will never be able to get score or explode again
 	struct User {
 	    bool registered;
 	    bool exploded;
@@ -82,6 +101,8 @@ contract UpalaLedger is IUpalaGroup, UpalaTimer{
 	mapping(address => User) users;
 	
 	// Accounting
+	// A group's balance is its pool. Pools are deliberately vulnerable to bot attacks. 
+	// A user balance is only used for a bot reward. 
 	mapping(address => uint) balances;
     
     
@@ -92,7 +113,8 @@ contract UpalaLedger is IUpalaGroup, UpalaTimer{
 	/************************
 	REGISTER GROUPS AND USERS
 	************************/
-	// spam protection + self sustainability.
+	// spam protection 
+	// + self sustainability.
 	// +separate Users from Groups
 	
     modifier onlyGroups() {
@@ -124,11 +146,17 @@ contract UpalaLedger is IUpalaGroup, UpalaTimer{
 	GROUP ADMIN
 	***********/
 	
+	/*
+	Group admin - is any entity in control of a group. 
+	A group may decide to chose a trusted person, or it may make decisions based on voting.
+	*/
+	
+	// Sets the maximum possible bot reward for the group.
 	function setMaxBotReward(uint maxBotReward) external humansTurn onlyGroups {
 	    groups[msg.sender].maxBotReward = maxBotReward;
 	}
 	
-	// todo consider front-runnig bot attack
+	// Sets member scores
 	function setMemberScore(address member, uint8 score) external humansTurn onlyGroups {
 	    require(member != msg.sender);  // cannot be member of self. todo what about owner? 
 	    require(score <= 100);
@@ -147,17 +175,20 @@ contract UpalaLedger is IUpalaGroup, UpalaTimer{
 	GROUP Pool management
 	********************/
 	
+	// Allows group admin to add funds to the group's pool
 	function addFunds(uint amount) external humansTurn onlyGroups {
 	    require(approvedToken.transferFrom(msg.sender, address(this), amount), "token transfer to pool failed");
 	    balances[msg.sender].add(amount);
 	}
 	
-	// todo what if a group withdraws just before the botsTurn and others cannot react?
-	// build declare and push. 
+	// Allows group admin to withdraw funds to the group's pool
+	// todo what if a group withdraws just before the botsTurn and others cannot react? 
+	// The protocol protects only bot rights. Let groups decide on their side. 
 	function withdrawFromPool(uint amount) external humansTurn onlyGroups {
 	    _withdraw(msg.sender, amount);
 	}
 	
+	// Allows bot to withdraw it's reward after an attack
 	function withdrawBotReward() external botsTurn onlyUsers  {
 	    _withdraw(msg.sender, balances[msg.sender]);
 	}
@@ -171,9 +202,19 @@ contract UpalaLedger is IUpalaGroup, UpalaTimer{
 	/*******************
 	SCORE AND BOT REWARD
 	********************/
-	
+	/*
+
+	The user score is different for every group. 
+	The score is first calculated off-chain and then approved on-chain.
+	To approve one needs to publish a "path" from the topmost group
+	(the one for which the score is being approved) down to the user. 
+
+	path is an array of addressess. The last address is the user. 
+	*/
+
+
 	// Descends the path in groups hierarchy and calculates user score
-	// the topmost group must be msg.sendet
+	// the topmost group must be msg.sender
 	function calculateScore(address[] calldata path) external view onlyGroups returns (uint8, uint) {
 	    require(path.length !=0, "path too short");
 	    require(path.length <= maxPathLength, "path too long");
@@ -192,9 +233,10 @@ contract UpalaLedger is IUpalaGroup, UpalaTimer{
 		return (member_score, member_score * groups[msg.sender].maxBotReward);
 	}   
 
-	// experimental
-	// Anyone can try to attack, but only those with scores will succeed
-	// todo no nonReentrant
+	// Allows any user to attack any group, run with the money and self-destruct.
+	// Only those with scores will succeed.
+	// todo no nonReentrant?
+	// @note experimental. the exact attack algorithm to be approved later
 	function attack(address[] calldata path) external botsTurn {
 	    
 	    address bot = msg.sender;
@@ -207,6 +249,8 @@ contract UpalaLedger is IUpalaGroup, UpalaTimer{
 	    uint8 user_score = groups[path[path.length-1]].membersScores[bot];
 	    uint totalMaxBotReward = user_score * groups[path[path.length-1]].maxBotReward;
 	    botRewards[path.length-1] = totalMaxBotReward;
+
+	    // todo protect bot rights - do not let explode for free.
 	    
         // calculate all possible bot rewards
     	for (uint i=path.length-2; i<=0; i--) {
@@ -239,7 +283,7 @@ contract UpalaLedger is IUpalaGroup, UpalaTimer{
 	GETTER FUNCTIONS
 	***************/
 	
-	// A member of a group is either a subgroup or a user.
+	// A member of a group is either a roup or a user.
 	function getMemberScore(address group, address member) external view returns (uint8) {
 		if (groups[group].locked == false) {
 			return (groups[group].membersScores[member]);
@@ -262,19 +306,30 @@ contract UpalaLedger is IUpalaGroup, UpalaTimer{
 
 }
 
+/*
+Below is an example of group tool. A family of groups (an Upala friendly identity system)
+may inherit the shared responsibility to introduce social responsibility.
+
+Here member groups buy shares from a superior group. The superior group puts the income 
+to it's pool in the Upala. When a bot attacks, it chopps off the pool and delutes shares value. 
+
+So every member has to watch for other members not to allow bots.
+
+Other group examples (identity systems) are in the ../universe directory
+*/
 contract SharedResponsibility is UpalaTimer {
     using SafeMath for uint256;
 
     
     IERC20 public approvedToken;
-    IUpalaGroup public upala;
+    IUpala public upala;
     
     mapping (address => uint) sharesBalances;
     uint totalShares;
     
     constructor (address _upala, address _approvedToken) public {
 	    approvedToken = IERC20(_approvedToken);
-	    upala = IUpalaGroup(_upala);
+	    upala = IUpala(_upala);
 	    // todo add initial funds
 	    // todo a bankrupt policy? what if balance is 0 or very close to 0, after a botnet attack.
 	    // too much delution problem 
