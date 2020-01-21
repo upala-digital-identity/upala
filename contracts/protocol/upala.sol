@@ -20,6 +20,8 @@ These identity systems will then be compatible.
 Upala-native identity systems are presumed to consist of groups of many levels.
 Each group is a smart contract with arbitary logic.
 
+Another approach is to use commit-reveal scheme. The reveal will have to be made within a specified window.
+
 */
 
 contract IUpala {
