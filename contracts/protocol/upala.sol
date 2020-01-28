@@ -21,7 +21,9 @@ Upala-native identity systems are presumed to consist of groups of many levels.
 Each group is a smart contract with arbitary logic.
 
 Another approach is to use commit-reveal scheme. The reveal will have to be made within a specified window.
-
+https://medium.com/swlh/exploring-commit-reveal-schemes-on-ethereum-c4ff5a777db8
+https://solidity.readthedocs.io/en/v0.5.3/solidity-by-example.html#id2
+https://gitcoin.co/blog/commit-reveal-scheme-on-ethereum/
 */
 
 contract IUpala {
@@ -88,6 +90,10 @@ contract Upala is IUpala, UpalaTimer{
         // A group sets scores to it's members
     	mapping(address => uint8) membersScores;  // 0-100% Personhood; 0 - not a member
         
+    	// Currently investigating:
+    	// maxBotReward is pool size
+    	// membersScores - is the percentage of the pool
+
         // A group may or may become a member of a superior group
         mapping(address => bool) acceptedInvitations;  // true for accepting membership in a superior group
 	}
@@ -362,6 +368,12 @@ contract SharedResponsibility is UpalaTimer {
         return approvedToken.transfer(msg.sender, amount);
     }
 }
+/* 
+Pay royalties down or up the path 
+Check DAI savings rates, aDAI!!!, Compound - how they pay interest
+https://ethresear.ch/t/pooled-payments-scaling-solution-for-one-to-many-transactions/590
+https://medium.com/cardstack/scalable-payment-pools-in-solidity-d97e45fc7c5c
+*/
 
 /* todo consider:
 
