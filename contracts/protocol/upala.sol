@@ -73,9 +73,11 @@ contract Upala is IUpala, UpalaTimer{
     
     IERC20 public approvedToken;    // default = dai
     uint registrationFee = 1 wei;   // spam protection + susteinability
-    uint maxPathLength = 10;        // the maximum depth of hierarchy - ensures attack gas cost is always lower than block maximum.
+
+    // the maximum depth of hierarchy
+    // ensures attack gas cost is always lower than block maximum.
+    uint maxPathLength = 10;
     
-    // Groups
     // Groups are outside contracts with arbitary logic
     struct Group {
         // Locks the contract if it fails to pay a bot
@@ -163,6 +165,7 @@ contract Upala is IUpala, UpalaTimer{
     */
     
     // Sets the maximum possible bot reward for the group.
+    // TODO lock group if exceeds pool
     function setBotReward(uint botReward) external humansTurn onlyGroups {
         groups[msg.sender].botReward = botReward;
     }
@@ -221,42 +224,39 @@ contract Upala is IUpala, UpalaTimer{
     ********************/
     /*
 
-    The user score is different for every group. 
     The score is first calculated off-chain and then approved on-chain.
-    To approve one needs to publish a "path" from the topmost group
-    (the one for which the score is being approved) down to the user. 
-
+    To approve one needs to publish a "path" from ....the topmost group
+    (the one for which the score is being approved) down to the user...reverse
+    TODO
     path is an array of addressess. The last address is the user. 
     */
 
-
-    // Descends the path in groups hierarchy and calculates user score
-    // the topmost group must be msg.sender
-    function calculateScore(address[] calldata path) external view onlyGroups returns (uint8, uint) {
+    function isValidPath(address[] calldata path) returns(bool) internal {
+        // todo what is valid path length
         require(path.length !=0, "path too short");
         require(path.length <= maxPathLength, "path too long");
-        
-        // the topmost group is the msg.sender
-        address group = msg.sender;
 
-        // the second group down the path
-        address member = path[0];
-
-        // try to find the user down the path 
-        // check pools
-        for (uint i=1; i<=path.length-1; i++) {
-            group = path[i-1];
+        // check the path from user to the top
+        for (uint i=0; i<=path.length-2; i++) {
             member = path[i];
-            reqiure(groups[group].botRewardsLimits[member] > ;
-
+            group = path[i+1];
+            reqiure(balances[group] >= groups[group].botReward);
+            reqiure(groups[group].botRewardsLimits[member] >= groups[group].botReward); 
         }
+    }
+    
 
-        // TODO check groups[path[i]].botRewardsLimits, 
+    // Ascends the path in groups hierarchy and confirms user score (path validity)
+    function _memberScore(address[] calldata path) private view returns(uint) {
+        require (isValidPath(path));
+        return groups[path[path.length-1]].botReward;
+    }
 
-        uint8 user_score = groups[group].botReward;
-        
-        return (member_score, member_score * groups[msg.sender].botReward);
-    }   
+    function memberScore(address[] calldata path) external view onlyGroups returns(uint) {
+        // the topmost group must be msg.sender
+        require(path[path.length-1] == msg.sender);
+        return _memberScore(path);
+    }
 
     // Allows any user to attack any group, run with the money and self-destruct.
     // Only those with scores will succeed.
@@ -265,21 +265,22 @@ contract Upala is IUpala, UpalaTimer{
     function attack(address[] calldata path) external botsTurn {
         
         address bot = msg.sender;
+        require(path[0] == bot);
         require(users[bot].exploded == false, "bot already exploded");
-        
-        address topmostGroup = path[0];
 
-        // TODO check path 
-        // TODO check botRewardsLimits
-        uint unpaidBotReward = groups[topmostGroup].botReward;
+        // calculates reward and checks path
+        uint unpaidBotReward = _memberScore(path);
         
         // ascend the path and payout rewards
-        for (uint i=path.length-1; i<=0; i--) {
+        for (uint i=0; i<=path.length-2; i++) {
 
+            member = path[i];
+            group = path[i+1];
+            
             // check if the reward is already payed out
             if (unpaidBotReward > 0) {
 
-                groupBotReward = groups[i].botReward;
+                groupBotReward = groups[group].botReward;
                 
                 if (unpaidBotReward >= groupBotReward) {
                     reward = groupBotReward;
@@ -290,19 +291,12 @@ contract Upala is IUpala, UpalaTimer{
                 }
                 
                 // transfer to user (bot)
-                balances[path[i]].sub(reward);
+                balances[group].sub(reward);
                 balances[bot].add(reward);
 
-                // TODO reduce botRewardsLimits for the member in the sup group
-                // TODO before production make sure the sum is always > 0
+                // reduce botRewardsLimits for the member in the sup group
+                // @dev botRewardsLimits[member] >= botReward is checked when validating path
                 groups[group].botRewardsLimits[member].sub(reward);
-
-                // TODO
-                // group must be able to pay bot rewards for the next attack
-                // penalty for hurting bot rights! (the utmost prerogative!)
-                if (balances[path[i]] < groupBotReward) {
-                    groups[path[i]].locked = true;
-                }
             }
         }
 
