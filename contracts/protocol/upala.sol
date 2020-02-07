@@ -50,6 +50,7 @@ https://solidity.readthedocs.io/en/v0.5.3/solidity-by-example.html#id2
 https://gitcoin.co/blog/commit-reveal-scheme-on-ethereum/
 */
 
+// Depricate in favor of commti-reveal see commitNewBotReward function 
 contract UpalaTimer {
 
     modifier botsTurn() {
@@ -118,6 +119,9 @@ contract Upala is IUpala, UpalaTimer{
     // A user balance is only used for a bot reward. 
     mapping(address => uint) balances;
     
+    // Humans commit changes, this mapping stores hashes and timestamps
+    // Any changes that can hurt bot rights must wait for an hour
+    mapping(bytes32 => uint) commitsTimestamps;
     
     constructor (address _approvedToken) public {
         approvedToken = IERC20(_approvedToken);
@@ -164,23 +168,39 @@ contract Upala is IUpala, UpalaTimer{
     A group may decide to chose a trusted person, or it may make decisions based on voting.
     */
     
-    // Sets the maximum possible bot reward for the group.
-    // TODO lock group if exceeds pool
-    function setBotReward(uint botReward) external humansTurn onlyGroups {
-        groups[msg.sender].botReward = botReward;
+    function commitNewBotReward(uint botReward) external onlyGroups returns(bytes32){
+        // emit NewBotReward
+        bytes32 hash = keccak256(abi.encodePacked(msg.sender, botReward)));
+        commitsTimestamps[hash] = now;
+        return hash;
     }
+
+    // Sets the maximum possible bot reward for the group.
+    // anyone can call this
+    function setBotReward(address group, uint botReward, bytes32 hash) external {
+
+        // check if the commit exists
+        require(commitsTimestamps[hash] != 0);
+        
+        // check if an hour passed
+        require (commitsTimestamps[hash] + 1 hour < now);
+
+        // execute the commit 
+        groups[group].botReward = botReward;
+    }
+
     
     // Sets member scores
     function setBotRewardsLimit(address member, uint8 score) external humansTurn onlyGroups {
         require(member != msg.sender);  // cannot be member of self. todo what about owner? 
-        require(score <= 100);
         groups[msg.sender].botRewardsLimits[member] = score;
     }
     
     // todo try to get rid of it. Try another reward algorith
     // note Hey, with this function we can go down the path
     // + additional spam protection
-    function acceptInvitation(address superiorGroup, bool isAccepted) external humansTurn onlyGroups {
+    // cannot hurt bots rights
+    function acceptInvitation(address superiorGroup, bool isAccepted) external onlyGroups {
         require(superiorGroup != msg.sender);
         groups[msg.sender].acceptedInvitations[superiorGroup] = isAccepted;
     }
@@ -191,7 +211,8 @@ contract Upala is IUpala, UpalaTimer{
     
     // Allows group admin to add funds to the group's pool
     // TODO unlock group
-    function addFunds(uint amount) external humansTurn onlyGroups {
+    // cannot hurt bots rights
+    function addFunds(uint amount) external onlyGroups {
         require(approvedToken.transferFrom(msg.sender, address(this), amount), "token transfer to pool failed");
         balances[msg.sender].add(amount);
     }
