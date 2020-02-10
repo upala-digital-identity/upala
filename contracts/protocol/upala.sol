@@ -38,53 +38,28 @@ contract IUpala {
     function withdrawFromPool(uint) external;
 }
 
-/*
-Bot attacks and contract changes by group dmins go in turn.
-The timet prevents front-runnig bot attack, allows botnets to coordinate. 
-The Upala timer is to be inherited by all Upala groups.
-
-// TODO what if a group withdraws pool every hour and then deposits it back?
-Use commit-reveal scheme? The reveal will have to be made within a specified window.
-https://medium.com/swlh/exploring-commit-reveal-schemes-on-ethereum-c4ff5a777db8
-https://solidity.readthedocs.io/en/v0.5.3/solidity-by-example.html#id2
-https://gitcoin.co/blog/commit-reveal-scheme-on-ethereum/
-*/
-
-// Depricate in favor of commti-reveal see commitNewBotReward function 
-contract UpalaTimer {
-
-    modifier botsTurn() {
-        require(currentMinuteOfTheHour() < 5);
-        _;
-    }
-    
-    modifier humansTurn() {
-        require(currentMinuteOfTheHour() >= 5);
-        _;
-    }
-    
-    function currentMinuteOfTheHour () internal view returns (uint) {
-        return now % 3600 / 60;
-    }
-}
 
 // The Upala ledger (protocol)
 contract Upala is IUpala, UpalaTimer{
     using SafeMath for uint256;
     
     IERC20 public approvedToken;    // default = dai
-    uint registrationFee = 1 wei;   // spam protection + susteinability
+    uint256 registrationFee = 1 wei;   // spam protection + susteinability
 
     // the maximum depth of hierarchy
     // ensures attack gas cost is always lower than block maximum.
-    uint maxPathLength = 10;
+    uint256 maxPathLength = 10;
+
+    // any changes that hurt bots rights must be announced an hou in advance
+    uint attackWindow = 1 hour;
     
     // Groups are outside contracts with arbitary logic
     struct Group {
+        // "locked" bool is depricated
         // Locks the contract if it fails to pay a bot
         // Cryptoeconimic constrain forcing contracts to maintain sufficient pool size
         // Enables contracts to use funds in any way if they are able to pay bot rewards
-        bool locked;
+        // bool locked;
         
         // Ensures that a group can be registered only once
         bool registered;
@@ -92,12 +67,12 @@ contract Upala is IUpala, UpalaTimer{
         // The most important obligation of a group is to pay bot rewards.
         // A group can set its own maximum bot reward
         // Actual bot reward depends on user score
-        uint botReward;
+        uint256 botReward;
         
         // A bot net reward. If a member is a bot net 
         // can be unlimited
         // @dev Used to check membership when calculating score
-        mapping(address => uint8) botRewardsLimits; 
+        mapping(address => uint256) botRewardsLimits; 
 
         // A group may or may become a member of a superior group
         // true for accepting membership in a superior group
@@ -166,36 +141,72 @@ contract Upala is IUpala, UpalaTimer{
     /*
     Group admin - is any entity in control of a group. 
     A group may decide to chose a trusted person, or it may make decisions based on voting.
+
+    https://medium.com/swlh/exploring-commit-reveal-schemes-on-ethereum-c4ff5a777db8
+    https://solidity.readthedocs.io/en/v0.5.3/solidity-by-example.html#id2
+    https://gitcoin.co/blog/commit-reveal-scheme-on-ethereum/
     */
     
-    function commitNewBotReward(uint botReward) external onlyGroups returns(bytes32){
-        // emit NewBotReward
+    function announceNewBotReward(uint botReward) external onlyGroups {
+        
         bytes32 hash = keccak256(abi.encodePacked(msg.sender, botReward)));
         commitsTimestamps[hash] = now;
-        return hash;
+        // emit Announce("NewBotReward", msg.sender, botReward, hash)
+    }
+
+    function announceBotRewardsLimit(address member, uint limit) external onlyGroups {
+        require(member != msg.sender);  // cannot be member of self. todo what about owner? 
+        bytes32 hash = keccak256(abi.encodePacked(msg.sender, member, limit));
+        commitsTimestamps[hash] = now;
+        // emit Announce("NewRewardsLimit", msg.sender, member, limit, hash)
+    }
+
+    // Allows group admin to withdraw funds to the group's pool
+    // TODO what if a group withdraws just before the botsTurn and others cannot react? 
+    // The protocol protects only bot rights. Let groups decide on their side.
+    // TODO add recipient
+    // TODO lock group
+    function announceWithdrawFromPool(uint amount) external onlyGroups {
+        bytes32 hash = keccak256(abi.encodePacked(msg.sender, amount));
+        commitsTimestamps[hash] = now;
+        // emit Announce("NewRewardsLimit", msg.sender, amount, hash)
+    }
+
+
+    // anyone can call the following functions to avoid false announcements
+
+    function checkHash(bytes32 hash) returns(bool) internal view returns(bytes32){
+        // check if the commit exists
+        require(commitsTimestamps[hash] != 0);
+        // check if an hour had passed
+        require (commitsTimestamps[hash] + attackWindow < now);
     }
 
     // Sets the maximum possible bot reward for the group.
-    // anyone can call this
-    function setBotReward(address group, uint botReward, bytes32 hash) external {
-
-        // check if the commit exists
-        require(commitsTimestamps[hash] != 0);
-        
-        // check if an hour passed
-        require (commitsTimestamps[hash] + 1 hour < now);
-
-        // execute the commit 
-        groups[group].botReward = botReward;
+    function setBotReward(address announcer, uint botReward) external {
+        hash = checkHash(keccak256(abi.encodePacked(announcer, botReward)));
+        groups[announcer].botReward = botReward;
+        delete commitsTimestamps[hash];
+        // emit Set("NewBotReward", announcer, botReward)
     }
 
-    
-    // Sets member scores
-    function setBotRewardsLimit(address member, uint8 score) external humansTurn onlyGroups {
-        require(member != msg.sender);  // cannot be member of self. todo what about owner? 
-        groups[msg.sender].botRewardsLimits[member] = score;
+    function setBotRewardsLimit(address announcer, address member, uint limit) external {
+        hash = checkHash(keccak256(abi.encodePacked(announcer, member, limit)));
+        groups[msg.sender].botRewardsLimits[member] = limit;
+        delete commitsTimestamps[hash];
+        // emit Set("BotRewardsLimit", announcer, member, limit)
+    }
+
+    // TODO will fail if insufficient funds
+    function withdrawFromPool(address announcer, uint amount) external {
+        hash = checkHash(keccak256(abi.encodePacked(announcer, amount)));
+        _withdraw(announcer, amount);
+        delete commitsTimestamps[hash];
+        // emit Set("withdrawFromPool", announcer, amount)
     }
     
+
+
     // todo try to get rid of it. Try another reward algorith
     // note Hey, with this function we can go down the path
     // + additional spam protection
@@ -215,18 +226,6 @@ contract Upala is IUpala, UpalaTimer{
     function addFunds(uint amount) external onlyGroups {
         require(approvedToken.transferFrom(msg.sender, address(this), amount), "token transfer to pool failed");
         balances[msg.sender].add(amount);
-    }
-    
-    // Allows group admin to withdraw funds to the group's pool
-    // TODO what if a group withdraws just before the botsTurn and others cannot react? 
-    // The protocol protects only bot rights. Let groups decide on their side.
-    // TODO add recipient
-    // TODO lock group
-
-    // TODO what if a group withdraws pool every hour and then deposits it back?
-
-    function withdrawFromPool(uint amount) external humansTurn onlyGroups {
-        _withdraw(msg.sender, amount);
     }
     
     // Allows bot to withdraw it's reward after an attack
