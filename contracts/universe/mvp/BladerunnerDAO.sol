@@ -85,8 +85,16 @@ contract BladerunnerDAO is UpalaGroup {
         // redirect all income to Upala
     }
 
-    
 
+    // Misc
+    // Failed ragequit due to insufficient funds. 
+    // TODO 
+    function refundShares(address member, uint sharesToRefund) external onlyGuildBank {
+        member.shares = member.shares.add(sharesToRefund);
+        totalShares = totalShares.add(sharesToRefund);
+        emit FailedRageQuit(member, sharesToRefund);
+    }
+    
 
     // move funds to Upala
     // withdraw from Upala  

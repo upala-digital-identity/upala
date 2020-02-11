@@ -40,7 +40,7 @@ contract IUpala {
 
 
 // The Upala ledger (protocol)
-contract Upala is IUpala, UpalaTimer{
+contract Upala is IUpala {
     using SafeMath for uint256;
     
     IERC20 public approvedToken;    // default = dai
@@ -164,15 +164,6 @@ contract Upala is IUpala, UpalaTimer{
         // emit Announce("NewRewardsLimit", msg.sender, member, limit, hash)
     }
 
-    // Allows group admin to withdraw funds to the group's pool
-    // TODO what if a group withdraws just before the botsTurn and others cannot react? 
-    // The protocol protects only bot rights. Let groups decide on their side.
-    // TODO add recipient
-    function announceWithdrawFromPool(uint amount) external onlyGroups { // $$$
-        bytes32 hash = keccak256(abi.encodePacked(msg.sender, amount));
-        commitsTimestamps[hash] = now;
-        // emit Announce("NewRewardsLimit", msg.sender, amount, hash)
-    }
 
 
     // anyone can call the following functions to avoid false announcements
@@ -200,15 +191,6 @@ contract Upala is IUpala, UpalaTimer{
         // emit Set("setBotnetLimit", hash);
     }
 
-    // TODO will fail if insufficient funds
-    function withdrawFromPool(address group, uint amount) external { // $$$
-        hash = checkHash(keccak256(abi.encodePacked(group, amount)));
-        _withdraw(group, amount);
-        delete commitsTimestamps[hash];
-        // emit Set("withdrawFromPool", hash);
-    }
-    
-
 
     // todo try to get rid of it. Try another reward algorith
     // @note Hey, with this function we can go down the path
@@ -221,8 +203,29 @@ contract Upala is IUpala, UpalaTimer{
     
     /********************
     GROUP Pool management
-    ********************/
+
+    UNDER EXPERIMENT - TRYING TO DETACH POOLS FROM THE PROTOCOL
+    functions and lines tagged with $$$ are beign affected
     
+    ********************/
+    // Allows group admin to withdraw funds to the group's pool
+    // TODO what if a group withdraws just before the botsTurn and others cannot react? 
+    // The protocol protects only bot rights. Let groups decide on their side.
+    // TODO add recipient
+    function announceWithdrawFromPool(uint amount) external onlyGroups { // $$$
+        bytes32 hash = keccak256(abi.encodePacked(msg.sender, amount));
+        commitsTimestamps[hash] = now;
+        // emit Announce("NewRewardsLimit", msg.sender, amount, hash)
+    }
+
+    // TODO will fail if insufficient funds
+    function withdrawFromPool(address group, uint amount) external { // $$$
+        hash = checkHash(keccak256(abi.encodePacked(group, amount)));
+        _withdraw(group, amount);
+        delete commitsTimestamps[hash];
+        // emit Set("withdrawFromPool", hash);
+    }
+
     // Allows group admin to add funds to the group's pool
     // TODO unlock group
     // can hurt bots rights?

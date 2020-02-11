@@ -3,6 +3,7 @@ pragma solidity ^0.5.0;
 import "../incentives/group-example.sol";
 import "../mockups/moloch-mock.sol";
 
+// brings all MolochDAO (the deployed one) members into Upala
 contract MolochWrap is UpalaGroup {
     
     
