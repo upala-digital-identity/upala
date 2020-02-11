@@ -61,6 +61,9 @@ contract Upala is IUpala, UpalaTimer{
         // Enables contracts to use funds in any way if they are able to pay bot rewards
         // bool locked;
         
+        // TODO - provide group upgradability  
+        address owner;
+
         // Ensures that a group can be registered only once
         bool registered;
         
@@ -72,17 +75,18 @@ contract Upala is IUpala, UpalaTimer{
         // A bot net reward. If a member is a bot net 
         // can be unlimited
         // @dev Used to check membership when calculating score
-        mapping(address => uint256) botRewardsLimits; 
+        // TODO maybe set in number of bots? N0, let's leave it stake-like
+        mapping(address => uint256) private botnetLimit; // TODO private?
 
         // A group may or may become a member of a superior group
         // true for accepting membership in a superior group
-        mapping(address => bool) acceptedInvitations;  
+        mapping(address => bool) private acceptedInvitations;
     }
     mapping(address => Group) groups;
     
     // Users
     // Ensures that users and groups are different entities
-    // Ensures that an exploded bot will never be able to get score or explode again
+    // Ensures that an exploded bot will never be able to get a score or explode again
     struct User {
         bool registered;
         bool exploded;
@@ -107,7 +111,7 @@ contract Upala is IUpala, UpalaTimer{
     ************************/
     // spam protection 
     // + self sustainability.
-    // +separate Users from Groups
+    // + separates Users from Groups
     
     modifier onlyGroups() {
         require(groups[msg.sender].registered == true);
@@ -147,14 +151,13 @@ contract Upala is IUpala, UpalaTimer{
     https://gitcoin.co/blog/commit-reveal-scheme-on-ethereum/
     */
     
-    function announceNewBotReward(uint botReward) external onlyGroups {
-        
+    function announceBotReward(uint botReward) external onlyGroups {
         bytes32 hash = keccak256(abi.encodePacked(msg.sender, botReward)));
         commitsTimestamps[hash] = now;
         // emit Announce("NewBotReward", msg.sender, botReward, hash)
     }
 
-    function announceBotRewardsLimit(address member, uint limit) external onlyGroups {
+    function announceBotnetLimit(address member, uint limit) external onlyGroups {
         require(member != msg.sender);  // cannot be member of self. todo what about owner? 
         bytes32 hash = keccak256(abi.encodePacked(msg.sender, member, limit));
         commitsTimestamps[hash] = now;
@@ -165,8 +168,7 @@ contract Upala is IUpala, UpalaTimer{
     // TODO what if a group withdraws just before the botsTurn and others cannot react? 
     // The protocol protects only bot rights. Let groups decide on their side.
     // TODO add recipient
-    // TODO lock group
-    function announceWithdrawFromPool(uint amount) external onlyGroups {
+    function announceWithdrawFromPool(uint amount) external onlyGroups { // $$$
         bytes32 hash = keccak256(abi.encodePacked(msg.sender, amount));
         commitsTimestamps[hash] = now;
         // emit Announce("NewRewardsLimit", msg.sender, amount, hash)
@@ -180,37 +182,38 @@ contract Upala is IUpala, UpalaTimer{
         require(commitsTimestamps[hash] != 0);
         // check if an hour had passed
         require (commitsTimestamps[hash] + attackWindow < now);
+        return hash;
     }
 
     // Sets the maximum possible bot reward for the group.
-    function setBotReward(address announcer, uint botReward) external {
-        hash = checkHash(keccak256(abi.encodePacked(announcer, botReward)));
-        groups[announcer].botReward = botReward;
+    function setBotReward(address group, uint botReward) external {
+        hash = checkHash(keccak256(abi.encodePacked(group, botReward)));
+        groups[group].botReward = botReward;
         delete commitsTimestamps[hash];
-        // emit Set("NewBotReward", announcer, botReward)
+        // emit Set("NewBotReward", hash);
     }
 
-    function setBotRewardsLimit(address announcer, address member, uint limit) external {
-        hash = checkHash(keccak256(abi.encodePacked(announcer, member, limit)));
-        groups[msg.sender].botRewardsLimits[member] = limit;
+    function setBotnetLimit(address group, address member, uint limit) external {
+        hash = checkHash(keccak256(abi.encodePacked(group, member, limit)));
+        groups[msg.sender].botnetLimit[member] = limit;
         delete commitsTimestamps[hash];
-        // emit Set("BotRewardsLimit", announcer, member, limit)
+        // emit Set("setBotnetLimit", hash);
     }
 
     // TODO will fail if insufficient funds
-    function withdrawFromPool(address announcer, uint amount) external {
-        hash = checkHash(keccak256(abi.encodePacked(announcer, amount)));
-        _withdraw(announcer, amount);
+    function withdrawFromPool(address group, uint amount) external { // $$$
+        hash = checkHash(keccak256(abi.encodePacked(group, amount)));
+        _withdraw(group, amount);
         delete commitsTimestamps[hash];
-        // emit Set("withdrawFromPool", announcer, amount)
+        // emit Set("withdrawFromPool", hash);
     }
     
 
 
     // todo try to get rid of it. Try another reward algorith
-    // note Hey, with this function we can go down the path
+    // @note Hey, with this function we can go down the path
     // + additional spam protection
-    // cannot hurt bots rights
+    // cannot hurt bots rights?
     function acceptInvitation(address superiorGroup, bool isAccepted) external onlyGroups {
         require(superiorGroup != msg.sender);
         groups[msg.sender].acceptedInvitations[superiorGroup] = isAccepted;
@@ -222,33 +225,36 @@ contract Upala is IUpala, UpalaTimer{
     
     // Allows group admin to add funds to the group's pool
     // TODO unlock group
-    // cannot hurt bots rights
-    function addFunds(uint amount) external onlyGroups {
+    // can hurt bots rights?
+    // can anyone add funds? no. if an intermediary group is low on money a botnet
+    // may redirect it's rewards to fill the pool and thus fund the attack
+    // TODO only groupOwners.
+    function addFunds(uint amount) external onlyGroups { // $$$
         require(approvedToken.transferFrom(msg.sender, address(this), amount), "token transfer to pool failed");
         balances[msg.sender].add(amount);
     }
     
     // Allows bot to withdraw it's reward after an attack
-    function withdrawBotReward() external botsTurn onlyUsers  {
+    function withdrawBotReward() external botsTurn onlyUsers  { // $$$ 
         _withdraw(msg.sender, balances[msg.sender]);
     }
     
-    function _withdraw(address recipient, uint amount) internal {
-        balances[recipient].sub(amount);
-        require(approvedToken.transfer(recipient, amount), "token transfer to bot failed");
+    function _withdraw(address recipient, uint amount) internal {  // $$$ 
+        balances[recipient].sub(amount); 
+        require(approvedToken.transfer(recipient, amount), "token transfer to bot failed"); 
     }
     
     
-    /*******************
-    SCORE AND BOT REWARD
-    ********************/
+    /*********************
+    SCORING AND BOT ATTACK
+    **********************/
     /*
 
     The score is first calculated off-chain and then approved on-chain.
     To approve one needs to publish a "path" from ....the topmost group
-    (the one for which the score is being approved) down to the user...reverse
-    TODO
-    path is an array of addressess. The last address is the user. 
+    (the one for which the score is being approved) down to the user...reversed
+    TODO cooment
+    path is an array of addressess. 
     */
 
     function isValidPath(address[] calldata path) returns(bool) internal {
@@ -256,12 +262,14 @@ contract Upala is IUpala, UpalaTimer{
         require(path.length !=0, "path too short");
         require(path.length <= maxPathLength, "path too long");
 
+        //TODO check invitations?
+
         // check the path from user to the top
         for (uint i=0; i<=path.length-2; i++) {
             member = path[i];
             group = path[i+1];
             reqiure(balances[group] >= groups[group].botReward);
-            reqiure(groups[group].botRewardsLimits[member] >= groups[group].botReward); 
+            reqiure(groups[group].botnetLimit[member] >= groups[group].botReward); 
         }
     }
     
@@ -311,12 +319,12 @@ contract Upala is IUpala, UpalaTimer{
                 }
                 
                 // transfer to user (bot)
-                balances[group].sub(reward);
-                balances[bot].add(reward);
+                balances[group].sub(reward);  // $$$
+                balances[bot].add(reward); // $$$
 
-                // reduce botRewardsLimits for the member in the sup group
-                // @dev botRewardsLimits[member] >= botReward is checked when validating path
-                groups[group].botRewardsLimits[member].sub(reward);
+                // reduce botnetLimit for the member in the sup group
+                // @dev botnetLimit[member] >= botReward is checked when validating path
+                groups[group].botnetLimit[member].sub(reward); // $$$
             }
         }
 
@@ -330,13 +338,14 @@ contract Upala is IUpala, UpalaTimer{
     ***************/
     
     // A member of a group is either a roup or a user.
-    function getBotRewardsLimit(address group, address member) external view returns (uint8) {
-        if (groups[group].locked == false) {
-            return (groups[group].botRewardsLimits[member]);
-        } else {
-            return 0;
-        }
-    }
+    // TODO if public, can outside contracts do without Upala?
+    // function getBotRewardsLimit(address group, address member) external view returns (uint8) {
+    //     if (groups[group].locked == false) {
+    //         return (groups[group].botnetLimit[member]);
+    //     } else {
+    //         return 0;
+    //     }
+    // }
     
     function getBotReward(address group) external view returns (uint) {
         return groups[group].botReward;
@@ -346,72 +355,12 @@ contract Upala is IUpala, UpalaTimer{
         return balances[group];
     }
     
-    function isLocked(address group) external view returns (bool) {
-        return groups[group].locked;
-    }
+    // function isLocked(address group) external view returns (bool) {
+    //     return groups[group].locked;
+    // }
 
 }
 
-/*
-Below is an example of group tool. A family of groups (an Upala friendly identity system)
-may inherit the shared responsibility to introduce social responsibility.
-
-Here member groups buy shares from a superior group. The superior group puts the income 
-to it's pool in the Upala. When a bot attacks, it chopps off the pool and delutes shares value. 
-
-So every member has to watch for other members not to allow bots.
-
-Other group examples (identity systems) are in the ../universe directory
-*/
-contract SharedResponsibility is UpalaTimer {
-    using SafeMath for uint256;
-
-    
-    IERC20 public approvedToken;
-    IUpala public upala;
-    
-    mapping (address => uint) sharesBalances;
-    uint totalShares;
-    
-    constructor (address _upala, address _approvedToken) public {
-        approvedToken = IERC20(_approvedToken);
-        upala = IUpala(_upala);
-        // todo add initial funds
-        // todo a bankrupt policy? what if balance is 0 or very close to 0, after a botnet attack.
-        // too much delution problem 
-    }
-    
-    // share responisibiity by buying SHARES
-    function buyPoolShares(uint payment) external {
-        uint poolSize = upala.getPoolSize(address(this));
-        uint shares = payment.mul(totalShares).div(poolSize);
-        
-        totalShares += shares;
-        sharesBalances[msg.sender] += shares;
-        
-        approvedToken.transferFrom(msg.sender, address(this), payment);
-        upala.addFunds(payment);
-    }
-    
-    function withdrawPoolShares(uint sharesToWithdraw) external returns (bool) {
-        
-        require(sharesBalances[msg.sender] >= sharesToWithdraw);
-        uint poolSize = upala.getPoolSize(address(this));
-        uint amount = poolSize.mul(sharesToWithdraw).div(totalShares);
-        
-        sharesBalances[msg.sender].sub(sharesToWithdraw);
-        totalShares.sub(sharesToWithdraw);
-        
-        upala.withdrawFromPool(amount);
-        return approvedToken.transfer(msg.sender, amount);
-    }
-}
-/* 
-Pay royalties down or up the path 
-Check DAI savings rates, aDAI!!!, Compound - how they pay interest
-https://ethresear.ch/t/pooled-payments-scaling-solution-for-one-to-many-transactions/590
-https://medium.com/cardstack/scalable-payment-pools-in-solidity-d97e45fc7c5c
-*/
 
 /* todo consider:
 
@@ -421,6 +370,7 @@ https://medium.com/cardstack/scalable-payment-pools-in-solidity-d97e45fc7c5c
 - who is the owner? it can set scores and it can be a member
 - restirict pool size changes 
 - transfer user ownership (minimal user contract)
+- Metacartel, moloch, humanity, aragon court, 
 
 done:
 - front-runnig a bot attack
