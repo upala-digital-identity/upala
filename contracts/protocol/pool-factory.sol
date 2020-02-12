@@ -44,10 +44,10 @@ contract GuildBank is Ownable {
 // exposes pool to Upala bot expolision risks
 contract MolochPool is GuildBank {
 
-    // shareholders will have to announce withddrawals first
+    // shareholders will have to announce (request) withdrawals first
     function withdraw(address receiver, uint256 shares, uint256 totalShares) public onlyOwner returns (bool) {
         uint256 amount = approvedToken.balanceOf(address(this)).mul(shares).div(totalShares);
-        emit Withdrawal(receiver, amount);
+        
 
         bytes32 hash = keccak256(abi.encodePacked(receiver, amount));
         // let Upala write hash and time and emit announcement
@@ -59,13 +59,13 @@ contract MolochPool is GuildBank {
     // TODO will fail if insufficient funds - it's ok, wrap it with try/catch
     // shares are burned by moloch before withdrawal, so refund same number of 
     // shares if token transfer fails
-    function withdrawFromPool(address receiver, uint256 shares, uint256 totalShares) external { // $$$
+    function processWithdrawal(address receiver, uint256 shares, uint256 totalShares) external { // $$$
         uint256 amount = approvedToken.balanceOf(address(this)).mul(shares).div(totalShares);
         bytes32 hash = upala.checkHash(keccak256(abi.encodePacked(receiver, amount)));
 
         _withdraw(receiver, amount);
         // on error
-        refundShares(receiver, shares)
+        bladerunner.refundShares(receiver, shares)
 
         upala.deleteHash(hash);
         // emit Set("withdrawFromPool", hash);
@@ -78,6 +78,7 @@ contract MolochPool is GuildBank {
     }
     
     function _withdraw(address recipient, uint amount) internal {  // $$$ 
+        emit Withdrawal(receiver, amount);
         require(approvedToken.transfer(recipient, amount), "token transfer to bot failed");
     }
     

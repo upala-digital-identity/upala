@@ -342,13 +342,11 @@ contract Upala is IUpala {
     
     // A member of a group is either a roup or a user.
     // TODO if public, can outside contracts do without Upala?
-    // function getBotRewardsLimit(address group, address member) external view returns (uint8) {
-    //     if (groups[group].locked == false) {
-    //         return (groups[group].botnetLimit[member]);
-    //     } else {
-    //         return 0;
-    //     }
-    // }
+    // Only group owner can access
+    function getBotnetLimit(address group, address member) external view onlyGroupOwner returns (uint8) {
+        //...
+        return (groups[group].botnetLimit[member]);
+    }
     
     function getBotReward(address group) external view returns (uint) {
         return groups[group].botReward;
