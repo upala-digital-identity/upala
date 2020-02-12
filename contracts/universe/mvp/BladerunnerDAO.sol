@@ -181,7 +181,7 @@ contract BladerunnerDAO is Moloch {
 
     // BladerunnerDAO earns by providing users scores to DApps. 
     function memberScore(address[] calldata path) external returns (uint256) {
-        // redirect all income to Upala
+        // redirect all income to Bladerunners pool
         require(
                 approvedToken.transfer(address(guildBank), scoringFee),
                 "Moloch::processProposal - token transfer to guild bank failed"
@@ -191,9 +191,10 @@ contract BladerunnerDAO is Moloch {
 
 
     // Misc
-    // Failed ragequit due to insufficient funds. 
+    // IF failed ragequit due to insufficient funds. 
     // TODO 
-    function refundShares(address member, uint sharesToRefund) external onlyGuildBank {
+    function refundShares(address member, uint sharesToRefund) external {
+        require (msg.sender == guildBank);
         member.shares = member.shares.add(sharesToRefund);
         totalShares = totalShares.add(sharesToRefund);
         emit FailedRageQuit(member, sharesToRefund);

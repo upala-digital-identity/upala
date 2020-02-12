@@ -17,9 +17,10 @@ way of creating shared responsibility than shares of shares model here
 
 contract molochPoolFactory { 
 
-    function createMolochPool(approvedTokenAddress) external returns (address) {
-      return new MolochPool(approvedTokenAddress);            
+    function createPool(address poolOwner) external returns (address) {
+      return new MolochPool(poolOwner);            
    }
+
 
 contract GuildBank is Ownable {
     using SafeMath for uint256;
@@ -44,6 +45,11 @@ contract GuildBank is Ownable {
 // exposes pool to Upala bot expolision risks
 contract MolochPool is GuildBank {
 
+    // TODO hardcode approved token
+    constructor(address poolOwner, address approvedTokenAddress) public {
+        owner = poolOwner;
+    }
+
     // shareholders will have to announce (request) withdrawals first
     function withdraw(address receiver, uint256 shares, uint256 totalShares) public onlyOwner returns (bool) {
         uint256 amount = approvedToken.balanceOf(address(this)).mul(shares).div(totalShares);
@@ -63,14 +69,21 @@ contract MolochPool is GuildBank {
         uint256 amount = approvedToken.balanceOf(address(this)).mul(shares).div(totalShares);
         bytes32 hash = upala.checkHash(keccak256(abi.encodePacked(receiver, amount)));
 
+        // try {
         _withdraw(receiver, amount);
-        // on error
+        // } catch ("transfer failed") {
         bladerunner.refundShares(receiver, shares)
+        // }
 
         upala.deleteHash(hash);
         // emit Set("withdrawFromPool", hash);
 
     }
+
+    function hasEnoughFunds(uint256 ammount) returns(bool) external view {
+        return (approvedToken.balanceOf(address(this)) >= ammount);
+    }
+    
     
     // bots are getting paid instantly
     function payBotReward(address bot, uint amount) external onlyUpala  { // $$$ 
