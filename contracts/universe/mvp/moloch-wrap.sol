@@ -3,38 +3,29 @@ pragma solidity ^0.5.0;
 import "../incentives/group-example.sol";
 import "../mockups/moloch-mock.sol";
 
-// brings all MolochDAO (the deployed one) members into Upala
+// Upala Group that gathers all MolochDAO (the deployed one) members
 contract MolochWrap is UpalaGroup {
     
-    
     Moloch moloch;
-    IERC20 public approvedToken;
+    uint256 commonLimit = -1;
     
-    mapping ( address => uint256 ) public balances;
-    
-    constructor (address _moloch, address _approvedToken) {
+    constructor (address _moloch) {
         moloch = Moloch(_moloch);
-        approvedToken = IERC20(_approvedToken);
     }
 
     modifier onlyDelegate() {
         require(moloch.members[memberAddressByDelegateKey[msg.sender]].shares > 0, "Moloch::onlyDelegate - not a delegate");
         _;
     }
-
-    function deposit(uint tokens) internal {
-        balances[msg.sender]+= tokens;
-    }
-
-    function isMolochMember(applicant) returns (bool) {
-        return moloch.members[applicant].shares > 0
-    }
     
-    function join() external onlyDelegate {
+    // a delegate attaches their Upala User ID to this group 
+    // make sure that User ID owner (wallet) is under control
+    function attachMyUpalaUserID(address userID) external onlyDelegate {
         require(isMolochMember(msg.sender));
-        require(approvedToken.transferFrom(applicant, address(this), tokenTribute), "Moloch::submitProposal - token transfer failed");
-        
-        balances[msg.sender]+= tokens;
+        upala.announceBotnetLimit(userID, commonLimit);
     }
-    
 }
+
+    // function isMolochMember(applicant) returns (bool) {
+    //     return moloch.members[applicant].shares > 0
+    // }
