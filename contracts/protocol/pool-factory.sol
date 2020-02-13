@@ -17,8 +17,8 @@ way of creating shared responsibility than shares of shares model here
 
 contract molochPoolFactory { 
 
-    function createPool(address poolOwner) external returns (address) {
-      return new MolochPool(poolOwner);            
+    function createPool(address poolOwner, address token) external returns (address) {
+      return new MolochPool(poolOwner);
    }
 
 
@@ -45,9 +45,12 @@ contract GuildBank is Ownable {
 // exposes pool to Upala bot expolision risks
 contract MolochPool is GuildBank {
 
+    // DAO public dao; // owner contract reference
+
     // TODO hardcode approved token
     constructor(address poolOwner, address approvedTokenAddress) public {
         owner = poolOwner;
+        // dao = DAO(poolOwner);
     }
 
     // shareholders will have to announce (request) withdrawals first
@@ -86,7 +89,7 @@ contract MolochPool is GuildBank {
     
     
     // bots are getting paid instantly
-    function payBotReward(address bot, uint amount) external onlyUpala  { // $$$ 
+    function payBotReward(address bot, uint amount) external onlyUpala { // $$$ 
         _withdraw(bot, amount);
     }
     

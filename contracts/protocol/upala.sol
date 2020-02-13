@@ -142,7 +142,8 @@ contract Upala is IUpala {
         _;
     }
 
-    // anyone can call announced functions to avoid false announcements
+    // Used to check announcements
+    // anyone can call announced functions after attack window to avoid false announcements
     function checkHash(bytes32 hash) returns(bool) internal view returns(bytes32){
         // check if the commit exists
         require(commitsTimestamps[hash] != 0);
@@ -306,10 +307,12 @@ contract Upala is IUpala {
     
 
     // Ascends the path in groups hierarchy and confirms user score (path validity)
+    // TODO overflow safe
     function _memberScore(address[] calldata path) private view returns(uint) {
         require (isValidPath(path));
         return groups[path[path.length-1]].botReward;
     }
+
 
     function memberScore(address[] calldata path) external view onlyGroups returns(uint) {
         // the topmost group must be msg.sender

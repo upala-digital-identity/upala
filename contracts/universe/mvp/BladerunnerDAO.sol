@@ -2,7 +2,7 @@ pragma solidity ^0.5.3;
 
 import "../libraries/Moloch.sol";
 
-contract BladerunnerDAO is Moloch {
+contract MolochWithStamps is Moloch {
 
     struct Proposal {
         address proposer; // the member who submitted the proposal
@@ -92,15 +92,15 @@ contract BladerunnerDAO is Moloch {
     }
 }
 
-contract BladerunnerDAO is Moloch {
+// TODO Guilbank ownership
 
-    address upala;
-    address bladerunnerGroup;
+contract BladerunnerDAO is MolochWithStamps {
+
+    Upala upala;
+    address bladerunnerGroupID;
     uint256 scoringFee;
 
     // DAO admin
-
-
 
     function manageManagers(address manager, bool isActive, uint256 proposalIndex) external {
         emergencyManagers[manager] = isActive;
@@ -122,14 +122,23 @@ contract BladerunnerDAO is Moloch {
     } 
 
     // New guildbank
+    // 
     function upgradeBank(address newBank, uint256 proposalIndex) returns(bool) internal {
         bytes32 hash = keccak256(abi.encodePacked("upgradeBank", newBank));
         require(isValidStamp(proposalIndex, hash));
-        guidbank.upgradeGroup(newBank);
+        guildbank = Guilbank(newBank);
+        upala.announceAttachPool(bladerunnerGroupID, guildbank);
         /// .....
 
     }
 
+    // pair with newly created pool
+    function attachPool(address poolCreatedByPoolFactory) onlyUpala external {
+        if (guildBank == address(0x0)) {
+            guildBank = poolCreatedByPoolFactory;
+        }
+    }
+    
 
 
     // Upala GROUP Governed by the DAO:
@@ -199,3 +208,4 @@ contract BladerunnerDAO is Moloch {
         totalShares = totalShares.add(sharesToRefund);
         emit FailedRageQuit(member, sharesToRefund);
     }
+
