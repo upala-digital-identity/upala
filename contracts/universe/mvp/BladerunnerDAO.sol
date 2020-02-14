@@ -96,16 +96,26 @@ contract MolochWithStamps is Moloch {
 
 contract BladerunnerDAO is MolochWithStamps {
 
+    // address of the Upala protocol
     Upala upala;
+
+    // the group ID within Upala
     address bladerunnerGroupID;
+
+    // charge DApps for providing users scores
     uint256 scoringFee;
 
-    // DAO admin
 
+    /*********************************
+    MANAGE THE BLADERUNNERS DAO ITSELF
+    /********************************/
+
+    // emergency managers are allowed to lower bot reward and botnet limit
     function manageManagers(address manager, bool isActive, uint256 proposalIndex) external {
         emergencyManagers[manager] = isActive;
     }
     
+    // set the fee
     function newScoringFee(uint256 newFee, uint256 proposalIndex) external {
         bytes32 hash = keccak256(abi.encodePacked("newScoringFee", newFee));
         require(isValidStamp(proposalIndex, hash));
@@ -118,42 +128,37 @@ contract BladerunnerDAO is MolochWithStamps {
         require(isValidStamp(proposalIndex, hash));
         upala.upgradeGroup(bladerunnerGroup, newDAO);
         /// ....
-
     } 
 
     // New guildbank
-    // 
+    // Is neccessary at initialization
     function upgradeBank(address newBank, uint256 proposalIndex) returns(bool) internal {
         bytes32 hash = keccak256(abi.encodePacked("upgradeBank", newBank));
         require(isValidStamp(proposalIndex, hash));
         guildbank = Guilbank(newBank);
         upala.announceAttachPool(bladerunnerGroupID, guildbank);
         /// .....
-
     }
 
-    // pair with newly created pool
-    function attachPool(address poolCreatedByPoolFactory) onlyUpala external {
-        if (guildBank == address(0x0)) {
-            guildBank = poolCreatedByPoolFactory;
-        }
-    }
-    
 
+    /*****************************
+    MANAGE BLADERUNNER UPALA GROUP
+    /****************************/
 
-    // Upala GROUP Governed by the DAO:
-
+    // managers can only perform allowed direction of changes in parameters
+    // i.e. managers can only decrease bot rewards.
+    // in order to increase the DAO must vote
     function isAuthorized(uint256 proposalIndex, bytes32 hash, bool isManagerAllowed) internal returns (bool) {
        if (isManagerAllowed == true) {
             require (emergencyManagers[msg.sender] == true || isValidStamp(proposalIndex, hash));
         } else {
             require(isValidStamp(proposalIndex, hash));
-        } 
+        }
     }
 
     // Encrease bot reward through a proposal.
     // Emergency manager can decrease bot reward at any time (announce the decrease)
-    function announceBotReward(uint botReward, uint256 proposalIndex) external onlyGroups {
+    function announceBotReward(uint botReward, uint256 proposalIndex) external {
         uint265 currentBotReward = upala.getBotReward(bladerunnerGroup);
         bytes32 hash = keccak256(abi.encodePacked("announceBotReward", botReward));
 
@@ -162,7 +167,7 @@ contract BladerunnerDAO is MolochWithStamps {
         upala.announceBotReward(bladerunnerGroup, botReward);
     }
 
-    function announceBotnetLimit(address member, uint limit, uint256 proposalIndex) external onlyGroups {
+    function announceBotnetLimit(address member, uint limit, uint256 proposalIndex) external {
         uint265 currentBotnetLimit = upala.getBotnetLimit(bladerunnerGroup, member);
         bytes32 hash = keccak256(abi.encodePacked("announceBotnetLimit", member, limit));
 
@@ -171,22 +176,14 @@ contract BladerunnerDAO is MolochWithStamps {
         upala.announceBotnetLimit(bladerunnerGroup, member, limit);
     }
 
-    function acceptInvitation(address superiorGroup, bool isAccepted) external onlyGroups {
+    function acceptInvitation(address superiorGroup, bool isAccepted) external {
         //...
     }
 
 
-    
-
-
-
-
-    // Finance
-    // now funds are managed by the MolochPool - modified GuildBank
-
-    // function addFunds(uint amount) external onlyGroups {}
-    //function announceWithdrawFromPool(uint amount) external onlyGroups {}
-
+    /******
+    SCORING
+    /*****/
 
     // BladerunnerDAO earns by providing users scores to DApps. 
     function memberScore(address[] calldata path) external returns (uint256) {
@@ -199,13 +196,14 @@ contract BladerunnerDAO is MolochWithStamps {
     }
 
 
-    // Misc
+    /*******
+    RAGEQUIT
+    /******/
+
     // IF failed ragequit due to insufficient funds. 
-    // TODO 
     function refundShares(address member, uint sharesToRefund) external {
         require (msg.sender == guildBank);
         member.shares = member.shares.add(sharesToRefund);
         totalShares = totalShares.add(sharesToRefund);
         emit FailedRageQuit(member, sharesToRefund);
     }
-
