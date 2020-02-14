@@ -14,14 +14,8 @@ way of creating shared responsibility than shares of shares model here
 
 */
 
-
-contract molochPoolFactory { 
-
-    function createPool(address poolOwner, address token) external returns (address) {
-      return new MolochPool(poolOwner);
-   }
-
-
+// Original GuildBank
+// TODO move to libraries
 contract GuildBank is Ownable {
     using SafeMath for uint256;
 
@@ -40,6 +34,17 @@ contract GuildBank is Ownable {
     }
 }
 
+// The first (most probably) pool factory to be approved by Upala
+// Creates Upala and Moloch compatible Guilbanks 
+// i.e. the banks that are deliberately vulnerable to bot attacks
+contract molochPoolFactory { 
+
+    function createPool(address poolOwner, address token) external returns (address) {
+      return new MolochPool(poolOwner);
+   }
+}
+
+
 // same as GuildBank but withdrawals are delayed
 // bots can withdraw at any time. 
 // exposes pool to Upala bot expolision risks
@@ -53,49 +58,47 @@ contract MolochPool is GuildBank {
         // dao = DAO(poolOwner);
     }
 
+    // modified original guildbank withdrawal
     // shareholders will have to announce (request) withdrawals first
     function withdraw(address receiver, uint256 shares, uint256 totalShares) public onlyOwner returns (bool) {
         uint256 amount = approvedToken.balanceOf(address(this)).mul(shares).div(totalShares);
-        
-
         bytes32 hash = keccak256(abi.encodePacked(receiver, amount));
         // let Upala write hash and time and emit announcement
         upala.announceWithdrawal(receiver, amount, hash); 
 
-        return true;  // TODO remove
+        return true;  // TODO remove?
     }
 
-    // TODO will fail if insufficient funds - it's ok, wrap it with try/catch
     // shares are burned by moloch before withdrawal, so refund same number of 
-    // shares if token transfer fails
-    function processWithdrawal(address receiver, uint256 shares, uint256 totalShares) external { // $$$
-        uint256 amount = approvedToken.balanceOf(address(this)).mul(shares).div(totalShares);
-        bytes32 hash = upala.checkHash(keccak256(abi.encodePacked(receiver, amount)));
-
-        // try {
-        _withdraw(receiver, amount);
-        // } catch ("transfer failed") {
-        bladerunner.refundShares(receiver, shares)
-        // }
-
-        upala.deleteHash(hash);
-        // emit Set("withdrawFromPool", hash);
-
+    // shares if amount < balance)
+    function tryWithdrawal(address receiver, uint amount) external onlyUpala returns (uint) {
+        uint256 balance = approvedToken.balanceOf(address(this));
+        // try to withdraw as much as possible
+        if (balance >= amount) {
+            _withdraw(receiver, amount);
+            return amount;
+        } else {
+            _withdraw(receiver, balance);
+            // TODO calc shares as if withdrawal is done before announcement
+            bladerunner.refundShares(receiver, shares);
+            return balance;
+        }
     }
-
-    function hasEnoughFunds(uint256 ammount) returns(bool) external view {
-        return (approvedToken.balanceOf(address(this)) >= ammount);
-    }
-    
     
     // bots are getting paid instantly
     function payBotReward(address bot, uint amount) external onlyUpala { // $$$ 
         _withdraw(bot, amount);
+        // TODO
+        // return (result, error)
     }
     
     function _withdraw(address recipient, uint amount) internal {  // $$$ 
         emit Withdrawal(receiver, amount);
         require(approvedToken.transfer(recipient, amount), "token transfer to bot failed");
     }
-    
+
+
+    function hasEnoughFunds(uint256 ammount) returns(bool) external view {
+        return (approvedToken.balanceOf(address(this)) >= ammount);
+    }
 }
