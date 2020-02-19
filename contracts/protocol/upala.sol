@@ -53,6 +53,9 @@ contract Upala is IUpala {
     // any changes that hurt bots rights must be announced an hour in advance
     uint attackWindow = 1 hour;
     
+    // keep track of new groups, users and pools ids
+    uint256 entityCounter;
+
     // Groups are outside contracts with arbitary logic
     struct Group {
 
@@ -84,6 +87,7 @@ contract Upala is IUpala {
     // Users
     // Ensures that users and groups are different entities
     // Ensures that an exploded bot will never be able to get a score or explode again
+    // Human, Individual, Identity
     struct User {
         bool exploded;
         address owner;  // wallet
@@ -140,34 +144,26 @@ contract Upala is IUpala {
     /*******************************
     REGISTER GROUPS, USERS AND POOLS
     ********************************/
-
-    function isValidEntityAddress(address newEntity) external returns (bool) {
-        require(newEntity != address(0x0));
-        require(groups[newEntity].owner == address(0x0));
-        require(users[newEntity].owner == address(0x0));
-        require(approvedPools[newEntity] == false);
-        require (approvedPoolFactories[newEntity] == false);
-        
-        return true;
+    
+    // Nonce is enough, the address is used for internal housekeeping only
+    function newEntityID() external returns (address) {
+        entityCounter++;
+        // TODO do we need an address or just uint160?
+        return address(uint160(uint(keccak256(abi.encodePacked(entityCounter)))));
     }
     
-    function newGroup(address newGroup, address groupOwner) external payable {
+    function newGroup(address groupOwner) external payable {
         require(msg.value == registrationFee);
-        require(isValidEntityAddress(newGroup));
-        // require(IGroup(newGroup).isGroup);
-        
-        groups[newGroup].owner == groupOwner;
+        groups[newEntityID()].owner == groupOwner;
     }
 
-    function newUser(address newUser, address userOwner) external payable {
+    function newUser(address userOwner) external payable {
         require(msg.value == registrationFee);
-        require(isValidEntityAddress(newUser));
-        // require(IUser(newGroup).isUser); 
-
-        users[newUser].owner == userOwner;
+        users[newEntityID()].owner == userOwner;
     }
 
     // created by approved pool factories
+    // tokens are only stable USDs
     function newPool(address poolFactory, address poolOwner, address token) external payable {
         require(msg.value == registrationFee);
         require(approvedPoolFactories[poolFactory] == true);
@@ -286,7 +282,6 @@ contract Upala is IUpala {
 
 
 
-    
     /*********************
     SCORING AND BOT ATTACK
     **********************/
