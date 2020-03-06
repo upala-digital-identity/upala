@@ -2,27 +2,25 @@ pragma solidity ^0.5.0;
 
 import "../incentives/group-example.sol";
 
-contract DApp {
+contract UBIExampleDApp {
     
-    ScoreProvider scoreProviderContract;
+    ScoreProvider scoreProviderContract;  // e.g. BladerunnerDAO
+    UBITokenContract tokenContract;
+
+    MINIMAL_SCORE = 1 * 10 ** 18;  // 1 DAI
+    UBI = 1 * 10 ** 18;  // 1 DAI
+
+    mapping (address => bool) claimed;
     
     constructor (address _userScoreProvider) public {
         scoreProviderContract = ScoreProvider(_userScoreProvider);
     }
-    
-    function voteWeight(address[] calldata _path) external returns (uint8) {
-        return scoreProviderContract.getUserScore(msg.sender, _path);  // payable
-    }
-    
-    function userFriendly() external returns (uint8) {
-        return scoreProviderContract.getUserScoreCached(msg.sender);
-    }
-}
 
-
-// 
-contract DAppAsAGroup is UpalaGroup {
-    function voteWeight(address[] calldata _path) external view returns (uint8) {
-        return calculateScore(msg.sender, _path);  // payable
+    function claimUBI(address[] calldata _path) external {
+        require (claimed[_path[0]] == false);
+        address wallet = msg.sender;
+        if (scoreProviderContract.memberScore(_path, wallet) >= MINIMAL_SCORE) {
+            require(tokenContract.transfer(wallet, UBI));
+        }
     }
 }
