@@ -1,4 +1,4 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.6.0;
 
 /*/// WARNING
 
@@ -13,9 +13,9 @@ import "../oz/math/SafeMath.sol";
 
 /*
 
-The Upala contract is the protocol itself. 
-Identity systems can use this contract to comply with universal bot explosion rules. 
-These identity systems will then be compatible. 
+The Upala contract is the protocol itself.
+Identity systems can use this contract to comply with universal bot explosion rules.
+These identity systems will then be compatible.
 
 Upala-native identity systems are presumed to consist of groups of many levels.
 Each group is a smart contract with arbitary logic.
@@ -25,15 +25,15 @@ Each group is a smart contract with arbitary logic.
 
 contract IUpala {
 
-    function getBotReward(address) external view returns (uint) ;
+    function getBotReward(address) external view returns (uint);
     function getPoolSize(address) external view returns (uint);
     function isLocked(address) external view returns (bool);
 
     function getBotRewardsLimit(address, address) external view returns (uint8);
 
-    function attack(address[] calldata, address payable, uint) external;
+    function attack(uint160[] calldata, address payable, uint) external;
     // function rageQuit() external;
-    
+
     function addFunds(uint) external;
     function withdrawFromPool(uint) external;
 }
@@ -42,7 +42,7 @@ contract IUpala {
 // The Upala ledger (protocol)
 contract Upala is IUpala {
     using SafeMath for uint256;
-    
+
     IERC20 public approvedToken;    // default = dai
     uint256 registrationFee = 1 wei;   // spam protection + susteinability
 
@@ -51,91 +51,91 @@ contract Upala is IUpala {
     uint256 maxPathLength = 10;
 
     // any changes that hurt bots rights must be announced an hour in advance
-    uint attackWindow = 1 hour;
-    
-    // keep track of new groups, users and pools ids
-    uint256 entityCounter;
+    uint attackWindow = 1 hours;
+
+    // keep track of new groups, identities and pools ids
+    uint160 identitiesCounter;
+    uint160 groupsCounter;
 
     // Groups are outside contracts with arbitary logic
     struct Group {
 
-        // A group address within Upala is permanent. Ownership provides group upgradability  
-        address owner;
+        // A group address within Upala is permanent. Ownership provides group upgradability
 
         // Pools are created by Upala-approved pool factories
         // Each group may manage their own pool in their own way.
-        // But they must be made deliberately vulnerable to bot attacks 
+        // But they must be made deliberately vulnerable to bot attacks
         address pool;
 
         // The most important obligation of a group is to pay bot rewards.
         // A group can set its own maximum bot reward
-        // Actual bot reward depends on user score? TODO or maybe not.
+        // Actual bot reward depends on identity score? TODO or maybe not.
         uint256 botReward;
-        
+
         // A bot net reward. Limits maximum bot rewards for a group member
         // can be unlimited.
         // @dev Used to check membership when calculating score
-        mapping(address => uint256) private botnetLimit; // TODO private?
+        mapping(address => uint256) botnetLimit;
 
         // A group may or may become a member of a superior group
         // true for accepting membership in a superior group
-        mapping(address => bool) private acceptedInvitations;
+        mapping(address => bool) acceptedInvitations;
     }
     // These addresses are permanent. Serve as IDs.
     mapping(address => Group) groups;
-    
-    // Users
-    // Ensures that users and groups are different entities
+
+    // Identities
+    // Ensures that identities and groups are different entities
     // Ensures that an exploded bot will never be able to get a score or explode again
     // Human, Individual, Identity
-    struct User {
+    struct Identity {
         bool exploded;
-        address owner;  // wallet
+        address manager;  // wallet, manager, owner
     }
-    mapping(address => User) users;
-    
+    mapping(address => Identity) identities;
+
     // Internal Accounting - deprecated
     // A group's balance is its pool. Pools are deliberately vulnerable to bot attacks. W
-    // A user balance is only used for a bot reward. 
+    // A identity balance is only used for a bot reward.
     // mapping(address => uint) balances;
-    
+
     // Humans commit changes, this mapping stores hashes and timestamps
     // Any changes that can hurt bot rights must wait for an hour
     mapping(bytes32 => uint) commitsTimestamps;
-    
+
     // Managed by Upala admin
     mapping(address => bool) approvedPoolFactories;
 
     // Every pool spawned by approved Pool Factories
     mapping(address => bool) approvedPools;
-    
+
 
     constructor (address _approvedToken) public {
         approvedToken = IERC20(_approvedToken);
     }
-    
 
-    // spam protection 
+
+    // spam protection
     // + self sustainability.
-    // + separates Users from Groups
-    
-    modifier onlyGroups() {
-        require(groups[msg.sender].registered == true);
-        _;
-    }
-    
-    // modifier onlyUsers() {
-    //     require(users[msg.sender].registered == true);
+    // + separates Identities from Groups
+
+    // modifier onlyGroups() {
+    //     require(groups[msg.sender].registered == true);
     //     _;
     // }
 
-    modifier onlyGroupOwner(address group) {
-        require(groups[group].owner == msg.sender);
+    // modifier onlyIdentities() {
+    //     require(identities[msg.sender].registered == true);
+    //     _;
+    // }
+
+    modifier onlyGroupManager(address group) {
+        require(groups[group].manager == msg.sender);
         _;
     }
 
-    modifier onlyUserOwner(address user) {
-        require(groups[user].owner == msg.sender);
+    modifier onlyIdentityManager(address identity) {
+        require(groups[identity].manager == msg.sender);
         _;
     }
 
@@ -144,39 +144,37 @@ contract Upala is IUpala {
     /*******************************
     REGISTER GROUPS, USERS AND POOLS
     ********************************/
-    
-    // Nonce is enough, the address is used for internal housekeeping only
-    function newEntityID() external returns (address) {
-        entityCounter++;
-        // TODO do we need an address or just uint160?
-        return address(uint160(uint(keccak256(abi.encodePacked(entityCounter)))));
-    }
-    
-    function newGroup(address groupOwner) external payable {
-        require(msg.value == registrationFee);
-        groups[newEntityID()].owner == groupOwner;
+
+    function newGroup(address groupManager) external payable returns (uint160) {
+        require(msg.value == registrationFee);  // draft
+        groupsCounter++;
+        groups[groupsCounter].manager = groupManager;
+        return groupsCounter;
     }
 
-    function newUser(address userOwner) external payable {
-        require(msg.value == registrationFee);
-        users[newEntityID()].owner == userOwner;
+    function newIdentity(address identityManager) external payable returns (uint160) {
+        require(msg.value == registrationFee);  // draft
+        identitiesCounter++;
+        identities[identitiesCounter].manager = identityManager;
+        return identitiesCounter;
     }
 
     // created by approved pool factories
     // tokens are only stable USDs
-    function newPool(address poolFactory, address poolOwner, address token) external payable {
-        require(msg.value == registrationFee);
+    function newPool(address poolFactory, address poolOwner, address token) external payable returns (address) {
+        require(msg.value == registrationFee);  // draft
         require(approvedPoolFactories[poolFactory] == true);
-        address newPool = poolFactory.createPool(poolOwner, token);
-        approvedPools[newPool] == true;
+        address newPoolAddress = poolFactory.createPool(poolOwner, token);
+        approvedPools[newPoolAddress] = true;
+        return newPoolAddress;
     }
 
-    function transferGroupOwnership(address group, address newOwner) external onlyGroupOwner(group) {
-        groups[group].owner = newOwner;
+    function setGroupManager(address group, address newGroupManager) external onlyGroupManager(group) {
+        groups[group].manager = newGroupManager;
     }
 
-    function transferUserOwnership(address user, address newOwner)  external onlyUserOwner(user) {
-        users[user].owner = newOwner;
+    function setIdentityManager(address identity, address newIdentityManager)  external onlyIdentityManager(identity) {
+        identities[identity].manager = newIdentityManager;
     }
 
 
@@ -195,7 +193,7 @@ contract Upala is IUpala {
     // Used to check announcements
     // anyone can call announced functions after attack window to avoid false announcements
     // TODO hmmm... do we need to hash annoucements it all?
-    function checkHash(bytes32 hash) returns(bool) internal view returns(bytes32){
+    function checkHash(bytes32 hash) internal view returns(bytes32){
         // check if the commit exists
         require(commitsTimestamps[hash] != 0);
         // check if an hour had passed
@@ -203,27 +201,27 @@ contract Upala is IUpala {
         return hash;
     }
 
-    function announceBotReward(address group, uint botReward) external onlyGroupOwner(group) {
-        bytes32 hash = keccak256(abi.encodePacked("setBotReward", msg.sender, botReward)));
+    function announceBotReward(address group, uint botReward) external onlyGroupManager(group) {
+        bytes32 hash = keccak256(abi.encodePacked("setBotReward", msg.sender, botReward));
         commitsTimestamps[hash] = now;
         // emit Announce("NewBotReward", msg.sender, botReward, hash)
     }
 
-    function announceBotnetLimit(address group, address member, uint limit) external onlyGroupOwner(group) {
-        require(member != msg.sender);  // cannot be member of self. todo what about owner? 
+    function announceBotnetLimit(address group, address member, uint limit) external onlyGroupManager(group) {
+        require(member != msg.sender);  // cannot be member of self. todo what about manager? 
         bytes32 hash = keccak256(abi.encodePacked("setBotnetLimit", msg.sender, member, limit));
         commitsTimestamps[hash] = now;
         // emit Announce("NewRewardsLimit", msg.sender, member, limit, hash)
     }
 
-    function announceAttachPool(address group, address group, address pool) external onlyGroupOwner(group) {
+    function announceAttachPool(address group, address group, address pool) external onlyGroupManager(group) {
         require(approvedPools[pool] == true);
-        bytes32 hash = keccak256(abi.encodePacked("attachPool", group, pool)));
+        bytes32 hash = keccak256(abi.encodePacked("attachPool", group, pool));
         commitsTimestamps[hash] = now;
     }
 
     // TODO add recipient?
-    function announceWithdrawFromPool(address group, address recipient, uint amount) external onlyGroupOwner(group) { // $$$
+    function announceWithdrawFromPool(address group, address recipient, uint amount) external onlyGroupManager(group) { // $$$
         bytes32 hash = keccak256(abi.encodePacked("withdrawFromPool", group, recipient, amount));
         commitsTimestamps[hash] = now;
         // emit Announce("NewRewardsLimit", msg.sender, amount, hash)
@@ -240,7 +238,8 @@ contract Upala is IUpala {
     A group may decide to chose a trusted person, or it may make decisions based on voting.*/
 
 
-    /*Functions that may hurt bots rights*/
+    /*Changes that may hurt bots rights*/
+    // anyone can call pre-announced functions after the attack window to avoid false announcements
 
     // Sets the maximum possible bot reward for the group.
     function setBotReward(address group, uint botReward) external {
@@ -266,16 +265,16 @@ contract Upala is IUpala {
     // this may fail due to insufficient funds. TODO what to do?
     function withdrawFromPool(address group, address recipient, uint amount) external { // $$$
         hash = checkHash(keccak256(abi.encodePacked("withdrawFromPool", group, recipient, amount)));
-        // try to withdraw as much as possible (bots could have attacked after announcement)
+        // tries to withdraw as much as possible (bots could have attacked after an announcement)
         withdrawed = groups[group].pool.tryWithdrawal(recipient, amount);
         delete commitsTimestamps[hash];
         // emit Set("withdrawFromPool", withdrawed);
     }
 
-    /*Cannot hurt bots rights*/
+    /*Changes that cannot hurt bots rights*/
 
     // + additional spam protection
-    function acceptInvitation(address group, address superiorGroup, bool isAccepted) external onlyGroupOwner(group) {
+    function acceptInvitation(address group, address superiorGroup, bool isAccepted) external onlyGroupManager(group) {
         require(superiorGroup != msg.sender);
         groups[msg.sender].acceptedInvitations[superiorGroup] = isAccepted;
     }
@@ -288,19 +287,19 @@ contract Upala is IUpala {
     /*
     The score is first calculated off-chain and then approved on-chain.
     To approve one needs to publish a "path" from ....the topmost group
-    (the one for which the score is being approved) down to the user...reversed
+    (the one for which the score is being approved) down to the identity...reversed
     TODO cooment
     path is an array of addressess. 
     */
 
-    function _isValidPath(address[] calldata path) internal returns(bool) {
+    function _isValidPath(uint160[] calldata path) internal returns(bool) {
         // todo what is valid path length
         require(path.length !=0, "path too short");
         require(path.length <= maxPathLength, "path too long");
 
         //TODO check invitations?
 
-        // check the path from user to the top
+        // check the path from identity to the top
         for (uint i=0; i<=path.length-2; i++) {
             member = path[i];
             group = path[i+1];
@@ -312,29 +311,32 @@ contract Upala is IUpala {
     }
     
 
-    // Ascends the path in groups hierarchy and confirms user score (path validity)
+    // Ascends the path in groups hierarchy and confirms identity score (path validity)
     // TODO overflow safe
-    function _memberScore(address[] calldata path) private view returns(uint) {
+    function _memberScore(uint160[] calldata path) private view returns(uint) {
         require (_isValidPath(path));
         return groups[path[path.length-1]].botReward;
     }
 
-
-    function memberScore(address[] calldata path) external view onlyGroups returns(uint) {
-        // the topmost group must be msg.sender
-        require(path[path.length-1] == msg.sender);
+    
+    function memberScore(uint160[] calldata path) 
+        external 
+        view 
+        onlyGroupManager(path[path.length-1])  // the last group in path must be managed by the msg.sender
+        returns(uint) 
+    {
         return _memberScore(path);
     }
 
-    // Allows any user to attack any group, run with the money and self-destruct.
+    // Allows any identity to attack any group, run with the money and self-destruct.
     // Only those with scores will succeed.
     // todo no nonReentrant?
     // @note experimental. the exact attack algorithm to be approved later
-    function attack(address[] calldata path) external {
+    function attack(uint160[] calldata path) external {
         
         address bot = msg.sender;
         require(path[0] == bot);
-        require(users[bot].exploded == false, "bot already exploded");
+        require(identities[bot].exploded == false, "bot already exploded");
 
         // calculates reward and checks path
         uint unpaidBotReward = _memberScore(path);
@@ -358,7 +360,7 @@ contract Upala is IUpala {
                     unpaidBotReward = 0;
                 }
                 
-                // transfer to user (bot)
+                // transfer to identity (bot)
                 // balances[group].sub(reward);  // $$$
                 // balances[bot].add(reward); // $$$
                 groups[group].pool.payBotReward(bot, reward);
@@ -370,7 +372,7 @@ contract Upala is IUpala {
         }
 
         // explode
-        users[bot].exploded = true;
+        identities[bot].exploded = true;
     }
 
     
@@ -378,10 +380,10 @@ contract Upala is IUpala {
     GETTER FUNCTIONS
     ***************/
     
-    // A member of a group is either a roup or a user.
+    // A member of a group is either a group or an identity.
     // TODO if public, can outside contracts do without Upala?
-    // Only group owner can access
-    function getBotnetLimit(address group, address member) external view onlyGroupOwner returns (uint8) {
+    // Only group manager can access
+    function getBotnetLimit(address group, address member) external view onlyGroupManager returns (uint8) {
         //...
         return (groups[group].botnetLimit[member]);
     }
@@ -414,9 +416,9 @@ contract Upala is IUpala {
 - gas costs for calculation and for the attack (consider path length limitation)
 - invitations. what if a very expensive group adds a cheap group. Many could decide to explode
 - loops in social graphs. is nonReentrant enough?
-- who is the owner? it can set scores and it can be a member
+- who is the manager? it can set scores and it can be a member
 - restirict pool size changes 
-- transfer user ownership (minimal user contract)
+- transfer identity ownership (minimal identity contract)
 - Metacartel, moloch, humanity, aragon court, 
 
 done:

@@ -20,11 +20,12 @@ contract MinimalWallet is Ownable {
         upala.attack(atackPath);
     }
 
-    function applyForMembership(address group) returns(bool res) external onlyOwner {
-        IGroup(group).join;
-    }
-
     function acceptInvitation(address superiorGroup, bool isAccepted) external onlyOwner {
         upala.acceptInvitation(superiorGroup, isAccepted);
+        if (isAccepted == true) {
+            IGroup(superiorGroup).join;  // notify the group
+        } else {
+            IGroup(superiorGroup).leave;  // notify the group
+        }
     }
 }
