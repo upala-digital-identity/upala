@@ -93,10 +93,11 @@ contract MolochWithStamps is Moloch {
 }
 
 // TODO Guilbank ownership
-
+// TODO proposalDeposit 
 contract BladerunnerDAO is MolochWithStamps {
 
     // address of the Upala protocol
+    // now it works as a guildBank
     Upala upala;
 
     // the group ID within Upala
@@ -194,11 +195,48 @@ contract BladerunnerDAO is MolochWithStamps {
             );
         return upala.memberScore(path);
     }
+    
+    // getUserScore(msg.sender, _path);  // payable
+    // getUserScoreCached(msg.sender);
 
 
     /*******
     RAGEQUIT
     /******/
+    function ragequit(uint256 sharesToBurn) public onlyMember {
+        uint256 initialTotalShares = totalShares;
+
+        Member storage member = members[msg.sender];
+
+        require(member.shares >= sharesToBurn, "Moloch::ragequit - insufficient shares");
+
+        require(canRagequit(member.highestIndexYesVote), "Moloch::ragequit - cant ragequit until highest index proposal member voted YES on is processed");
+
+        // burn shares
+        member.shares = member.shares.sub(sharesToBurn);
+        totalShares = totalShares.sub(sharesToBurn);
+
+        // instruct guildBank to transfer fair share of tokens to the ragequitter
+        // modified. guildBank is now under Upala protocol control
+        require(
+            _withdraw(msg.sender, sharesToBurn, initialTotalShares),
+            "Moloch::ragequit - withdrawal of tokens from guildBank failed"
+        );
+
+        emit Ragequit(msg.sender, sharesToBurn);
+    }
+
+    // modified original guildbank withdrawal
+    // shareholders will have to announce (request) withdrawals first
+    function _withdraw(address receiver, uint256 shares, uint256 totalShares) private returns (bool) {
+        uint256 amount = approvedToken.balanceOf(address(this)).mul(shares).div(totalShares);
+        bytes32 nonce = upala.announceWithdrawal(groupManager, receiver, amount);
+        // TODO hash with nonce
+        // TODO let member refund shares if insufficient funds
+        requested[nonce] = amount;  
+
+        return true;  // TODO remove?
+    }
 
     // IF failed ragequit due to insufficient funds. 
     function refundShares(address member, uint sharesToRefund) external {
