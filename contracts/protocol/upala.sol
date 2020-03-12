@@ -93,6 +93,7 @@ contract Upala is IUpala {
 
         // Queue of execution? experiment
         uint256 annoucementNonce;
+        uint256 lastExecutedAnnouncement;
     }
     // These addresses are permanent. Serve as IDs.
     mapping(address => Group) groups;
@@ -207,31 +208,39 @@ contract Upala is IUpala {
         return hash;
     }
 
-    function announceBotReward(address group, uint botReward) external onlyGroupManager(group) {
-        bytes32 hash = keccak256(abi.encodePacked("setBotReward", msg.sender, botReward));
+    function announceBotReward(address group, uint botReward) external onlyGroupManager(group) returns (uint256) {
+        groups[group].annoucementNonce++;
+        bytes32 hash = keccak256(abi.encodePacked("setBotReward", msg.sender, botReward, groups[group].annoucementNonce));
         commitsTimestamps[hash] = now;
         // emit Announce("NewBotReward", msg.sender, botReward, hash)
+        return groups[group].annoucementNonce;
     }
 
-    function announceBotnetLimit(address group, address member, uint limit) external onlyGroupManager(group) {
+    function announceBotnetLimit(address group, address member, uint limit) external onlyGroupManager(group) returns (uint256) {
         require(member != msg.sender);  // cannot be member of self. todo what about manager?
-        bytes32 hash = keccak256(abi.encodePacked("setBotnetLimit", msg.sender, member, limit));
+        groups[group].annoucementNonce++;
+        bytes32 hash = keccak256(abi.encodePacked("setBotnetLimit", msg.sender, member, limit, groups[group].annoucementNonce));
         commitsTimestamps[hash] = now;
         // emit Announce("NewRewardsLimit", msg.sender, member, limit, hash)
+        return groups[group].annoucementNonce;
     }
 
-    function announceAttachPool(address group, address pool) external onlyGroupManager(group) {
+    function announceAttachPool(address group, address pool) external onlyGroupManager(group) returns (uint256) {
         require(approvedPools[pool] == true);
-        bytes32 hash = keccak256(abi.encodePacked("attachPool", group, pool));
+        groups[group].annoucementNonce++;
+        bytes32 hash = keccak256(abi.encodePacked("attachPool", group, pool, groups[group].annoucementNonce));
         commitsTimestamps[hash] = now;
+        return groups[group].annoucementNonce;
     }
 
     // TODO add recipient?
     // TODO only one active annoucement of a type? A group may generate many announcements in advance.
-    function announceWithdrawFromPool(address group, address recipient, uint amount) external onlyGroupManager(group) { // $$$
-        bytes32 hash = keccak256(abi.encodePacked("withdrawFromPool", group, recipient, amount));
+    function announceWithdrawFromPool(address group, address recipient, uint amount) external onlyGroupManager(group) returns (uint256) { // $$$
+        groups[group].annoucementNonce++;
+        bytes32 hash = keccak256(abi.encodePacked("withdrawFromPool", group, recipient, amount, groups[group].annoucementNonce));
         commitsTimestamps[hash] = now;
         // emit Announce("NewRewardsLimit", msg.sender, amount, hash)
+        return groups[group].annoucementNonce;
     }
 
 
@@ -248,32 +257,38 @@ contract Upala is IUpala {
     /*Changes that may hurt bots rights*/
     // anyone can call pre-announced functions after the attack window to avoid false announcements
 
+    // TODO function executeNextAnnouncement(uint160 group) external {}
+
     // Sets the maximum possible bot reward for the group.
     function setBotReward(address group, uint botReward) external {
-        hash = checkHash(keccak256(abi.encodePacked("setBotReward", group, botReward)));
+        groups[group].lastExecutedAnnouncement++;
+        hash = checkHash(keccak256(abi.encodePacked("setBotReward", group, botReward,groups[group].lastExecutedAnnouncement)));
         groups[group].botReward = botReward;
         delete commitsTimestamps[hash];
         // emit Set("NewBotReward", hash);
     }
 
     function setBotnetLimit(address group, address member, uint limit) external {
-        hash = checkHash(keccak256(abi.encodePacked("setBotnetLimit", group, member, limit)));
+        groups[group].lastExecutedAnnouncement++;
+        hash = checkHash(keccak256(abi.encodePacked("setBotnetLimit", group, member, limit, groups[group].lastExecutedAnnouncement)));
         groups[msg.sender].botnetLimit[member] = limit;
         delete commitsTimestamps[hash];
         // emit Set("setBotnetLimit", hash);
     }
 
     function attachPool(address group, address pool) external {
-        hash = checkHash(keccak256(abi.encodePacked("attachPool", group, pool)));
+        groups[group].lastExecutedAnnouncement++;
+        hash = checkHash(keccak256(abi.encodePacked("attachPool", group, pool, groups[group].lastExecutedAnnouncement)));
         groups[group].pool = pool;
         delete commitsTimestamps[hash];
     }
 
     // this may fail due to insufficient funds. TODO what to do?
     function withdrawFromPool(address group, address recipient, uint amount) external { // $$$
-        hash = checkHash(keccak256(abi.encodePacked("withdrawFromPool", group, recipient, amount)));
+        groups[group].lastExecutedAnnouncement++;
+        hash = checkHash(keccak256(abi.encodePacked("withdrawFromPool", group, recipient, amount, groups[group].lastExecutedAnnouncement)));
         // tries to withdraw as much as possible (bots could have attacked after an announcement)
-        withdrawed = groups[group].pool.withdrawAvailable(recipient, amount);
+        groups[group].pool.withdrawAvailable(group, recipient, amount, groups[group].lastExecutedAnnouncement);  // add nonce?
         delete commitsTimestamps[hash];
         // emit Set("withdrawFromPool", withdrawed);
     }

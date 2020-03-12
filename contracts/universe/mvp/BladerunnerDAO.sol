@@ -92,6 +92,13 @@ contract MolochWithStamps is Moloch {
     }
 }
 
+
+
+
+
+
+
+
 // TODO Guilbank ownership
 // TODO proposalDeposit 
 contract BladerunnerDAO is MolochWithStamps {
@@ -106,6 +113,13 @@ contract BladerunnerDAO is MolochWithStamps {
     // charge DApps for providing users scores
     uint256 scoringFee;
 
+    // Snapshot of shares for refund if insuffiicient funds on ragequit
+    struct RagequitRequest {
+        uint256 shares;
+        uint256 totalShares;
+        address receiver;
+    }
+    mapping (uint256 => RagequitRequest) ragequitRequests;
 
     /*********************************
     MANAGE THE BLADERUNNERS DAO ITSELF
@@ -230,18 +244,32 @@ contract BladerunnerDAO is MolochWithStamps {
     // shareholders will have to announce (request) withdrawals first
     function _withdraw(address receiver, uint256 shares, uint256 totalShares) private returns (bool) {
         uint256 amount = approvedToken.balanceOf(address(this)).mul(shares).div(totalShares);
-        bytes32 nonce = upala.announceWithdrawal(groupManager, receiver, amount);
-        // TODO hash with nonce
-        // TODO let member refund shares if insufficient funds
-        requested[nonce] = amount;  
+        bytes32 nonce = upala.announceWithdrawal(group, receiver, amount);
+
+        // snapshot state for further refunds (if needed)
+        ragequitRequests[nonce].receiver = receiver;
+        ragequitRequests[nonce].balance = approvedToken.balanceOf(address(this));
+        ragequitRequests[nonce].totalShares = totalShares;
 
         return true;  // TODO remove?
     }
 
-    // IF failed ragequit due to insufficient funds. 
-    function refundShares(address member, uint sharesToRefund) external {
-        require (msg.sender == guildBank);
+    // IF failed ragequit due to insufficient funds, refund shares.
+    function refundShares(uint nonce) external {
+
+        uint256 unpaidAmount = guildBank.getUnpaidAmount(nonce);
+
+        uint256 totalSharesSnapshot = ragequitRequests[nonce].totalShares;
+        uint256 balanceSnapshot = ragequitRequests[nonce].balance;
+
+        uint256 sharesToRefund = totalSharesSnapshot.mul(unpaidAmount).div(balanceSnapshot);
+
+        Member storage member = ragequitRequests[nonce].receiver;
+
         member.shares = member.shares.add(sharesToRefund);
         totalShares = totalShares.add(sharesToRefund);
+
+        delete ragequitRequests[nonce];
+
         emit FailedRageQuit(member, sharesToRefund);
     }

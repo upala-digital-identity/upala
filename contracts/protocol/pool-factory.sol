@@ -52,6 +52,9 @@ contract MolochPool is NotGuildBank {
 
     // DAO public dao; // owner contract reference
 
+    // saves unpaid amount to be refunded in shares
+    mapping (uint256 => uint256) unpaidAmount;
+
     // TODO hardcode approved token
     constructor(address approvedTokenAddress) public {
         // owner = poolOwner;
@@ -70,26 +73,30 @@ contract MolochPool is NotGuildBank {
         // return (result, error)
     }
 
-    // shares are burned by moloch before withdrawal, so refund same number of 
-    // shares if amount < balance)
-    function withdrawAvailable(address receiver, uint amount) external onlyUpala returns (uint) {
+    // try to withdraw as much as possible
+    // shares are burned by moloch before withdrawal, so refund same number of shares if amount < balance
+    function withdrawAvailable(uint160 group, address receiver, uint256 amount, uint256 nonce) external onlyUpala returns (uint) {
         uint256 balance = approvedToken.balanceOf(address(this));
-        // try to withdraw as much as possible
         if (balance >= amount) {
             _withdraw(receiver, amount);
-            return amount;
+            return amount;  // TODO remove ?
         } else {
             _withdraw(receiver, balance);
-            // TODO calc shares as if withdrawal is done before announcement
-            bladerunner.refundShares(receiver, shares);
-            return balance;
+            unpaidAmount[nonce] = amount.sub(balance);
+            return balance;  // TODO remove ?
         }
     }
 
-
-    
     function _withdraw(address recipient, uint amount) private {  // $$$ 
         emit Withdrawal(receiver, amount);
         require(approvedToken.transfer(recipient, amount), "token transfer to bot failed");
+    }
+
+    /**************
+    GETTER FUNCTIONS
+    ***************/
+
+    function getUnpaidAmount(uint256 nonce) external returns (uint256) {
+        return unpaidAmount[nonce];
     }
 }
