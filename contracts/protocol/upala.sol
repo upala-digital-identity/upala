@@ -25,13 +25,13 @@ Each group is a smart contract with arbitary logic.
 
 contract IUpala {
 
-    function getBotReward(address) external view returns (uint);
-    function getPoolSize(address) external view returns (uint);
-    function isLocked(address) external view returns (bool);
+    function getBotReward(uint160) external view returns (uint);
+    function getPoolSize(uint160) external view returns (uint);
+    function isLocked(uint160) external view returns (bool);
 
-    function getBotRewardsLimit(address, address) external view returns (uint8);
+    function getBotRewardsLimit(uint160, uint160) external view returns (uint8);
 
-    function attack(uint160[] calldata, address payable, uint) external;
+    function attack(uint160[] calldata) external;
     // function rageQuit() external;
 
     function addFunds(uint) external;
@@ -85,18 +85,18 @@ contract Upala is IUpala {
         // A bot net reward. Limits maximum bot rewards for a group member
         // can be unlimited.
         // @dev Used to check membership when calculating score
-        mapping(address => uint256) botnetLimit;
+        mapping(uint160 => uint256) botnetLimit;
 
         // A group may or may become a member of a superior group
         // true for accepting membership in a superior group
-        mapping(address => bool) acceptedInvitations;
+        mapping(uint160 => bool) acceptedInvitations;
 
         // Queue of execution? experiment
         uint256 annoucementNonce;
         uint256 lastExecutedAnnouncement;
     }
     // These addresses are permanent. Serve as IDs.
-    mapping(address => Group) groups;
+    mapping(uint160 => Group) groups;
 
     // Identities
     // Ensures that identities and groups are different entities
@@ -106,7 +106,7 @@ contract Upala is IUpala {
         bool exploded;
         address manager;  // wallet, manager, owner
     }
-    mapping(address => Identity) identities;
+    mapping(uint160 => Identity) identities;
 
     // Humans commit changes, this mapping stores hashes and timestamps
     // Any changes that can hurt bot rights must wait for an hour
@@ -120,28 +120,13 @@ contract Upala is IUpala {
         // todo
     }
 
-
-    // spam protection
-    // + self sustainability.
-    // + separates Identities from Groups
-
-    // modifier onlyGroups() {
-    //     require(groups[msg.sender].registered == true);
-    //     _;
-    // }
-
-    // modifier onlyIdentities() {
-    //     require(identities[msg.sender].registered == true);
-    //     _;
-    // }
-
-    modifier onlyGroupManager(address group) {
-        require(groups[group].manager == msg.sender);
+    modifier onlyGroupManager(uint160 group) {
+        require(groups[group].manager == msg.sender, "msg.sender is not group manager");
         _;
     }
 
-    modifier onlyIdentityManager(address identity) {
-        require(groups[identity].manager == msg.sender);
+    modifier onlyIdentityManager(uint160 identity) {
+        require(groups[identity].manager == msg.sender, "msg.sender is not identity manager");
         _;
     }
 
@@ -152,14 +137,14 @@ contract Upala is IUpala {
     ************************************/
 
     function newGroup(address groupManager) external payable returns (uint160) {
-        require(msg.value == registrationFee);  // draft
+        require(msg.value == registrationFee, "Incorrect registration fee");  // draft
         groupsCounter++;
         groups[groupsCounter].manager = groupManager;
         return groupsCounter;
     }
 
     function newIdentity(address identityManager) external payable returns (uint160) {
-        require(msg.value == registrationFee);  // draft
+        require(msg.value == registrationFee, "Incorrect registration fee");  // draft
         identitiesCounter++;
         identities[identitiesCounter].manager = identityManager;
         return identitiesCounter;
@@ -168,139 +153,21 @@ contract Upala is IUpala {
     // created by approved pool factories
     // tokens are only stable USDs
     function newPool(address poolFactory, address poolOwner, address token) external payable returns (address) {
-        require(msg.value == registrationFee);  // draft
-        require(approvedPoolFactories[poolFactory] == true);
+        require(msg.value == registrationFee, "Incorrect registration fee");  // draft
+        require(approvedPoolFactories[poolFactory] == true, "Pool factory is not approved");
         // require PoolOwner exists // todo?
         address newPoolAddress = poolFactory.createPool(poolOwner, token);
         approvedPools[newPoolAddress] = true;
         return newPoolAddress;
     }
 
-    function setGroupManager(address group, address newGroupManager) external onlyGroupManager(group) {
+    function setGroupManager(uint160 group, address newGroupManager) external onlyGroupManager(group) {
         groups[group].manager = newGroupManager;
     }
 
-    function setIdentityManager(address identity, address newIdentityManager)  external onlyIdentityManager(identity) {
+    function setIdentityManager(uint160 identity, address newIdentityManager)  external onlyIdentityManager(identity) {
         identities[identity].manager = newIdentityManager;
     }
-
-
-
-
-    /************
-    ANNOUNCEMENTS
-    *************/
-    // Announcements prevent front-running bot-exposions. Groups must announce
-    // in advance any changes that may hurt bots rights
-    /*
-    https://medium.com/swlh/exploring-commit-reveal-schemes-on-ethereum-c4ff5a777db8
-    https://solidity.readthedocs.io/en/v0.5.3/solidity-by-example.html#id2
-    https://gitcoin.co/blog/commit-reveal-scheme-on-ethereum/
-    */
-    // Used to check announcements
-    // anyone can call announced functions after attack window to avoid false announcements
-    // TODO hmmm... do we need to hash annoucements it all?
-    function checkHash(bytes32 hash) internal view returns(bytes32){
-        // check if the commit exists
-        require(commitsTimestamps[hash] != 0);
-        // check if an hour had passed
-        require (commitsTimestamps[hash] + attackWindow < now);
-        return hash;
-    }
-
-    function announceBotReward(address group, uint botReward) external onlyGroupManager(group) returns (uint256) {
-        groups[group].annoucementNonce++;
-        bytes32 hash = keccak256(abi.encodePacked("setBotReward", msg.sender, botReward, groups[group].annoucementNonce));
-        commitsTimestamps[hash] = now;
-        // emit Announce("NewBotReward", msg.sender, botReward, hash)
-        return groups[group].annoucementNonce;
-    }
-
-    function announceBotnetLimit(address group, address member, uint limit) external onlyGroupManager(group) returns (uint256) {
-        require(member != msg.sender);  // cannot be member of self. todo what about manager?
-        groups[group].annoucementNonce++;
-        bytes32 hash = keccak256(abi.encodePacked("setBotnetLimit", msg.sender, member, limit, groups[group].annoucementNonce));
-        commitsTimestamps[hash] = now;
-        // emit Announce("NewRewardsLimit", msg.sender, member, limit, hash)
-        return groups[group].annoucementNonce;
-    }
-
-    function announceAttachPool(address group, address pool) external onlyGroupManager(group) returns (uint256) {
-        require(approvedPools[pool] == true);
-        groups[group].annoucementNonce++;
-        bytes32 hash = keccak256(abi.encodePacked("attachPool", group, pool, groups[group].annoucementNonce));
-        commitsTimestamps[hash] = now;
-        return groups[group].annoucementNonce;
-    }
-
-    // TODO add recipient?
-    // TODO only one active annoucement of a type? A group may generate many announcements in advance.
-    function announceWithdrawFromPool(address group, address recipient, uint amount) external onlyGroupManager(group) returns (uint256) { // $$$
-        groups[group].annoucementNonce++;
-        bytes32 hash = keccak256(abi.encodePacked("withdrawFromPool", group, recipient, amount, groups[group].annoucementNonce));
-        commitsTimestamps[hash] = now;
-        // emit Announce("NewRewardsLimit", msg.sender, amount, hash)
-        return groups[group].annoucementNonce;
-    }
-
-
-
-
-    /************
-    MANAGE GROUPS
-    *************/
-    /*
-    Group admin - is any entity in control of a group.
-    A group may decide to chose a trusted person, or it may make decisions based on voting.*/
-
-
-    /*Changes that may hurt bots rights*/
-    // anyone can call pre-announced functions after the attack window to avoid false announcements
-
-    // TODO function executeNextAnnouncement(uint160 group) external {}
-
-    // Sets the maximum possible bot reward for the group.
-    function setBotReward(address group, uint botReward) external {
-        groups[group].lastExecutedAnnouncement++;
-        hash = checkHash(keccak256(abi.encodePacked("setBotReward", group, botReward,groups[group].lastExecutedAnnouncement)));
-        groups[group].botReward = botReward;
-        delete commitsTimestamps[hash];
-        // emit Set("NewBotReward", hash);
-    }
-
-    function setBotnetLimit(address group, address member, uint limit) external {
-        groups[group].lastExecutedAnnouncement++;
-        hash = checkHash(keccak256(abi.encodePacked("setBotnetLimit", group, member, limit, groups[group].lastExecutedAnnouncement)));
-        groups[msg.sender].botnetLimit[member] = limit;
-        delete commitsTimestamps[hash];
-        // emit Set("setBotnetLimit", hash);
-    }
-
-    function attachPool(address group, address pool) external {
-        groups[group].lastExecutedAnnouncement++;
-        hash = checkHash(keccak256(abi.encodePacked("attachPool", group, pool, groups[group].lastExecutedAnnouncement)));
-        groups[group].pool = pool;
-        delete commitsTimestamps[hash];
-    }
-
-    // this may fail due to insufficient funds. TODO what to do?
-    function withdrawFromPool(address group, address recipient, uint amount) external { // $$$
-        groups[group].lastExecutedAnnouncement++;
-        hash = checkHash(keccak256(abi.encodePacked("withdrawFromPool", group, recipient, amount, groups[group].lastExecutedAnnouncement)));
-        // tries to withdraw as much as possible (bots could have attacked after an announcement)
-        groups[group].pool.withdrawAvailable(group, recipient, amount, groups[group].lastExecutedAnnouncement);  // add nonce?
-        delete commitsTimestamps[hash];
-        // emit Set("withdrawFromPool", withdrawed);
-    }
-
-    /*Changes that cannot hurt bots rights*/
-
-    // + additional spam protection
-    function acceptInvitation(address group, address superiorGroup, bool isAccepted) external onlyGroupManager(group) {
-        require(superiorGroup != msg.sender);
-        groups[msg.sender].acceptedInvitations[superiorGroup] = isAccepted;
-    }
-
 
 
     /*********************
@@ -313,32 +180,6 @@ contract Upala is IUpala {
     TODO cooment
     path is an array of addressess.
     */
-
-    function _isValidPath(uint160[] calldata path) internal returns(bool) {
-        // todo what is valid path length
-        require(path.length != 0, "path too short");
-        require(path.length <= maxPathLength, "path too long");
-
-        //TODO check invitations?
-
-        // check the path from identity to the top
-        for (uint i = 0; i<=path.length-2; i++) {
-            member = path[i];
-            group = path[i+1];
-            // reqiure(balances[group] >= groups[group].botReward);
-            require(groups[group].pool.hasEnoughFunds(groups[group].botReward));
-            reqiure(groups[group].botnetLimit[member] >= groups[group].botReward);
-        }
-    }
-
-
-    // Ascends the path in groups hierarchy and confirms identity score (path validity)
-    // TODO overflow safe
-    function _memberScore(uint160[] calldata path) private view returns(uint) {
-        require (_isValidPath(path));
-        return groups[path[path.length-1]].botReward;
-    }
-
 
     function memberScore(uint160[] calldata path)
         external
@@ -353,10 +194,11 @@ contract Upala is IUpala {
     // Only those with scores will succeed.
     // todo no nonReentrant?
     // @note experimental. the exact attack algorithm to be approved later
-    function attack(uint160[] calldata path) external {
-
-        address bot = msg.sender;
-        require(path[0] == bot);
+    function attack(uint160[] calldata path)
+        external
+        onlyIdentityManager(path[0])  // first member in path must be an identity, managed by message sender
+    {
+        uint160 bot = path[0];
         require(identities[bot].exploded == false, "bot already exploded");
 
         // calculates reward and checks path
@@ -396,6 +238,149 @@ contract Upala is IUpala {
         identities[bot].exploded = true;
     }
 
+    // Ascends the path in groups hierarchy and confirms identity score (path validity)
+    // TODO overflow safe
+    function _memberScore(uint160[] calldata path) private view returns(uint) {
+        require (_isValidPath(path), "Provided path is not valid");
+        return groups[path[path.length-1]].botReward;
+    }
+
+    function _isValidPath(uint160[] calldata path) private view returns(bool) {
+        // todo what is valid path length
+        require(path.length != 0, "path too short");
+        require(path.length <= maxPathLength, "path too long");
+
+        //TODO check invitations?
+
+        // check the path from identity to the top
+        for (uint i = 0; i<=path.length-2; i++) {
+            member = path[i];
+            group = path[i+1];
+            // reqiure(balances[group] >= groups[group].botReward);
+            require(groups[group].pool.hasEnoughFunds(groups[group].botReward), "A group in path is unable to pay declared bot reward.");
+            reqiure(groups[group].botnetLimit[member] >= groups[group].botReward);
+        }
+    }
+
+
+
+
+    /************
+    ANNOUNCEMENTS
+    *************/
+    // Announcements prevent front-running bot-exposions. Groups must announce
+    // in advance any changes that may hurt bots rights
+    /*
+    https://medium.com/swlh/exploring-commit-reveal-schemes-on-ethereum-c4ff5a777db8
+    https://solidity.readthedocs.io/en/v0.5.3/solidity-by-example.html#id2
+    https://gitcoin.co/blog/commit-reveal-scheme-on-ethereum/
+    */
+    // Used to check announcements
+    // anyone can call announced functions after attack window to avoid false announcements
+    // TODO hmmm... do we need to hash annoucements it all?
+    function checkHash(bytes32 hash) internal view returns(bytes32){
+        // check if the commit exists
+        require(commitsTimestamps[hash] != 0, "Hash is not found");
+        // check if an hour had passed
+        require (commitsTimestamps[hash] + attackWindow < now, "Attack window is not closed yet");
+        return hash;
+    }
+
+    function announceBotReward(uint160 group, uint botReward) external onlyGroupManager(group) returns (uint256) {
+        groups[group].annoucementNonce++;
+        bytes32 hash = keccak256(abi.encodePacked("setBotReward", msg.sender, botReward, groups[group].annoucementNonce));
+        commitsTimestamps[hash] = now;
+        // emit Announce("NewBotReward", msg.sender, botReward, hash)
+        return groups[group].annoucementNonce;
+    }
+
+    function announceBotnetLimit(uint160 group, uint160 member, uint limit) external onlyGroupManager(group) returns (uint256) {
+        require(member != msg.sender, "cannot assign limit to oneself");  // todo what about manager?
+        groups[group].annoucementNonce++;
+        bytes32 hash = keccak256(abi.encodePacked("setBotnetLimit", msg.sender, member, limit, groups[group].annoucementNonce));
+        commitsTimestamps[hash] = now;
+        // emit Announce("NewRewardsLimit", msg.sender, member, limit, hash)
+        return groups[group].annoucementNonce;
+    }
+
+    function announceAttachPool(uint160 group, address pool) external onlyGroupManager(group) returns (uint256) {
+        require(approvedPools[pool] == true, "Pool is not approved");
+        groups[group].annoucementNonce++;
+        bytes32 hash = keccak256(abi.encodePacked("attachPool", group, pool, groups[group].annoucementNonce));
+        commitsTimestamps[hash] = now;
+        return groups[group].annoucementNonce;
+    }
+
+    // TODO add recipient?
+    // TODO only one active annoucement of a type? A group may generate many announcements in advance.
+    function announceWithdrawFromPool(uint160 group, address recipient, uint amount) external onlyGroupManager(group) returns (uint256) { // $$$
+        groups[group].annoucementNonce++;
+        bytes32 hash = keccak256(abi.encodePacked("withdrawFromPool", group, recipient, amount, groups[group].annoucementNonce));
+        commitsTimestamps[hash] = now;
+        // emit Announce("NewRewardsLimit", msg.sender, amount, hash)
+        return groups[group].annoucementNonce;
+    }
+
+
+
+
+    /************
+    MANAGE GROUPS
+    *************/
+    /*
+    Group admin - is any entity in control of a group.
+    A group may decide to chose a trusted person, or it may make decisions based on voting.*/
+
+
+    /*Changes that may hurt bots rights*/
+    // anyone can call pre-announced functions after the attack window to avoid false announcements
+
+    // TODO function executeNextAnnouncement(uint160 group) external {}
+
+    // Sets the maximum possible bot reward for the group.
+    function setBotReward(uint160 group, uint botReward) external {
+        groups[group].lastExecutedAnnouncement++;
+        hash = checkHash(keccak256(abi.encodePacked("setBotReward", group, botReward,groups[group].lastExecutedAnnouncement)));
+        groups[group].botReward = botReward;
+        delete commitsTimestamps[hash];
+        // emit Set("NewBotReward", hash);
+    }
+
+    function setBotnetLimit(uint160 group, uint160 member, uint limit) external {
+        groups[group].lastExecutedAnnouncement++;
+        hash = checkHash(keccak256(abi.encodePacked("setBotnetLimit", group, member, limit, groups[group].lastExecutedAnnouncement)));
+        groups[msg.sender].botnetLimit[member] = limit;
+        delete commitsTimestamps[hash];
+        // emit Set("setBotnetLimit", hash);
+    }
+
+    function attachPool(uint160 group, address pool) external {
+        groups[group].lastExecutedAnnouncement++;
+        hash = checkHash(keccak256(abi.encodePacked("attachPool", group, pool, groups[group].lastExecutedAnnouncement)));
+        groups[group].pool = pool;
+        delete commitsTimestamps[hash];
+    }
+
+    // this may fail due to insufficient funds. TODO what to do?
+    function withdrawFromPool(uint160 group, address recipient, uint amount) external { // $$$
+        groups[group].lastExecutedAnnouncement++;
+        hash = checkHash(keccak256(abi.encodePacked("withdrawFromPool", group, recipient, amount, groups[group].lastExecutedAnnouncement)));
+        // tries to withdraw as much as possible (bots could have attacked after an announcement)
+        groups[group].pool.withdrawAvailable(group, recipient, amount, groups[group].lastExecutedAnnouncement);  // add nonce?
+        delete commitsTimestamps[hash];
+        // emit Set("withdrawFromPool", withdrawed);
+    }
+
+    /*Changes that cannot hurt bots rights*/
+
+    // + additional spam protection
+    function acceptInvitation(uint160 group, uint160 superiorGroup, bool isAccepted) external onlyGroupManager(group) {
+        require(superiorGroup != msg.sender, "CAnnot accept invitations from oneself");
+        groups[msg.sender].acceptedInvitations[superiorGroup] = isAccepted;
+    }
+
+
+
 
     /**************
     GETTER FUNCTIONS
@@ -404,20 +389,20 @@ contract Upala is IUpala {
     // A member of a group is either a group or an identity.
     // TODO if public, can outside contracts do without Upala?
     // Only group manager can access
-    function getBotnetLimit(address group, address member) external view onlyGroupManager returns (uint8) {
+    function getBotnetLimit(uint160 group, uint160 member) external view onlyGroupManager returns (uint8) {
         //...
         return (groups[group].botnetLimit[member]);
     }
 
-    function getBotReward(address group) external view returns (uint) {
+    function getBotReward(uint160 group) external view returns (uint) {
         return groups[group].botReward;
     }
 
-    function getPoolSize(address group) external view returns (uint) {
+    function getPoolSize(uint160 group) external view returns (uint) {
         return balances[group];
     }
 
-    // function isLocked(address group) external view returns (bool) {
+    // function isLocked(uint160 group) external view returns (bool) {
     //     return groups[group].locked;
     // }
 

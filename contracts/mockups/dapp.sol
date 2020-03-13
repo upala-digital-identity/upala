@@ -1,26 +1,46 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.6.0;
 
 import "../incentives/group-example.sol";
 
 contract UBIExampleDApp {
-    
+
     ScoreProvider scoreProviderContract;  // e.g. BladerunnerDAO
-    UBITokenContract tokenContract;
 
-    MINIMAL_SCORE = 1 * 10 ** 18;  // 1 DAI
-    UBI = 1 * 10 ** 18;  // 1 DAI
+    uint256 MINIMAL_SCORE = 1 * 10 ** 18;  // 1 DAI
+    uint256 UBI = 1000;  // 1 Token
 
-    mapping (address => bool) claimed;
-    
+    mapping (uint160 => bool) claimed;
+    mapping (address => uint256) balances;
+
     constructor (address _userScoreProvider) public {
         scoreProviderContract = ScoreProvider(_userScoreProvider);
     }
 
-    function claimUBI(address[] calldata _path) external {
-        require (claimed[_path[0]] == false);
+    function claimUBI(uint160[] calldata path) external {
         address wallet = msg.sender;
-        if (scoreProviderContract.memberScore(_path, wallet) >= MINIMAL_SCORE) {
-            require(tokenContract.transfer(wallet, UBI));
-        }
+        uint160 identityID = path[0];
+        (address identityManager, uint256 score) = scoreProviderContract.getScoreByPath(path);
+
+        require (claimed[identityID] == false, "Already claimed");
+        require(identityManager == wallet, "msg.sender must be identity manager");
+        require(score >= MINIMAL_SCORE, "Score is too low");
+
+        _payOutUBI(identityID, wallet);
+    }
+
+    // scoreProviderContract stores cached
+    function claimUBICachedPath() external {
+        address wallet = msg.sender;
+        (uint160 identityID, uint256 score) = scoreProviderContract.getScoreByManager(wallet);
+
+        require (claimed[identityID] == false, "Already claimed");
+        require(score >= MINIMAL_SCORE, "Score is too low");
+
+        _payOutUBI(identityID, wallet);
+    }
+
+    function _payOutUBI(uint160 identityID, address recipient) private {
+        balances[wallet] += UBI;
+        claimed[identityID] = true;
     }
 }

@@ -108,7 +108,7 @@ contract BladerunnerDAO is MolochWithStamps {
     Upala upala;
 
     // the group ID within Upala
-    address bladerunnerGroupID;
+    uint160 bladerunnerGroupID;
 
     // charge DApps for providing users scores
     uint256 scoringFee;
@@ -120,6 +120,31 @@ contract BladerunnerDAO is MolochWithStamps {
         address receiver;
     }
     mapping (uint256 => RagequitRequest) ragequitRequests;
+
+    /******
+    SCORING
+    /*****/
+
+    function getScoreByPath(uint160[] calldata path) external returns (address, uint256) {
+
+        // charge();
+        // (address identityManager, uint256 score)
+        return upala.memberScore(path);
+    }
+
+    function getScoreByManager(address manager) external returns (uint160, uint256) {
+        // charge();
+        //(uint160 identityID, uint256 score)
+    }
+
+    // BladerunnerDAO can earn by providing users scores to DApps.
+    //redirects all income to Bladerunners pool
+    function charge() private {
+        require(
+                approvedToken.transfer(address(guildBank), scoringFee),
+                "Moloch::processProposal - token transfer to guild bank failed"
+            );
+    }
 
     /*********************************
     MANAGE THE BLADERUNNERS DAO ITSELF
@@ -182,7 +207,7 @@ contract BladerunnerDAO is MolochWithStamps {
         upala.announceBotReward(bladerunnerGroup, botReward);
     }
 
-    function announceBotnetLimit(address member, uint limit, uint256 proposalIndex) external {
+    function announceBotnetLimit(uint160 member, uint limit, uint256 proposalIndex) external {
         uint265 currentBotnetLimit = upala.getBotnetLimit(bladerunnerGroup, member);
         bytes32 hash = keccak256(abi.encodePacked("announceBotnetLimit", member, limit));
 
@@ -191,32 +216,17 @@ contract BladerunnerDAO is MolochWithStamps {
         upala.announceBotnetLimit(bladerunnerGroup, member, limit);
     }
 
-    function acceptInvitation(address superiorGroup, bool isAccepted) external {
+    function acceptInvitation(uint160 superiorGroup, bool isAccepted) external {
         //...
     }
 
 
-    /******
-    SCORING
-    /*****/
-
-    // BladerunnerDAO earns by providing users scores to DApps. 
-    function memberScore(address[] calldata path) external returns (uint256) {
-        // redirect all income to Bladerunners pool
-        require(
-                approvedToken.transfer(address(guildBank), scoringFee),
-                "Moloch::processProposal - token transfer to guild bank failed"
-            );
-        return upala.memberScore(path);
-    }
-    
-    // getUserScore(msg.sender, _path);  // payable
-    // getUserScoreCached(msg.sender);
 
 
     /*******
     RAGEQUIT
     /******/
+
     function ragequit(uint256 sharesToBurn) public onlyMember {
         uint256 initialTotalShares = totalShares;
 
