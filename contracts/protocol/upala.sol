@@ -1,4 +1,4 @@
-pragma solidity ^0.6.0;
+pragma solidity ^0.6.4;
 
 /*/// WARNING
 
@@ -6,42 +6,41 @@ The code is under heavy developement
 
 /// WARNING */
 
-import "../oz/token/ERC20/ERC20.sol";
-import "../oz/math/SafeMath.sol";
-// import "@openzeppelin/contracts/ownership/Ownable.sol";  // production
-
+// import "../oz/token/ERC20/ERC20.sol";
+import "../libraries/openzeppelin-contracts/contracts/math/SafeMath.sol";
+import "./i-pool-factory.sol";
+import "./i-pool.sol";
 
 /*
-
 The Upala contract is the protocol itself.
 Identity systems can use this contract to comply with universal bot explosion rules.
 These identity systems will then be compatible.
 
 Upala-native identity systems are presumed to consist of groups of many levels.
 Each group is a smart contract with arbitary logic.
-
-
 */
 
-contract IUpala {
+
+interface IUpala {
 
     function getBotReward(uint160) external view returns (uint);
-    function getPoolSize(uint160) external view returns (uint);
-    function isLocked(uint160) external view returns (bool);
+    //function getPoolSize(uint160) external view returns (uint);
 
-    function getBotRewardsLimit(uint160, uint160) external view returns (uint8);
+    //function getBotRewardsLimit(uint160, uint160) external view returns (uint8);
 
     function attack(uint160[] calldata) external;
-    // function rageQuit() external;
 
-    function addFunds(uint) external;
-    function withdrawFromPool(uint) external;
+    //function addFunds(uint) external;
+    //function withdrawFromPool(uint) external;
 }
 
 
 // The Upala ledger (protocol)
 contract Upala is IUpala {
     using SafeMath for uint256;
+
+    IPoolFactory pFactory;
+    IPool p;
 
     /*******
     SETTINGS
@@ -71,6 +70,7 @@ contract Upala is IUpala {
     struct Group {
 
         // A group address within Upala is permanent. Ownership provides group upgradability
+        address manager;
 
         // Pools are created by Upala-approved pool factories
         // Each group may manage their own pool in their own way.
@@ -104,9 +104,10 @@ contract Upala is IUpala {
     // Human, Individual, Identity
     struct Identity {
         bool exploded;
-        address manager;  // wallet, manager, owner
+        address holder;  // wallet, manager, owner
     }
     mapping(uint160 => Identity) identities;
+    mapping(address => uint160) holderToIdentity;
 
     // Humans commit changes, this mapping stores hashes and timestamps
     // Any changes that can hurt bot rights must wait for an hour
@@ -125,8 +126,8 @@ contract Upala is IUpala {
         _;
     }
 
-    modifier onlyIdentityManager(uint160 identity) {
-        require(groups[identity].manager == msg.sender, "msg.sender is not identity manager");
+    modifier onlyIdentityHolder(uint160 identity) {
+        require(identities[identity].holder == msg.sender, "msg.sender is not identity holder");
         _;
     }
 
@@ -143,20 +144,21 @@ contract Upala is IUpala {
         return groupsCounter;
     }
 
-    function newIdentity(address identityManager) external payable returns (uint160) {
+    function newIdentity(address identityHolder) external payable returns (uint160) {
         require(msg.value == registrationFee, "Incorrect registration fee");  // draft
         identitiesCounter++;
-        identities[identitiesCounter].manager = identityManager;
+        identities[identitiesCounter].holder = identityHolder;
+        holderToIdentity[identityHolder] = identitiesCounter;
         return identitiesCounter;
     }
 
     // created by approved pool factories
     // tokens are only stable USDs
-    function newPool(address poolFactory, address poolOwner, address token) external payable returns (address) {
+    function newPool(address poolFactory, address poolOwner) external payable returns (address) {
         require(msg.value == registrationFee, "Incorrect registration fee");  // draft
         require(approvedPoolFactories[poolFactory] == true, "Pool factory is not approved");
         // require PoolOwner exists // todo?
-        address newPoolAddress = poolFactory.createPool(poolOwner, token);
+        address newPoolAddress = IPoolFactory(poolFactory).createPool(poolOwner);
         approvedPools[newPoolAddress] = true;
         return newPoolAddress;
     }
@@ -165,8 +167,11 @@ contract Upala is IUpala {
         groups[group].manager = newGroupManager;
     }
 
-    function setIdentityManager(uint160 identity, address newIdentityManager)  external onlyIdentityManager(identity) {
-        identities[identity].manager = newIdentityManager;
+    function setIdentityHolder(uint160 identity, address newIdentityHolder)  external onlyIdentityHolder(identity) {
+        address currentHolder = identities[identity].holder;
+        identities[identity].holder = newIdentityHolder;
+        delete holderToIdentity[currentHolder];
+        holderToIdentity[newIdentityHolder] = identity;
     }
 
 
@@ -196,7 +201,8 @@ contract Upala is IUpala {
     // @note experimental. the exact attack algorithm to be approved later
     function attack(uint160[] calldata path)
         external
-        onlyIdentityManager(path[0])  // first member in path must be an identity, managed by message sender
+        override(IUpala)
+        onlyIdentityHolder(path[0])  // first member in path must be an identity, managed by message sender
     {
         uint160 bot = path[0];
         require(identities[bot].exploded == false, "bot already exploded");
@@ -205,6 +211,11 @@ contract Upala is IUpala {
         uint unpaidBotReward = _memberScore(path);
 
         // ascend the path and payout rewards
+        uint160 member;
+        uint160 group;
+        uint256 groupBotReward;
+        uint256 reward;
+        address botOwner = identities[bot].holder;
         for (uint i = 0; i<=path.length-2; i++) {
 
             member = path[i];
@@ -226,7 +237,7 @@ contract Upala is IUpala {
                 // transfer to identity (bot)
                 // balances[group].sub(reward);  // $$$
                 // balances[bot].add(reward); // $$$
-                groups[group].pool.payBotReward(bot, reward);
+                IPool(groups[group].pool).payBotReward(botOwner, reward);
 
                 // reduce botnetLimit for the member in the sup group
                 // @dev botnetLimit[member] >= botReward is checked when validating path
@@ -240,12 +251,12 @@ contract Upala is IUpala {
 
     // Ascends the path in groups hierarchy and confirms identity score (path validity)
     // TODO overflow safe
-    function _memberScore(uint160[] calldata path) private view returns(uint) {
+    function _memberScore(uint160[] memory path) private view returns(uint) {
         require (_isValidPath(path), "Provided path is not valid");
         return groups[path[path.length-1]].botReward;
     }
 
-    function _isValidPath(uint160[] calldata path) private view returns(bool) {
+    function _isValidPath(uint160[] memory path) private view returns(bool) {
         // todo what is valid path length
         require(path.length != 0, "path too short");
         require(path.length <= maxPathLength, "path too long");
@@ -253,12 +264,14 @@ contract Upala is IUpala {
         //TODO check invitations?
 
         // check the path from identity to the top
+        uint160 member;
+        uint160 group;
         for (uint i = 0; i<=path.length-2; i++) {
             member = path[i];
             group = path[i+1];
             // reqiure(balances[group] >= groups[group].botReward);
-            require(groups[group].pool.hasEnoughFunds(groups[group].botReward), "A group in path is unable to pay declared bot reward.");
-            reqiure(groups[group].botnetLimit[member] >= groups[group].botReward);
+            require(IPool(groups[group].pool).hasEnoughFunds(groups[group].botReward), "A group in path is unable to pay declared bot reward.");
+            require(groups[group].botnetLimit[member] >= groups[group].botReward, "Bot reward exceeds bot-net limit for current member");
         }
     }
 
@@ -295,7 +308,7 @@ contract Upala is IUpala {
     }
 
     function announceBotnetLimit(uint160 group, uint160 member, uint limit) external onlyGroupManager(group) returns (uint256) {
-        require(member != msg.sender, "cannot assign limit to oneself");  // todo what about manager?
+        require(member != group, "cannot assign limit to oneself");  // todo what about manager?
         groups[group].annoucementNonce++;
         bytes32 hash = keccak256(abi.encodePacked("setBotnetLimit", msg.sender, member, limit, groups[group].annoucementNonce));
         commitsTimestamps[hash] = now;
@@ -340,7 +353,7 @@ contract Upala is IUpala {
     // Sets the maximum possible bot reward for the group.
     function setBotReward(uint160 group, uint botReward) external {
         groups[group].lastExecutedAnnouncement++;
-        hash = checkHash(keccak256(abi.encodePacked("setBotReward", group, botReward,groups[group].lastExecutedAnnouncement)));
+        bytes32 hash = checkHash(keccak256(abi.encodePacked("setBotReward", group, botReward,groups[group].lastExecutedAnnouncement)));
         groups[group].botReward = botReward;
         delete commitsTimestamps[hash];
         // emit Set("NewBotReward", hash);
@@ -348,15 +361,15 @@ contract Upala is IUpala {
 
     function setBotnetLimit(uint160 group, uint160 member, uint limit) external {
         groups[group].lastExecutedAnnouncement++;
-        hash = checkHash(keccak256(abi.encodePacked("setBotnetLimit", group, member, limit, groups[group].lastExecutedAnnouncement)));
-        groups[msg.sender].botnetLimit[member] = limit;
+        bytes32 hash = checkHash(keccak256(abi.encodePacked("setBotnetLimit", group, member, limit, groups[group].lastExecutedAnnouncement)));
+        groups[group].botnetLimit[member] = limit;
         delete commitsTimestamps[hash];
         // emit Set("setBotnetLimit", hash);
     }
 
     function attachPool(uint160 group, address pool) external {
         groups[group].lastExecutedAnnouncement++;
-        hash = checkHash(keccak256(abi.encodePacked("attachPool", group, pool, groups[group].lastExecutedAnnouncement)));
+        bytes32 hash = checkHash(keccak256(abi.encodePacked("attachPool", group, pool, groups[group].lastExecutedAnnouncement)));
         groups[group].pool = pool;
         delete commitsTimestamps[hash];
     }
@@ -364,9 +377,9 @@ contract Upala is IUpala {
     // this may fail due to insufficient funds. TODO what to do?
     function withdrawFromPool(uint160 group, address recipient, uint amount) external { // $$$
         groups[group].lastExecutedAnnouncement++;
-        hash = checkHash(keccak256(abi.encodePacked("withdrawFromPool", group, recipient, amount, groups[group].lastExecutedAnnouncement)));
+        bytes32 hash = checkHash(keccak256(abi.encodePacked("withdrawFromPool", group, recipient, amount, groups[group].lastExecutedAnnouncement)));
         // tries to withdraw as much as possible (bots could have attacked after an announcement)
-        groups[group].pool.withdrawAvailable(group, recipient, amount, groups[group].lastExecutedAnnouncement);  // add nonce?
+        IPool(groups[group].pool).withdrawAvailable(group, recipient, amount, groups[group].lastExecutedAnnouncement);  // add nonce?
         delete commitsTimestamps[hash];
         // emit Set("withdrawFromPool", withdrawed);
     }
@@ -375,8 +388,8 @@ contract Upala is IUpala {
 
     // + additional spam protection
     function acceptInvitation(uint160 group, uint160 superiorGroup, bool isAccepted) external onlyGroupManager(group) {
-        require(superiorGroup != msg.sender, "CAnnot accept invitations from oneself");
-        groups[msg.sender].acceptedInvitations[superiorGroup] = isAccepted;
+        require(superiorGroup != group, "CAnnot accept invitations from oneself");
+        groups[group].acceptedInvitations[superiorGroup] = isAccepted;
     }
 
 
@@ -389,18 +402,20 @@ contract Upala is IUpala {
     // A member of a group is either a group or an identity.
     // TODO if public, can outside contracts do without Upala?
     // Only group manager can access
-    function getBotnetLimit(uint160 group, uint160 member) external view onlyGroupManager returns (uint8) {
+    function getBotnetLimit(uint160 group, uint160 member) external view onlyGroupManager(group) returns (uint256) {
         //...
         return (groups[group].botnetLimit[member]);
     }
 
-    function getBotReward(uint160 group) external view returns (uint) {
+    function getBotReward(uint160 group) external view override(IUpala) returns (uint) {
         return groups[group].botReward;
     }
 
-    function getPoolSize(uint160 group) external view returns (uint) {
-        return balances[group];
+    // returns upala identity id
+    function myId() external view returns(uint160) {
+        return holderToIdentity[msg.sender];
     }
+
 
     // function isLocked(uint160 group) external view returns (bool) {
     //     return groups[group].locked;

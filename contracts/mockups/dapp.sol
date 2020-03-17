@@ -1,10 +1,10 @@
 pragma solidity ^0.6.0;
 
-import "../incentives/group-example.sol";
+import "../universe/i-score-provider.sol";
 
 contract UBIExampleDApp {
 
-    ScoreProvider scoreProviderContract;  // e.g. BladerunnerDAO
+    IScoreProvider scoreProviderContract;  // e.g. BladerunnerDAO
 
     uint256 MINIMAL_SCORE = 1 * 10 ** 18;  // 1 DAI
     uint256 UBI = 1000;  // 1 Token
@@ -13,7 +13,7 @@ contract UBIExampleDApp {
     mapping (address => uint256) balances;
 
     constructor (address _userScoreProvider) public {
-        scoreProviderContract = ScoreProvider(_userScoreProvider);
+        scoreProviderContract = IScoreProvider(_userScoreProvider);
     }
 
     function claimUBI(uint160[] calldata path) external {
@@ -40,7 +40,7 @@ contract UBIExampleDApp {
     }
 
     function _payOutUBI(uint160 identityID, address recipient) private {
-        balances[wallet] += UBI;
+        balances[recipient] += UBI;
         claimed[identityID] = true;
     }
 }

@@ -1,8 +1,8 @@
-pragma solidity 0.5.3;
+pragma solidity 0.6;
 
-import "./oz/Ownable.sol";
-import "./oz/IERC20.sol";
-import "./oz/SafeMath.sol";
+
+import "libraries/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import "libraries/openzeppelin-contracts/contracts/math/SafeMath.sol";
 
 /*
 
@@ -62,7 +62,7 @@ contract MolochPool is NotGuildBank {
     }
 
     // Upala checks funds to make sure the pool has enough funds to fund a bot attack
-    function hasEnoughFunds(uint256 ammount) returns(bool) external onlyUpala view {
+    function hasEnoughFunds(uint256 ammount) external view onlyUpala returns(bool) {
         return (approvedToken.balanceOf(address(this)) >= ammount);
     }
 

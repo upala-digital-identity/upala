@@ -3,23 +3,9 @@ import "../oz/ownership/Ownable.sol";
 import "../../IUpala.sol";
 import "../../IGroup";
 
-// keeps track of wallet owners.
-// serves as a DB temporary substitution
-contract WalletRegistry {
-    // binds walet owners and Upala identity ids
 
-    mapping (address => uint160) ids;
-
-    function createUpalaId() external {
-        uint160 newId = upala.newIdentity(msg.sender);
-        ids[msg.sender] = newId;
-    }
-
-    function whatIsMyId() external view returns(uint160) {
-        return ids[msg.sender];
-    }
-}
-
+// Gnosis-like recoverable wallet.
+// Use simple external addresses for the ptototype and mvp
 contract MinimalWallet is Ownable {
 
     Upala upala;
@@ -46,6 +32,9 @@ contract MinimalWallet is Ownable {
             IGroup(superiorGroup).leave;  // notify the group
         }
     }
+
+    // function addScoreProvider() {
+    // }
 
     function getMyScoreInSpecificGroup (address groupManager, uint160[] calldata path) external view onlyOwner {
         return ScoreProvider(groupManager).getMyScore(path);

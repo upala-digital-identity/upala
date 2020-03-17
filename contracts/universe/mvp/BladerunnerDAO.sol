@@ -1,6 +1,7 @@
 pragma solidity ^0.5.3;
 
 import "../libraries/Moloch.sol";
+import "";
 
 contract MolochWithStamps is Moloch {
 
@@ -103,6 +104,9 @@ contract MolochWithStamps is Moloch {
 // TODO proposalDeposit 
 contract BladerunnerDAO is MolochWithStamps {
 
+    /********
+    CONSTANTS
+    /********/
     // address of the Upala protocol
     // now it works as a guildBank
     Upala upala;
@@ -110,9 +114,18 @@ contract BladerunnerDAO is MolochWithStamps {
     // the group ID within Upala
     uint160 bladerunnerGroupID;
 
+    /******
+    SCORING
+    /*****/
+    mapping (address => uint160[]) chachedPaths;
+    
+
     // charge DApps for providing users scores
     uint256 scoringFee;
 
+    /*******
+    RAGEQUIT
+    /*******/
     // Snapshot of shares for refund if insuffiicient funds on ragequit
     struct RagequitRequest {
         uint256 shares;
@@ -121,9 +134,16 @@ contract BladerunnerDAO is MolochWithStamps {
     }
     mapping (uint256 => RagequitRequest) ragequitRequests;
 
+    
+    constructor (address upalaProtocolAddress) {
+        upala = Upala(upalaProtocolAddress);
+    }
+
     /******
     SCORING
     /*****/
+    function getMyScore(uint160[] calldata path) external returns (address, uint256) {
+    }
 
     function getScoreByPath(uint160[] calldata path) external returns (address, uint256) {
 
