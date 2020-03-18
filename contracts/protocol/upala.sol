@@ -1,4 +1,4 @@
-pragma solidity ^0.6.4;
+pragma solidity ^0.6.0;
 
 /*/// WARNING
 
@@ -6,10 +6,10 @@ The code is under heavy developement
 
 /// WARNING */
 
-// import "../oz/token/ERC20/ERC20.sol";
+import "./i-upala.sol";
 import "../libraries/openzeppelin-contracts/contracts/math/SafeMath.sol";
-import "./i-pool-factory.sol";
-import "./i-pool.sol";
+import "../pools/i-pool-factory.sol";
+import "../pools/i-pool.sol";
 
 /*
 The Upala contract is the protocol itself.
@@ -21,18 +21,7 @@ Each group is a smart contract with arbitary logic.
 */
 
 
-interface IUpala {
 
-    function getBotReward(uint160) external view returns (uint);
-    //function getPoolSize(uint160) external view returns (uint);
-
-    //function getBotRewardsLimit(uint160, uint160) external view returns (uint8);
-
-    function attack(uint160[] calldata) external;
-
-    //function addFunds(uint) external;
-    //function withdrawFromPool(uint) external;
-}
 
 
 // The Upala ledger (protocol)
@@ -137,14 +126,14 @@ contract Upala is IUpala {
     REGISTER GROUPS, IDENTITIES AND POOLS
     ************************************/
 
-    function newGroup(address groupManager) external payable returns (uint160) {
+    function newGroup(address groupManager) external payable override(IUpala) returns (uint160) {
         require(msg.value == registrationFee, "Incorrect registration fee");  // draft
         groupsCounter++;
         groups[groupsCounter].manager = groupManager;
         return groupsCounter;
     }
 
-    function newIdentity(address identityHolder) external payable returns (uint160) {
+    function newIdentity(address identityHolder) external payable override(IUpala) returns (uint160) {
         require(msg.value == registrationFee, "Incorrect registration fee");  // draft
         identitiesCounter++;
         identities[identitiesCounter].holder = identityHolder;
@@ -154,20 +143,20 @@ contract Upala is IUpala {
 
     // created by approved pool factories
     // tokens are only stable USDs
-    function newPool(address poolFactory, address poolOwner) external payable returns (address) {
+    function newPool(address poolFactory, address poolOwner, address tokenContract) external payable override(IUpala) returns (address) {
         require(msg.value == registrationFee, "Incorrect registration fee");  // draft
         require(approvedPoolFactories[poolFactory] == true, "Pool factory is not approved");
         // require PoolOwner exists // todo?
-        address newPoolAddress = IPoolFactory(poolFactory).createPool(poolOwner);
+        address newPoolAddress = IPoolFactory(poolFactory).createPool(poolOwner, tokenContract);
         approvedPools[newPoolAddress] = true;
         return newPoolAddress;
     }
 
-    function setGroupManager(uint160 group, address newGroupManager) external onlyGroupManager(group) {
+    function setGroupManager(uint160 group, address newGroupManager) external onlyGroupManager(group) override(IUpala) {
         groups[group].manager = newGroupManager;
     }
 
-    function setIdentityHolder(uint160 identity, address newIdentityHolder)  external onlyIdentityHolder(identity) {
+    function setIdentityHolder(uint160 identity, address newIdentityHolder)  external onlyIdentityHolder(identity) override(IUpala) {
         address currentHolder = identities[identity].holder;
         identities[identity].holder = newIdentityHolder;
         delete holderToIdentity[currentHolder];
@@ -190,6 +179,7 @@ contract Upala is IUpala {
         external
         view
         onlyGroupManager(path[path.length-1])  // the last group in path must be managed by the msg.sender
+        override(IUpala)
         returns(uint)
     {
         return _memberScore(path);
@@ -299,7 +289,7 @@ contract Upala is IUpala {
         return hash;
     }
 
-    function announceBotReward(uint160 group, uint botReward) external onlyGroupManager(group) returns (uint256) {
+    function announceBotReward(uint160 group, uint botReward) external onlyGroupManager(group) override(IUpala) returns (uint256) {
         groups[group].annoucementNonce++;
         bytes32 hash = keccak256(abi.encodePacked("setBotReward", msg.sender, botReward, groups[group].annoucementNonce));
         commitsTimestamps[hash] = now;
@@ -307,7 +297,7 @@ contract Upala is IUpala {
         return groups[group].annoucementNonce;
     }
 
-    function announceBotnetLimit(uint160 group, uint160 member, uint limit) external onlyGroupManager(group) returns (uint256) {
+    function announceBotnetLimit(uint160 group, uint160 member, uint limit) external onlyGroupManager(group) override(IUpala) returns (uint256) {
         require(member != group, "cannot assign limit to oneself");  // todo what about manager?
         groups[group].annoucementNonce++;
         bytes32 hash = keccak256(abi.encodePacked("setBotnetLimit", msg.sender, member, limit, groups[group].annoucementNonce));
@@ -316,7 +306,7 @@ contract Upala is IUpala {
         return groups[group].annoucementNonce;
     }
 
-    function announceAttachPool(uint160 group, address pool) external onlyGroupManager(group) returns (uint256) {
+    function announceAttachPool(uint160 group, address pool) external onlyGroupManager(group) override(IUpala) returns (uint256) {
         require(approvedPools[pool] == true, "Pool is not approved");
         groups[group].annoucementNonce++;
         bytes32 hash = keccak256(abi.encodePacked("attachPool", group, pool, groups[group].annoucementNonce));
@@ -326,7 +316,7 @@ contract Upala is IUpala {
 
     // TODO add recipient?
     // TODO only one active annoucement of a type? A group may generate many announcements in advance.
-    function announceWithdrawFromPool(uint160 group, address recipient, uint amount) external onlyGroupManager(group) returns (uint256) { // $$$
+    function announceWithdrawFromPool(uint160 group, address recipient, uint amount) external onlyGroupManager(group) override(IUpala) returns (uint256) { // $$$
         groups[group].annoucementNonce++;
         bytes32 hash = keccak256(abi.encodePacked("withdrawFromPool", group, recipient, amount, groups[group].annoucementNonce));
         commitsTimestamps[hash] = now;
@@ -351,7 +341,7 @@ contract Upala is IUpala {
     // TODO function executeNextAnnouncement(uint160 group) external {}
 
     // Sets the maximum possible bot reward for the group.
-    function setBotReward(uint160 group, uint botReward) external {
+    function setBotReward(uint160 group, uint botReward) external override(IUpala) {
         groups[group].lastExecutedAnnouncement++;
         bytes32 hash = checkHash(keccak256(abi.encodePacked("setBotReward", group, botReward,groups[group].lastExecutedAnnouncement)));
         groups[group].botReward = botReward;
@@ -359,7 +349,7 @@ contract Upala is IUpala {
         // emit Set("NewBotReward", hash);
     }
 
-    function setBotnetLimit(uint160 group, uint160 member, uint limit) external {
+    function setBotnetLimit(uint160 group, uint160 member, uint limit) external override(IUpala) {
         groups[group].lastExecutedAnnouncement++;
         bytes32 hash = checkHash(keccak256(abi.encodePacked("setBotnetLimit", group, member, limit, groups[group].lastExecutedAnnouncement)));
         groups[group].botnetLimit[member] = limit;
@@ -367,7 +357,7 @@ contract Upala is IUpala {
         // emit Set("setBotnetLimit", hash);
     }
 
-    function attachPool(uint160 group, address pool) external {
+    function attachPool(uint160 group, address pool) external override(IUpala) {
         groups[group].lastExecutedAnnouncement++;
         bytes32 hash = checkHash(keccak256(abi.encodePacked("attachPool", group, pool, groups[group].lastExecutedAnnouncement)));
         groups[group].pool = pool;
@@ -375,7 +365,7 @@ contract Upala is IUpala {
     }
 
     // this may fail due to insufficient funds. TODO what to do?
-    function withdrawFromPool(uint160 group, address recipient, uint amount) external { // $$$
+    function withdrawFromPool(uint160 group, address recipient, uint amount) external override(IUpala) { // $$$
         groups[group].lastExecutedAnnouncement++;
         bytes32 hash = checkHash(keccak256(abi.encodePacked("withdrawFromPool", group, recipient, amount, groups[group].lastExecutedAnnouncement)));
         // tries to withdraw as much as possible (bots could have attacked after an announcement)
@@ -387,7 +377,7 @@ contract Upala is IUpala {
     /*Changes that cannot hurt bots rights*/
 
     // + additional spam protection
-    function acceptInvitation(uint160 group, uint160 superiorGroup, bool isAccepted) external onlyGroupManager(group) {
+    function acceptInvitation(uint160 group, uint160 superiorGroup, bool isAccepted) external onlyGroupManager(group) override(IUpala) {
         require(superiorGroup != group, "CAnnot accept invitations from oneself");
         groups[group].acceptedInvitations[superiorGroup] = isAccepted;
     }
@@ -402,7 +392,7 @@ contract Upala is IUpala {
     // A member of a group is either a group or an identity.
     // TODO if public, can outside contracts do without Upala?
     // Only group manager can access
-    function getBotnetLimit(uint160 group, uint160 member) external view onlyGroupManager(group) returns (uint256) {
+    function getBotnetLimit(uint160 group, uint160 member) external view onlyGroupManager(group) override(IUpala) returns (uint256) {
         //...
         return (groups[group].botnetLimit[member]);
     }
@@ -412,7 +402,7 @@ contract Upala is IUpala {
     }
 
     // returns upala identity id
-    function myId() external view returns(uint160) {
+    function myId() external view override(IUpala) returns(uint160) {
         return holderToIdentity[msg.sender];
     }
 
