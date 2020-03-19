@@ -1,0 +1,1 @@
+Moved to playground/mvp for now (truffle compiling all contracts)

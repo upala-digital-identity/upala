@@ -1,8 +1,8 @@
 pragma solidity 0.6;
 
 
-import "libraries/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
-import "libraries/openzeppelin-contracts/contracts/math/SafeMath.sol";
+import "../libraries/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import "../libraries/openzeppelin-contracts/contracts/math/SafeMath.sol";
 
 /*
 

@@ -1,7 +1,6 @@
-pragma solidity ^0.5.3;
+pragma solidity ^0.6.0;
 
 import "../libraries/Moloch.sol";
-import "";
 
 contract MolochWithStamps is Moloch {
 
@@ -88,7 +87,7 @@ contract MolochWithStamps is Moloch {
         emit SubmitProposal(proposalIndex, msg.sender, memberAddress, applicant, tokenTribute, sharesRequested);
     }
 
-    function isValidStamp(uint256 proposalIndex, bytes32 hash) returns(bool) internal {
+    function isValidStamp(uint256 proposalIndex, bytes32 hash) internal returns(bool) {
         return proposalQueue[proposalIndex].approvalStamp == hash;
     }
 }
@@ -192,7 +191,7 @@ contract BladerunnerDAO is MolochWithStamps {
 
     // New guildbank
     // Is neccessary at initialization
-    function upgradeBank(address newBank, uint256 proposalIndex) returns(bool) internal {
+    function upgradeBank(address newBank, uint256 proposalIndex) internal returns(bool) {
         bytes32 hash = keccak256(abi.encodePacked("upgradeBank", newBank));
         require(isValidStamp(proposalIndex, hash));
         guildbank = Guilbank(newBank);
@@ -303,3 +302,4 @@ contract BladerunnerDAO is MolochWithStamps {
 
         emit FailedRageQuit(member, sharesToRefund);
     }
+}

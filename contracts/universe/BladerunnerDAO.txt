@@ -1,0 +1,2 @@
+BladerunnerDAO is in playground/mvp. 
+Moved there for now so that truffle compiles all inside contracts/ dir
