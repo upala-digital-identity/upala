@@ -35,7 +35,7 @@ contract Upala is IUpala {
     SETTINGS
     ********/
 
-    uint256 registrationFee = 1 wei;   // spam protection + susteinability
+    uint256 registrationFee = 0 wei;   // spam protection + susteinability
 
     // the maximum depth of hierarchy
     // ensures attack gas cost is always lower than block maximum.
@@ -103,7 +103,7 @@ contract Upala is IUpala {
     mapping(bytes32 => uint) commitsTimestamps;
 
     // Every pool spawned by approved Pool Factories
-    mapping(address => bool) approvedPools;
+    mapping(address => uint160) poolsOwners;
 
 
     constructor () public {
@@ -126,10 +126,11 @@ contract Upala is IUpala {
     REGISTER GROUPS, IDENTITIES AND POOLS
     ************************************/
 
-    function newGroup(address groupManager) external payable override(IUpala) returns (uint160) {
+    function newGroup(address groupManager, address poolFactory, address tokenContract) external payable override(IUpala) returns (uint160) {
         require(msg.value == registrationFee, "Incorrect registration fee");  // draft
         groupsCounter++;
         groups[groupsCounter].manager = groupManager;
+        groups[groupsCounter].pool = _newPool(poolFactory, groupsCounter, tokenContract);
         return groupsCounter;
     }
 
@@ -143,12 +144,16 @@ contract Upala is IUpala {
 
     // created by approved pool factories
     // tokens are only stable USDs
-    function newPool(address poolFactory, address poolOwner, address tokenContract) external payable override(IUpala) returns (address) {
+    function newPool(address poolFactory, uint160 poolOwner, address tokenContract) external payable override(IUpala) returns (address) {
         require(msg.value == registrationFee, "Incorrect registration fee");  // draft
+        return _newPool(poolFactory, poolOwner, tokenContract);
+    }
+
+    function _newPool(address poolFactory, uint160 poolOwner, address tokenContract) private returns (address) {
         require(approvedPoolFactories[poolFactory] == true, "Pool factory is not approved");
         // require PoolOwner exists // todo?
         address newPoolAddress = IPoolFactory(poolFactory).createPool(poolOwner, tokenContract);
-        approvedPools[newPoolAddress] = true;
+        poolsOwners[newPoolAddress] = poolOwner;
         return newPoolAddress;
     }
 
@@ -306,8 +311,9 @@ contract Upala is IUpala {
         return groups[group].annoucementNonce;
     }
 
+    // TODO WARNING! any group can attach any pool. 
     function announceAttachPool(uint160 group, address pool) external onlyGroupManager(group) override(IUpala) returns (uint256) {
-        require(approvedPools[pool] == true, "Pool is not approved");
+        require(poolsOwners[pool] == group, "Pool is not owned by the group");
         groups[group].annoucementNonce++;
         bytes32 hash = keccak256(abi.encodePacked("attachPool", group, pool, groups[group].annoucementNonce));
         commitsTimestamps[hash] = now;
@@ -405,6 +411,10 @@ contract Upala is IUpala {
     function myId() external view override(IUpala) returns(uint160) {
         return holderToIdentity[msg.sender];
     }
+
+    // function getGroupManager() external view returns(address) {
+    //     return groups[group].botReward;
+    // }
 
 
     // function isLocked(uint160 group) external view returns (bool) {

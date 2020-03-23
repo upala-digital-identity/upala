@@ -8,15 +8,15 @@ import "./i-pool.sol";
 
 /*
 
-Every group to manages its poool in it's own way. 
+Every group to manages its poool in it's own way.
 Or even to share one pool among several groups.
 */
 
-// Creates Upala and Moloch compatible Guilbanks 
+// Creates Upala and Moloch compatible Guilbanks
 // i.e. the banks that are deliberately vulnerable to bot attacks
-contract basicPoolFactory is IPoolFactory { 
+contract basicPoolFactory is IPoolFactory {
 
-    function createPool(address poolOwner, address token) external override (IPoolFactory) returns (address) {
+    function createPool(uint160 poolOwner, address token) external override (IPoolFactory) returns (address) {
         poolOwner;  // just silencing warnings
         return address(new BasicPool(msg.sender, token));
    }
