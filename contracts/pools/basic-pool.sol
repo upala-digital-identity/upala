@@ -14,11 +14,17 @@ Or even to share one pool among several groups.
 
 // Creates Upala and Moloch compatible Guilbanks
 // i.e. the banks that are deliberately vulnerable to bot attacks
-contract basicPoolFactory is IPoolFactory {
+contract BasicPoolFactory is IPoolFactory {
 
-    function createPool(uint160 poolOwner, address token) external override (IPoolFactory) returns (address) {
-        poolOwner;  // just silencing warnings
-        return address(new BasicPool(msg.sender, token));
+    address public approvedToken;
+
+    constructor (address approvedTokenAddress) public {
+        approvedToken = approvedTokenAddress;
+    }
+
+    function createPool(uint160 poolManager) external override (IPoolFactory) returns (address) {
+        poolManager;  // just silencing warnings // basic pool doesn't have a pool Manager
+        return address(new BasicPool(msg.sender, approvedToken));
    }
 }
 
@@ -28,19 +34,15 @@ contract BasicPool is IPool {
     using SafeMath for uint256;
 
     IERC20 public approvedToken; // approved token contract reference
-    
+
     address upala;
-    
+
     // TODO hardcode approved token
-    constructor(address owner, address approvedTokenAddress) public {
-        require(
-            approvedTokenAddress == address(0x0) ||  // Hardcode DAI on mainnet
-            approvedTokenAddress == address(0x0)     // Hardcode DAI on Kovan // TODO remove in production
-            );
-        upala = owner;
+    constructor(address upalaContract, address approvedTokenAddress) public {
+        upala = upalaContract;
         approvedToken = IERC20(approvedTokenAddress);
     }
-    
+
     modifier onlyUpala() {
         require(msg.sender == upala);
         _;

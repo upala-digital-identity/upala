@@ -1,6 +1,7 @@
 pragma solidity ^0.6.0;
 
 import "../universe/i-score-provider.sol";
+// ../universe/proto-group.sol
 
 contract UBIExampleDApp {
 
@@ -42,5 +43,9 @@ contract UBIExampleDApp {
     function _payOutUBI(uint160 identityID, address recipient) private {
         balances[recipient] += UBI;
         claimed[identityID] = true;
+    }
+
+    function myUBIBalance() external returns (uint256) {
+        return balances[msg.sender];
     }
 }
