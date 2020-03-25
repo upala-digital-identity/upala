@@ -18,27 +18,31 @@ var network_id;
 
 contract('Upala', function(accounts) {
   web3.eth.getAccounts((error,result) => {
-    admin = result[0];  // 0x0230c6dd5db1d3f871386a3ce1a5a836b2590044
-    groupManager = result[1]; // 0x5adb20e1ea529f159b191b663b9240f29f903727\
+    admin = result[0];  
+    groupManager = result[1]; 
 
-    user_1 = result[2]; // 0xe66ec08db6d02312d4eccbfa505e68485c42fe86
-    user_2 = result[3]; // 0x0172195ab28740d83b279456c38c020420b2f03a
-    //console.log(admin, user_1, user_2, user_3);
+    user_1 = result[2];
+    user_2 = result[3];
+    user_3 = result[4];
+    console.log(admin, user_1, user_2, user_3);
   })
 
   web3.eth.defaultAccount = admin;
 
-  it("should let create group", async () => {
+  it("should provide basic setup", async () => {
     const upalaProtocol = await Upala.deployed();
     const fakeDai = await FakeDai.deployed();
     const basicPoolFactory = await BasicPoolFactory.deployed();
+    console.log("Upala protocol address: ", upalaProtocol.address);
+    console.log("FakeDai pool factory address: ", basicPoolFactory.address);
+
 
     // create proto group
     group1 = await ProtoGroup.new(upalaProtocol.address, basicPoolFactory.address, {from: groupManager});
-    const group1ID = (await group1.getUpalaGroupID.call()).toNumber();
-    const group1PoolAddress = await group1.getGroupPoolAddress.call();
-    console.log("Group ID: ", group1ID);
-    console.log("Group Pool Address: ", group1PoolAddress);
+    const group1ID = (await group1.getUpalaGroupID.call({from: groupManager})).toNumber();
+    const group1PoolAddress = await group1.getGroupPoolAddress.call({from: groupManager});
+    console.log("Group 1 Upala ID: ", group1ID);
+    console.log("Group 1 Pool Address: ", group1PoolAddress);
 
     // fill up group's pool
     tx = await fakeDai.freeDaiToTheWorld(group1PoolAddress, poolDonation, {from: groupManager});
@@ -50,6 +54,7 @@ contract('Upala', function(accounts) {
 
     // deploy DApp 
     dapp1 = await UBIExampleDApp.new(group1.address, {from: groupManager});
+    console.log("UBIExampleDApp address: ", basicPoolFactory.address);
 
     // Upala homepage UX
     // register users and auto-assign scores
@@ -62,20 +67,7 @@ contract('Upala', function(accounts) {
     // DApp UX
     tx = await dapp1.claimUBICachedPath({from: user_1});
     console.log("User 1 UBI balance: ", web3.utils.fromWei(await dapp1.myUBIBalance.call({from: user_1})));
-    
-    //console.log("User1 Score: ", user1ID);
 
-  //}
-
-
-    // function announceBotnetLimit(uint160 member, uint limit) external {
-
-    // // anyone 
-    
-    // function setBotnetLimit(uint160 group, uint160 member, uint limit) external override(IUpala) {
-    // newPool(address poolFactory, uint160 poolOwner
-    // assert.equal(await upalaProtocol.getBlockOwner.call(1, 1), groupManager,                       
-    //     "the block 1x1 owner wasn't set");
   })
 
 });

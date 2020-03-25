@@ -21,6 +21,7 @@ const HDWalletProvider = require("truffle-hdwallet-provider");
 
 const secrets = require('./secrets.js');
 const infuraKey = secrets.infura_api;
+const infuraProjectID = secrets.infuraProjectID;
 const mnemonic = secrets.mnemonic;
 
 module.exports = {
@@ -59,14 +60,25 @@ module.exports = {
 
     // Useful for deploying to a public network.
     // NB: It's important to wrap the provider as a function.
-    // ropsten: {
-      // provider: () => new HDWalletProvider(mnemonic, `https://ropsten.infura.io/v3/YOUR-PROJECT-ID`),
-      // network_id: 3,       // Ropsten's id
-      // gas: 5500000,        // Ropsten has a lower block limit than mainnet
-      // confirmations: 2,    // # of confs to wait between deployments. (default: 0)
-      // timeoutBlocks: 200,  // # of blocks before a deployment times out  (minimum/default: 50)
-      // skipDryRun: true     // Skip dry run before migrations? (default: false for public nets )
-    // },
+    ropsten: {
+      provider: () => new HDWalletProvider(mnemonic, `https://ropsten.infura.io/v3/` + infuraProjectID, 0, 5),
+      network_id: 3,       // Ropsten's id
+      from: "0x0230c6dd5db1d3f871386a3ce1a5a836b2590044",
+      gas: 5500000,        // Ropsten has a lower block limit than mainnet
+      confirmations: 2,    // # of confs to wait between deployments. (default: 0)
+      timeoutBlocks: 200,  // # of blocks before a deployment times out  (minimum/default: 50)
+      skipDryRun: true     // Skip dry run before migrations? (default: false for public nets )
+    },
+
+    kovan: {
+      provider: () => new HDWalletProvider(mnemonic, `https://kovan.infura.io/v3/` + infuraProjectID, 0, 5),
+      network_id: 42,       // Kovan's id
+      from: "0x0230c6dd5db1d3f871386a3ce1a5a836b2590044",
+      gas: 4700000,        // 
+      confirmations: 0,    // # of confs to wait between deployments. (default: 0)
+      timeoutBlocks: 200,  // # of blocks before a deployment times out  (minimum/default: 50)
+      skipDryRun: true     // Skip dry run before migrations? (default: false for public nets )
+    },
 
     // Useful for private networks
     // private: {
@@ -78,6 +90,7 @@ module.exports = {
 
   // Set default mocha options here, use special reporters etc.
   mocha: {
+    enableTimeouts: false
     // timeout: 100000
   },
 
