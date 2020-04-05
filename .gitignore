@@ -2,4 +2,4 @@ secrets.js
 contracts/oz/*
 cheatsheet
 build
-
+.DS_Store
