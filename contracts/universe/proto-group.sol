@@ -58,6 +58,11 @@ contract ProtoGroup {
     // Emergency manager can decrease bot reward at any time (announce the decrease)
     function announceBotReward(uint botReward) external {
         upala.announceBotReward(groupID, botReward);
+        _setBotReward(botReward);
+    }
+
+    function _setBotReward(uint botReward) internal {
+        upala.setBotReward(groupID, botReward);
     }
 
     function _announceBotnetLimit(uint160 member, uint limit) internal {
