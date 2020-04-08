@@ -30,6 +30,9 @@ contract('Upala', function(accounts) {
   web3.eth.defaultAccount = admin;
 
   it("should provide basic setup", async () => {
+    // Basic setup for Upala prototype. 
+    // Single group, which auto-assigns scores to anyone who joins.
+
     const upalaProtocol = await Upala.deployed();
     const fakeDai = await FakeDai.deployed();
     const basicPoolFactory = await BasicPoolFactory.deployed();
@@ -56,7 +59,10 @@ contract('Upala', function(accounts) {
     dapp1 = await UBIExampleDApp.new(group1.address, {from: groupManager});
     console.log("UBIExampleDApp address: ", basicPoolFactory.address);
 
-    // Upala homepage UX
+
+
+    // Upala prototype UX
+    // 
     // register users and auto-assign scores
     tx = await upalaProtocol.newIdentity(user_1, {from: user_1});
     const user1ID = (await upalaProtocol.myId.call({from: user_1})).toNumber();
