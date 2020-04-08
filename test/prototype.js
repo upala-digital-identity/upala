@@ -29,18 +29,25 @@ contract('Upala', function(accounts) {
 
   web3.eth.defaultAccount = admin;
 
-  it("creates a group which auto-assigns scores and uses fake-dai pool", async () => {
-    // Basic setup for Upala prototype. 
-    // Single group, which auto-assigns scores to anyone who joins.
-    
-    // prepare
+  it("ProtoGroup test (attack window must be 0)", async () => {
+    // Basic setup for Upala prototype.
+    // Uses a single group - ProtoGroup
+    // ProtoGroup features:
+    // - auto-assigns scores to anyone who joins.
+    // - uses fakeDai pool (anyone can mint any ammount of tokens into it)
+    // - Caches paths for all users (the path is as simple as [UserID, ProtoGroupID])
+    // - Provides scores to UBI Dapp by requiring only ID manager (uses cached paths)
+    // - Allows anyone to set botNetLimits
+    // The test Will work only with attack window set to 0
+
+    // initialize contracts
     const upalaProtocol = await Upala.deployed();
     const fakeDai = await FakeDai.deployed();
     const basicPoolFactory = await BasicPoolFactory.deployed();
     console.log("Upala protocol address: ", upalaProtocol.address);
     console.log("FakeDai pool factory address: ", basicPoolFactory.address);
 
-    // create proto group
+    // create ProtoGroup
     group1 = await ProtoGroup.new(upalaProtocol.address, basicPoolFactory.address, {from: groupManager});
     const group1ID = (await group1.getUpalaGroupID.call({from: groupManager})).toNumber();
     const group1PoolAddress = await group1.getGroupPoolAddress.call({from: groupManager});
@@ -50,9 +57,8 @@ contract('Upala', function(accounts) {
     // fill up group's pool
     tx = await fakeDai.freeDaiToTheWorld(group1PoolAddress, poolDonation, {from: groupManager});
 
-    // group announces and then anyone sets BotReward 
+    // group announces and immediately sets BotReward (since for now attack window is 0)
     tx = await group1.announceBotReward(oneDollar, {from: groupManager});
-    // tx = await upalaProtocol.setBotReward(group1ID, oneDollar, {from: user_1});
     console.log("Bot reward: ", web3.utils.fromWei(await upalaProtocol.getBotReward.call(group1ID)));
 
     // deploy DApp 
@@ -62,14 +68,15 @@ contract('Upala', function(accounts) {
 
 
     // Upala prototype UX
-    // 
     // register users and auto-assign scores
     tx = await upalaProtocol.newIdentity(user_1, {from: user_1});
     const user1ID = (await upalaProtocol.myId.call({from: user_1})).toNumber();
     console.log("User1 ID: ", user1ID);
+
+    // join group
     tx = await group1.join(user1ID, {from: user_1});
 
-    // move to group 
+    // set BotnetLimit
     tx = await group1.setBotnetLimit(user1ID, {from: user_1});
 
     // DApp UX
