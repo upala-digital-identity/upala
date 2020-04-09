@@ -68,12 +68,47 @@ contract('Upala', function(accounts) {
 
 
     // Upala prototype UX
-    // register users and auto-assign scores
+    // "Create ID" button
     tx = await upalaProtocol.newIdentity(user_1, {from: user_1});
+
+    // ID details
     const user1ID = (await upalaProtocol.myId.call({from: user_1})).toNumber();
     console.log("User1 ID: ", user1ID);
 
-    // join group
+    // "Memberships" ("Groups list")
+    // No on-chain data - only session data for now
+    // Or probably same as "waiting for confirmation" 
+    // TODO - implement "waiting for confirmation" functionality first
+
+    // "Group details", "Score provider details"
+    // name, join and leave terms - all in json string
+    // deposit amount 
+    // For Score provider loads the last group in the attack/scoring path
+    // TODO - add functions to protogroup
+
+    // "waiting for confirmation" message 
+    // join is requested, but not a confirmed member yet
+    // check user score
+    // TODO - user requests Upala the list of invitations they accepted, then checks each for botNetLimit
+
+    // "Leave group" button
+    // TODO - add function to protogroup
+
+    // Score providers list
+    // No onchain data ever
+    // For now browser data + hardcoded score providers (BladerunnerDAO, what else?)
+    // DB for later 
+
+    // "Forget path" button 
+    // Nothings happens on blockchain
+
+    // "Your score"
+    // TODO - log function call requesting price
+
+    // "Explode"
+    // TODO - test explosion function
+
+    // "Deposit and join" button
     tx = await group1.join(user1ID, {from: user_1});
 
     // DApp UX
