@@ -80,9 +80,10 @@ contract ProtoGroup {
     function join(uint160 identityID) external {
         identityIDs[msg.sender] = identityID;
         _announceBotnetLimit(identityID, defaultLimit);
+        _setBotnetLimit(identityID);
     }
 
-    function setBotnetLimit(uint160 identityID) external {
+    function _setBotnetLimit(uint160 identityID) internal {
         upala.setBotnetLimit(groupID, identityID, defaultLimit);
     }
 

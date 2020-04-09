@@ -76,9 +76,6 @@ contract('Upala', function(accounts) {
     // join group
     tx = await group1.join(user1ID, {from: user_1});
 
-    // set BotnetLimit
-    tx = await group1.setBotnetLimit(user1ID, {from: user_1});
-
     // DApp UX
     tx = await dapp1.claimUBICachedPath({from: user_1});
     console.log("User 1 UBI balance: ", web3.utils.fromWei(await dapp1.myUBIBalance.call({from: user_1})));
