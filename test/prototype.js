@@ -16,7 +16,7 @@ var user_2 = "";
 var user_3 = "";
 var network_id;
 
-async function assertThrows(foo, msg) {
+async function isThrowing(foo) {
   var error = {};
   error.message = "";
   try {
@@ -25,16 +25,7 @@ async function assertThrows(foo, msg) {
       error = err;
 
   }
-  console.log(error.message);
-  if (network_id == 4 || network_id == 42) {        
-      //Rinkeby through infura: "Transaction: 0x3a2128319ad2216504878abd4b3358e967bfec68b8fb37eb951d986a857b6530 exited with an error (status 0)...."
-      assert.equal(error.message.substring(95,100), "error", msg);
-  } else {
-      //Truffle develop: "VM Exception while processing transaction: revert"
-      //Network id 4447
-      assert.equal(error.message.substring(43,49), "revert", msg);
-  }
-  
+  return error.message.substring(66);
 }
 
 contract('Upala', function(accounts) {
@@ -97,12 +88,12 @@ contract('Upala', function(accounts) {
     // "Groups list"
     // No on-chain data for the list - only session data for now (and probably for the future as well)
     
-    // Membership status (is user a member of a group)
+    // Membership status (user not a member of a group)
     // A user is a member if a group assignes any score
     const membershipCheckPath = [user1ID, group1ID];
-    // console.log("User is member of Group1:", userScoreIn.gt(0));  // true if user score greater than 0.
-    // await assertThrows(upalaProtocol.memberScore.call(membershipCheckPath, {from: user_1}), 
-    //     "Allowed buying block not marked for sale!");
+    const error = await isThrowing(upalaProtocol.memberScore.call(membershipCheckPath, {from: user_1}));
+    console.log(error);
+    // TODO probably better return 0 from Upala...
 
     // "Group details", "Score provider details"
     // name, join and leave terms - all in json string
@@ -115,7 +106,7 @@ contract('Upala', function(accounts) {
     // TODO acceptInvitation in Upala
     tx = await group1.join(user1ID, {from: user_1});
     
-    // Membership status (is user a member of a group)
+    // Membership status (user is a member of a group)
     // A user is a member if a group assignes any score
     //const membershipCheckPath = [user1ID, group1ID];
     const userScoreIn = await upalaProtocol.memberScore.call(membershipCheckPath, {from: user_1});
@@ -124,11 +115,11 @@ contract('Upala', function(accounts) {
     // "waiting for confirmation" message 
     // join is requested, but not a confirmed member yet
     // check user score
-    // TODO - user requests Upala the list of invitations they accepted, then checks each for botNetLimit
+    // TODO - check each group in the list for botNetLimit
 
     // "Leave group" button
     // Protogroup has no leaving terms. The action is just "forget" group - same as "Forget path"
-
+    // TODO - add a function to ProtoGroup.
 
     // Score providers list
     // No onchain data ever, DB for the future 
