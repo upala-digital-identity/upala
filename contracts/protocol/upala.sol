@@ -75,10 +75,6 @@ contract Upala is IUpala {
         // @dev Used to check membership when calculating score
         mapping(uint160 => uint256) botnetLimit;
 
-        // A group may or may become a member of a superior group
-        // true for accepting membership in a superior group
-        mapping(uint160 => bool) acceptedInvitations;
-
         // Queue of execution? experiment
         uint256 annoucementNonce;
         uint256 lastExecutedAnnouncement;
@@ -268,8 +264,7 @@ contract Upala is IUpala {
         require(path.length != 0, "path too short");
         require(path.length <= maxPathLength, "path too long");
 
-        //TODO check invitations?
-
+        // FUTURE check invitations (A group may or may not become a member of a superior group)
         // check the path from identity to the top
         uint160 member;
         uint160 group;
@@ -395,15 +390,6 @@ contract Upala is IUpala {
     }
 
     /*Changes that cannot hurt bots rights*/
-
-    // + additional spam protection
-    function acceptInvitation(uint160 group, uint160 superiorGroup, bool isAccepted) external onlyGroupManager(group) override(IUpala) {
-        require(superiorGroup != group, "CAnnot accept invitations from oneself");
-        groups[group].acceptedInvitations[superiorGroup] = isAccepted;
-    }
-
-
-
 
     /**************
     GETTER FUNCTIONS
