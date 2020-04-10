@@ -4,11 +4,11 @@ const BasicPoolFactory = artifacts.require("BasicPoolFactory");
 const ProtoGroup = artifacts.require("ProtoGroup");
 const UBIExampleDApp = artifacts.require("UBIExampleDApp");
 
+const BN = web3.utils.BN;
+const defaultBotReward = web3.utils.toWei(new BN(3, 10), 'ether');  // 3 DAI (same denomination as ETH)
+const poolDonation = web3.utils.toWei(new BN(10, 10), 'ether');
 
-const oneDollar = web3.utils.toWei("1", 'ether');
-const poolDonation = web3.utils.toWei("10", 'ether');
 
-var BN = web3.utils.BN;
 
 var admin = "";
 var user_1 = "";
@@ -45,25 +45,23 @@ contract('Upala', function(accounts) {
     const fakeDai = await FakeDai.deployed();
     const basicPoolFactory = await BasicPoolFactory.deployed();
     console.log("Upala protocol address: ", upalaProtocol.address);
-    console.log("FakeDai pool factory address: ", basicPoolFactory.address);
+    console.log("FakeDai pool factory address: ", basicPoolFactory.address, "\n");
 
     // create ProtoGroup
     group1 = await ProtoGroup.new(upalaProtocol.address, basicPoolFactory.address, {from: groupManager});
-    const group1ID = (await group1.getUpalaGroupID.call({from: groupManager})).toNumber();
+    const group1ID = await group1.getUpalaGroupID.call({from: groupManager});
     const group1PoolAddress = await group1.getGroupPoolAddress.call({from: groupManager});
-    console.log("Group 1 Upala ID: ", group1ID);
-    console.log("Group 1 Pool Address: ", group1PoolAddress);
+    console.log("Group1 Upala ID: ", group1ID.toNumber());
+    console.log("Group1 Pool Address: ", group1PoolAddress);
 
     // fill up group's pool
     tx = await fakeDai.freeDaiToTheWorld(group1PoolAddress, poolDonation, {from: groupManager});
 
     // group announces and immediately sets BotReward (since for now attack window is 0)
-    tx = await group1.announceBotReward(oneDollar, {from: groupManager});
+    tx = await group1.announceBotReward(defaultBotReward, {from: groupManager});
     console.log("Bot reward: ", web3.utils.fromWei(await upalaProtocol.getBotReward.call(group1ID)));
 
-    // deploy DApp 
-    dapp1 = await UBIExampleDApp.new(group1.address, {from: groupManager});
-    console.log("UBIExampleDApp address: ", basicPoolFactory.address);
+
 
 
 
@@ -72,8 +70,8 @@ contract('Upala', function(accounts) {
     tx = await upalaProtocol.newIdentity(user_1, {from: user_1});
 
     // ID details
-    const user1ID = (await upalaProtocol.myId.call({from: user_1})).toNumber();
-    console.log("User1 ID: ", user1ID);
+    const user1ID = await upalaProtocol.myId.call({from: user_1});
+    console.log("User1 ID: ", user1ID.toNumber());
 
     // "Memberships" ("Groups list")
     // No on-chain data - only session data for now
@@ -83,8 +81,14 @@ contract('Upala', function(accounts) {
     // "Group details", "Score provider details"
     // name, join and leave terms - all in json string
     // deposit amount 
-    // For Score provider loads the last group in the attack/scoring path
-    // TODO - add functions to protogroup
+    // For Score providers load the last group in the attack/scoring path
+    console.log("Group details: ", await group1.getGroupDetails.call({from: user_1}));
+    console.log("Group deposit: ", (web3.utils.fromWei(await group1.getGroupDepositAmount.call({from: user_1})), " FakeDAI"));
+
+    // "Deposit and join" button
+    // TODO acceptInvitation in Upala
+    tx = await group1.join(user1ID, {from: user_1});
+    
 
     // "waiting for confirmation" message 
     // join is requested, but not a confirmed member yet
@@ -93,23 +97,37 @@ contract('Upala', function(accounts) {
 
     // "Leave group" button
     // TODO - add function to protogroup
+    // TODO acceptInvitation in Upala (rename maybe to smth different)
+
 
     // Score providers list
-    // No onchain data ever
-    // For now browser data + hardcoded score providers (BladerunnerDAO, what else?)
-    // DB for later 
+    // No onchain data ever, DB for the future 
+    // For now browser data + hardcoded score providers (BladerunnerDAO, hm... what else?)
 
     // "Forget path" button 
-    // Nothings happens on blockchain
+    // Nothings happens onchain
 
     // "Your score"
-    // TODO - log function call requesting price
+    const path1 = [user1ID, group1ID];
+    console.log(
+      "User score in ProtoGroup:", 
+      web3.utils.fromWei(await upalaProtocol.memberScore.call(path1, {from: user_1})), 
+      "FakeDAI"
+    );
 
     // "Explode"
-    // TODO - test explosion function
+    const user1_balance_before_attack = await fakeDai.balanceOf.call(user_1, {from: user_1});
+    tx = await upalaProtocol.attack(path1, {from: user_1});
+    const user1_balance_after_attack = await fakeDai.balanceOf.call(user_1, {from: user_1});
+    console.log("isBN", defaultBotReward.eq(user1_balance_after_attack.sub(user1_balance_before_attack)));
+    assert.equal(
+      defaultBotReward.eq(user1_balance_after_attack.sub(user1_balance_before_attack)), 
+      true,
+      "Owner of Ads wasn't set right!");
 
-    // "Deposit and join" button
-    tx = await group1.join(user1ID, {from: user_1});
+    // deploy DApp 
+    dapp1 = await UBIExampleDApp.new(group1.address, {from: groupManager});
+    console.log("UBIExampleDApp address: ", basicPoolFactory.address);
 
     // DApp UX
     tx = await dapp1.claimUBICachedPath({from: user_1});
