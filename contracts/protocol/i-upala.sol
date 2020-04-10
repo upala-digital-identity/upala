@@ -13,7 +13,7 @@ interface IUpala {
 
     // groups (only managers)
     function setGroupManager(uint160, address) external;
-    function memberScore(uint160[] calldata) external view returns(address, uint256);
+    function memberScore(uint160[] calldata) external view returns(uint256);
     function announceBotReward(uint160, uint) external returns (uint256);
     function announceBotnetLimit(uint160, uint160, uint) external returns (uint256);
     function announceAttachPool(uint160, address) external returns (uint256);

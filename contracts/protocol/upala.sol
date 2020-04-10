@@ -180,15 +180,26 @@ contract Upala is IUpala {
     path is an array of addressess.
     */
 
-    // TODO now it is only identity score
+    // TODO now it is only identity score (cannot score groups)
     function memberScore(uint160[] calldata path)
         external
         view
-        onlyGroupManager(path[path.length-1])  // the last group in path must be managed by the msg.sender
+        // TODO onlyValidPath
         override(IUpala)
-        returns(address, uint256)
+        returns(uint256)
     {
-        return (identities[path[0]].holder, _memberScore(path));
+        // the last group in path must be managed by the msg.sender
+        uint160 groupID = path[path.length-1];
+        uint160 IdentityID = path[0];
+        require(
+            groups[groupID].manager == msg.sender || identities[IdentityID].holder == msg.sender,
+            "msg.sender is not identity holder or group manager within the provided path"
+        );
+        return (_memberScore(path));
+    }
+
+    function getIdentityHolder(uint160 identityID) external view returns (address) {
+        return identities[identityID].holder;
     }
 
     // Allows any identity to attack any group, run with the money and self-destruct.
