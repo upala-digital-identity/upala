@@ -86,10 +86,12 @@ contract('Upala', function(accounts) {
     console.log("User1 ID: ", user1ID.toNumber());
 
     // "Groups list"
-    // No on-chain data for the list - only session data for now (and probably for the future as well)
+    // No on-chain data for the list - fetch from 3Box (private Spaces and 3Box.js)
+    // https://docs.3box.io/network/architecture https://docs.3box.io/build/web-apps/storage 
+    // 3Box threads for future https://medium.com/3box/confidential-threads-api-17df60b34431 
     
     // Membership status (user not a member of a group)
-    // A user is a member if a group assignes any score
+    // A user is a member if a group assigns any score
     const membershipCheckPath = [user1ID, group1ID];
     const error = await isThrowing(upalaProtocol.memberScore.call(membershipCheckPath, {from: user_1}));
     console.log(error);
@@ -103,7 +105,6 @@ contract('Upala', function(accounts) {
     console.log("Group deposit: ", (web3.utils.fromWei(await group1.getGroupDepositAmount.call({from: user_1})), " FakeDAI"));
 
     // "Deposit and join" button
-    // TODO acceptInvitation in Upala
     tx = await group1.join(user1ID, {from: user_1});
     
     // Membership status (user is a member of a group)
@@ -114,19 +115,18 @@ contract('Upala', function(accounts) {
 
     // "waiting for confirmation" message 
     // join is requested, but not a confirmed member yet
-    // check user score
-    // TODO - check each group in the list for botNetLimit
+    // check user score (check each group in the list for botNetLimit)
 
     // "Leave group" button
     // Protogroup has no leaving terms. The action is just "forget" group - same as "Forget path"
-    // TODO - add a function to ProtoGroup.
+    // Removes group from 3Box
 
     // Score providers list
-    // No onchain data ever, DB for the future 
-    // For now browser data + hardcoded score providers (BladerunnerDAO, etc.)
+    // 3Box Private spaces as DB + hardcoded score providers (BladerunnerDAO, etc.)
 
     // "Forget path" button 
     // Nothings happens onchain
+    // Removes path from 3Box
 
     // "Your score"
     const path1 = [user1ID, group1ID];
