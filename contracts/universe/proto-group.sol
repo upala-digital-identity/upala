@@ -1,117 +1,50 @@
 pragma solidity ^0.6.0;
 
 import "../protocol/upala.sol";
+import "./upala-score-provider.sol";
+import "./base-prototype.sol";
 
-contract ProtoGroup {
+contract ProtoGroup is UpalaScoreProvider, BasePrototype {
 
-    /********
-    CONSTANTS
-    /********/
-    // address of the Upala protocol
-    // now it works as a guildBank
-    Upala upala;
-
-    // the group ID within Upala
-    uint160 groupID;
-    address groupPool;
-    uint256 defaultLimit = 1000000 * 10 ** 18;  // one million dollars [*places little finger near mouth*]
-
-    /*******
-    SETTINGS
-    /******/
-    string details = '{"name": "ProtoGroup","version": "0.1","description": "Autoassigns FakeDAI score to anyone who joins","join-terms": "No deposit required (ignore the ammount you see and join)","leave-terms": "No deposit - no refund"}';
-    uint256 depositAmount = 2 * 10 ** 18;  // just for display (deposit is not implemented)
-    uint256 scoringFee;  // charge DApps for providing users scores
-
-    /************
-    SCORING CACHE
-    /***********/
-    mapping (address => uint160[]) chachedPaths;
-    mapping (address => uint160) identityIDs;
-
-
-
-    constructor (address upalaProtocolAddress, address poolFactory) public {
+    constructor (
+        address upalaProtocolAddress,
+        address poolFactory
+    ) UpalaScoreProvider (
+        upalaProtocolAddress,
+        poolFactory
+    ) BasePrototype (
+        "dfgdfg",
+        242,
+        234
+    )
+    public {
         upala = Upala(upalaProtocolAddress);
         (groupID, groupPool) = upala.newGroup(address(this), poolFactory);
     }
 
-    /******
-    SCORING
-    /*****/
 
-    function getMyScore(uint160[] calldata path) external returns (address, uint256) {
+    function announceAndSetBotReward(uint botReward) external {
+        _announceAndSetBotReward(botReward);
     }
 
-    function getScoreByPath(uint160[] calldata path) external returns (uint256) {
-        // charge();
-        // (address identityManager, uint256 score)
-        // uint160[] memory memPath = path;
-        // return upala.memberScore(memPath);
+    function announceAndSetBotnetLimit(uint160 identityID, uint256 newBotnetLimit) external {
+        _announceAndSetBotnetLimit(identityID, newBotnetLimit);
     }
 
-    function getScoreByManager(address manger) external returns (address, uint256) {
+    function getScoreByManager(address manger) external view returns (address, uint256) {
         uint160[] memory path = new uint160[](2);
         path[0] = identityIDs[manger];
         path[1] = groupID;
-        uint256 score = upala.memberScore(path);
-        address holder = upala.getIdentityHolder(path[0]);
+        uint256 score = _getScoreByPath(path);
+        address holder = _getIdentityHolder(path[0]);
         return (holder, score);
         // charge();
         //(uint160 identityID, uint256 score)
     }
 
-    // Encrease bot reward through a proposal.
-    // Emergency manager can decrease bot reward at any time (announce the decrease)
-    function announceBotReward(uint botReward) external {
-        upala.announceBotReward(groupID, botReward);
-        _setBotReward(botReward);
-    }
-
-    function _setBotReward(uint botReward) internal {
-        upala.setBotReward(groupID, botReward);
-    }
-
-    function _announceBotnetLimit(uint160 member, uint limit) internal {
-        // bytes32 hash = keccak256(abi.encodePacked("announceBotnetLimit", member, limit));
-        upala.announceBotnetLimit(groupID, member, limit);
-    }
-
-    
-
-    function acceptInvitation(uint160 superiorGroup, bool isAccepted) external {
-        //...
-    }
-
     // User joins
     function join(uint160 identityID) external {
         identityIDs[msg.sender] = identityID;
-        _announceBotnetLimit(identityID, defaultLimit);
-        _setBotnetLimit(identityID);
-    }
-
-    function _setBotnetLimit(uint160 identityID) internal {
-        upala.setBotnetLimit(groupID, identityID, defaultLimit);
-    }
-
-
-    /******
-    GETTERS
-    /*****/
-
-    function getUpalaGroupID() external view returns (uint160) {
-        return groupID;
-    }
-
-    function getGroupPoolAddress() external view returns (address) {
-        return groupPool;
-    }
-
-    function getGroupDetails() external view returns (string memory){
-        return details;
-    }
-
-    function getGroupDepositAmount() external view returns (uint256) {
-        return depositAmount;
+        _announceAndSetBotnetLimit(identityID, defaultLimit);
     }
 }
