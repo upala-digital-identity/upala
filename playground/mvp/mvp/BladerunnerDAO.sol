@@ -145,10 +145,11 @@ contract BladerunnerDAO is MolochWithStamps {
     }
 
     function getScoreByPath(uint160[] calldata path) external returns (address, uint256) {
-
         // charge();
         // (address identityManager, uint256 score)
-        return upala.memberScore(path);
+        uint256 score = upala.memberScore(path);
+        address holder = upala.getIdentityHolder(path[0]);
+        return (holder, score);
     }
 
     function getScoreByManager(address manager) external returns (uint160, uint256) {

@@ -16,14 +16,20 @@ contract ProtoGroup {
     address groupPool;
     uint256 defaultLimit = 1000000 * 10 ** 18;  // one million dollars [*places little finger near mouth*]
 
-    /******
-    SCORING
-    /*****/
+    /*******
+    SETTINGS
+    /******/
+    string details = '{"name": "ProtoGroup","version": "0.1","description": "Autoassigns FakeDAI score to anyone who joins","join-terms": "No deposit required (ignore the ammount you see and join)","leave-terms": "No deposit - no refund"}';
+    uint256 depositAmount = 2 * 10 ** 18;  // just for display (deposit is not implemented)
+    uint256 scoringFee;  // charge DApps for providing users scores
+
+    /************
+    SCORING CACHE
+    /***********/
     mapping (address => uint160[]) chachedPaths;
     mapping (address => uint160) identityIDs;
 
-    // charge DApps for providing users scores
-    uint256 scoringFee;
+
 
     constructor (address upalaProtocolAddress, address poolFactory) public {
         upala = Upala(upalaProtocolAddress);
@@ -48,7 +54,8 @@ contract ProtoGroup {
         uint160[] memory path = new uint160[](2);
         path[0] = identityIDs[manger];
         path[1] = groupID;
-        (address holder, uint256 score) = upala.memberScore(path);
+        uint256 score = upala.memberScore(path);
+        address holder = upala.getIdentityHolder(path[0]);
         return (holder, score);
         // charge();
         //(uint160 identityID, uint256 score)
@@ -58,6 +65,11 @@ contract ProtoGroup {
     // Emergency manager can decrease bot reward at any time (announce the decrease)
     function announceBotReward(uint botReward) external {
         upala.announceBotReward(groupID, botReward);
+        _setBotReward(botReward);
+    }
+
+    function _setBotReward(uint botReward) internal {
+        upala.setBotReward(groupID, botReward);
     }
 
     function _announceBotnetLimit(uint160 member, uint limit) internal {
@@ -75,9 +87,10 @@ contract ProtoGroup {
     function join(uint160 identityID) external {
         identityIDs[msg.sender] = identityID;
         _announceBotnetLimit(identityID, defaultLimit);
+        _setBotnetLimit(identityID);
     }
 
-    function setBotnetLimit(uint160 identityID) external {
+    function _setBotnetLimit(uint160 identityID) internal {
         upala.setBotnetLimit(groupID, identityID, defaultLimit);
     }
 
@@ -94,4 +107,11 @@ contract ProtoGroup {
         return groupPool;
     }
 
+    function getGroupDetails() external view returns (string memory){
+        return details;
+    }
+
+    function getGroupDepositAmount() external view returns (uint256) {
+        return depositAmount;
+    }
 }
