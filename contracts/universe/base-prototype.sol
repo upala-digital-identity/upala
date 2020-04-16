@@ -6,7 +6,13 @@ contract BasePrototype {
     /*******
     SETTINGS
     /******/
-    string details;  // '{"name": "ProtoGroup","version": "0.1","description": "Autoassigns FakeDAI score to anyone who joins","join-terms": "No deposit required (ignore the ammount you see and join)","leave-terms": "No deposit - no refund"}';
+
+    /* {"name": "ProtoGroup",
+    "version": "0.1",
+    "description": "Autoassigns FakeDAI score to anyone who joins",
+    "join-terms": "No deposit required (ignore the ammount you see and join)",
+    "leave-terms": "No deposit - no refund"} */
+    string details;  // json with ^details^
     uint256 depositAmount; // = 2 * 10 ** 18;  // just for display (deposit is not implemented)
     uint256 scoringFee; // charge DApps for providing users scores
 

@@ -10,7 +10,7 @@ contract FakeDai is ERC20 {
     }
 
     // send ETH, receive FakeDAI
-    function exchangeETHtoFDAI() external payable {
+    receive() external payable {
         _mint(msg.sender, msg.value);
     }
 }

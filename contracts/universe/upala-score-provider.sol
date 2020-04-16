@@ -4,8 +4,6 @@ import "./upala-group.sol";
 
 contract UpalaScoreProvider is UpalaGroup {
 
-    uint256 defaultLimit = 1000000 * 10 ** 18;  // one million dollars [*places little finger near mouth*]
-
     /************
     SCORING CACHE
     /***********/
@@ -37,17 +35,6 @@ contract UpalaScoreProvider is UpalaGroup {
 
     function _getIdentityHolder(uint160 memberID) internal view returns (address) {
         return upala.getIdentityHolder(memberID);
-    }
-
-    function _getScoreByManager(address manger) internal view returns (address, uint256) {
-        uint160[] memory path = new uint160[](2);
-        path[0] = identityIDs[manger];
-        path[1] = groupID;
-        uint256 score = upala.memberScore(path);
-        address holder = upala.getIdentityHolder(path[0]);
-        return (holder, score);
-        // charge();
-        //(uint160 identityID, uint256 score)
     }
 
 }

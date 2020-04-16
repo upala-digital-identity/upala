@@ -28,6 +28,8 @@ contract UpalaGroup {
     SCORING
     /*****/
 
+    // Prototype functions (bot attack window is 0 - group owners can frontrun bot attack)
+
     function _announceAndSetBotReward(uint botReward) internal {
         _announceBotReward(botReward);
         _setBotReward(botReward);
@@ -37,6 +39,8 @@ contract UpalaGroup {
         _announceBotnetLimit(identityID, newBotnetLimit);
         _setBotnetLimit(identityID, newBotnetLimit);
     }
+
+    // Provides interface to Upala functions
 
     function _announceBotReward(uint botReward) internal {
         upala.announceBotReward(groupID, botReward);
