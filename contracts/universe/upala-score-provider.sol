@@ -2,11 +2,12 @@ pragma solidity ^0.6.0;
 
 import "./upala-group.sol";
 
+// Score-provider Upala interface
 contract UpalaScoreProvider is UpalaGroup {
 
-    /************
+    /***********
     SCORING CACHE
-    /***********/
+    ************/
     mapping (address => uint160[]) chachedPaths;
     mapping (address => uint160) identityIDs;
 
@@ -26,10 +27,6 @@ contract UpalaScoreProvider is UpalaGroup {
     /*****/
 
     function _getScoreByPath(uint160[] memory path) internal view returns (uint256) {
-        // charge();
-        // (address identityManager, uint256 score)
-        // uint160[] memory memPath = path;
-        // return upala.memberScore(memPath);
         return upala.memberScore(path);
     }
 
