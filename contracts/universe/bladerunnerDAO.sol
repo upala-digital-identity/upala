@@ -1,12 +1,13 @@
 pragma solidity ^0.6.0;
 
-import "../protocol/upala.sol";
 import "./upala-score-provider.sol";
 import "./base-prototype.sol";
 
-contract ProtoGroup is UpalaScoreProvider, BasePrototype {
+// Full BladerunnerDAO is in playground/mvp.
+// Here is the prototype BladerunnerDAO - controlled by a single person
+contract BladerunnerDAO is UpalaScoreProvider, BasePrototype {
 
-     uint256 defaultLimit = 1000000 * 10 ** 18;  // one million dollars [*places little finger near mouth*]
+    uint256 defaultLimit = 1000000 * 10 ** 18;  // one million dollars [*places little finger near mouth*]
 
     constructor (
         address upalaProtocolAddress,
@@ -15,7 +16,7 @@ contract ProtoGroup is UpalaScoreProvider, BasePrototype {
         upalaProtocolAddress,
         poolFactory
     ) BasePrototype (
-        '{"name": "ProtoGroup","version": "0.1","description": "Autoassigns FakeDAI score to anyone who joins","join-terms": "No deposit required (ignore the ammount you see and join)","leave-terms": "No deposit - no refund"}',
+        '{"name": "BladerunnerDAO","version": "0.1","description": "Autoassigns FakeDAI score to anyone who joins","join-terms": "No deposit required (ignore the ammount you see and join)","leave-terms": "No deposit - no refund"}',
         2 * 10 ** 18,
         0
     )
@@ -33,7 +34,8 @@ contract ProtoGroup is UpalaScoreProvider, BasePrototype {
         _announceAndSetBotnetLimit(identityID, newBotnetLimit);
     }
 
-    function getScoreByPath(uint160[] memory path) internal view returns (uint256) {
+    // with 3Box should be simple
+    function getScoreByPath(uint160[] calldata path) external view returns (uint256) {
         // charge();
         // (address identityManager, uint256 score)
         // uint160[] memory memPath = path;
@@ -52,9 +54,4 @@ contract ProtoGroup is UpalaScoreProvider, BasePrototype {
         //(uint160 identityID, uint256 score)
     }
 
-    // User joins
-    function join(uint160 identityID) external {
-        identityIDs[msg.sender] = identityID;
-        _announceAndSetBotnetLimit(identityID, defaultLimit);
-    }
 }
