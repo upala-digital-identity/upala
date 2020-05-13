@@ -2,4 +2,7 @@ secrets.js
 contracts/oz/*
 cheatsheet
 build
-
+package-lock.json
+node_modules
+artifacts
+cache
