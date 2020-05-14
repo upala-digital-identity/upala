@@ -12,7 +12,8 @@ async function main() {
   // to make sure everything is compiled
   // await bre.run('compile');
 
-  const publishDir = "../react-app-artifacts"
+  // const publishDir = "../react-app-artifacts"
+  const publishDir =  "../scaffold-eth/rad-new-dapp/packages/react-app/src/contracts"
   if (!fs.existsSync(publishDir)){
     fs.mkdirSync(publishDir);
   }
@@ -30,12 +31,17 @@ async function main() {
     // console.log("\n")
     try {
         let contract = fs.readFileSync(bre.config.paths.artifacts+"/"+contractName+".json").toString()
-        let address = fs.readFileSync(bre.config.paths.artifacts+"/"+contractName+".address").toString()
+        // let address = fs.readFileSync(bre.config.paths.artifacts+"/"+contractName+".address").toString()
+        let address = contractInstance.address;
         contract = JSON.parse(contract)
+        console.log(contractFactory.abi);
 
+        // Publish
         fs.writeFileSync(publishDir+"/"+contractName+".address.js","module.exports = \""+address+"\"");
         fs.writeFileSync(publishDir+"/"+contractName+".abi.js","module.exports = "+JSON.stringify(contract.abi));
-        fs.writeFileSync(publishDir+"/"+contractName+".bytecode.js","module.exports = \""+contract.bytecode+"\"");
+        // fs.writeFileSync(publishDir+"/"+contractName+".bytecode.js","module.exports = \""+contract.bytecode+"\"");
+        fs.writeFileSync(publishDir+"/"+contractName+".bytecode.js","module.exports = \""+contractFactory.bytecode+"\"");
+        
         finalContractList.push(contractName)
         console.log(contractName, " Published  \n")
       }catch(e){console.log(e)}
