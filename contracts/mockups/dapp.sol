@@ -45,7 +45,7 @@ contract UBIExampleDApp {
         claimed[identityID] = true;
     }
 
-    function myUBIBalance() external returns (uint256) {
+    function myUBIBalance() external view returns (uint256) {
         return balances[msg.sender];
     }
 }
