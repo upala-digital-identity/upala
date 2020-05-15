@@ -70,7 +70,7 @@ contract('Upala', function(accounts) {
     tx = await fakeDai.freeDaiToTheWorld(group1PoolAddress, poolDonation, {from: groupManager});
 
     // group announces and immediately sets BotReward (since for now attack window is 0)
-    tx = await group1.announceBotReward(defaultBotReward, {from: groupManager});
+    tx = await group1.announceAndSetBotReward(defaultBotReward, {from: groupManager});
     console.log("Bot reward: ", web3.utils.fromWei(await upalaProtocol.getBotReward.call(group1ID)));
 
 
