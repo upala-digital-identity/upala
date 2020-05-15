@@ -36,22 +36,24 @@ async function main() {
       interface: contractInstance.interface, // TODO will it work as ABI in Front-end
     };
 
-    return contractInstance;
-    // try {
-    //     let contract = fs.readFileSync(bre.config.paths.artifacts+"/"+contractName+".json").toString()
-    //     // let address = fs.readFileSync(bre.config.paths.artifacts+"/"+contractName+".address").toString()
-    //     let address = contractInstance.address;
-    //     contract = JSON.parse(contract);
+    
+    try {
+        let contract = fs.readFileSync(bre.config.paths.artifacts+"/"+contractName+".json").toString()
+        // let address = fs.readFileSync(bre.config.paths.artifacts+"/"+contractName+".address").toString()
+        let address = contractInstance.address;
+        contract = JSON.parse(contract);
 
-    //     // Publish
-    //     fs.writeFileSync(publishDir+"/"+contractName+".address.js","module.exports = \""+address+"\"");
-    //     fs.writeFileSync(publishDir+"/"+contractName+".abi.js","module.exports = "+JSON.stringify(contract.abi));
-    //     // fs.writeFileSync(publishDir+"/"+contractName+".bytecode.js","module.exports = \""+contract.bytecode+"\"");
-    //     fs.writeFileSync(publishDir+"/"+contractName+".bytecode.js","module.exports = \""+contractFactory.bytecode+"\"");
-    //     finalContractList.push(contractName)
-    //     console.log(contractName, " Published")
+        // Publish
+        fs.writeFileSync(publishDir+"/"+contractName+".address.js","module.exports = \""+address+"\"");
+        fs.writeFileSync(publishDir+"/"+contractName+".abi.js","module.exports = "+JSON.stringify(contract.abi));
+        // fs.writeFileSync(publishDir+"/"+contractName+".bytecode.js","module.exports = \""+contract.bytecode+"\"");
+        fs.writeFileSync(publishDir+"/"+contractName+".bytecode.js","module.exports = \""+contractFactory.bytecode+"\"");
+        finalContractList.push(contractName)
+        console.log(contractName, " Published")
 
-    //   }catch(e){console.log(e)}
+      }catch(e){console.log(e)}
+      
+      return contractInstance;
   }
 
   await deployContract("SmartContractWallet", "0xf53bbfbff01c50f2d42d542b09637dca97935ff7");
@@ -76,7 +78,7 @@ async function main() {
 
   // group announces and immediately sets BotReward (since for now attack window is 0)
   const defaultBotReward = ethers.utils.parseEther("3");
-  tx = await group1.announceBotReward(defaultBotReward);
+  tx = await group1.announceAndSetBotReward(defaultBotReward);
   console.log("Bot reward: ", ethers.utils.formatEther(await upala.getBotReward(group1ID)));
 
 
