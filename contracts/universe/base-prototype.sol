@@ -12,9 +12,9 @@ contract BasePrototype {
     "description": "Autoassigns FakeDAI score to anyone who joins",
     "join-terms": "No deposit required (ignore the ammount you see and join)",
     "leave-terms": "No deposit - no refund"} */
-    string details;  // json with ^details^
-    uint256 depositAmount; // = 2 * 10 ** 18;  // just for display (deposit is not implemented)
-    uint256 scoringFee; // charge DApps for providing users scores
+    string public details;  // json with ^details^
+    uint256 public depositAmount; // = 2 * 10 ** 18;  // just for display (deposit is not implemented)
+    uint256 public scoringFee; // charge DApps for providing users scores
 
     constructor (string memory _details, uint256 _depositAmount, uint256 _scoringFee) public {
         details = _details;

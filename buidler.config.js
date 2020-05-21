@@ -15,6 +15,8 @@ task("accounts", "Prints the list of accounts", async () => {
 // This object can have the following optional entries:
 // defaultNetwork, networks, solc, and paths.
 // Go to https://buidler.dev/config/ to learn more
+const secrets = require("./secrets.js");
+
 
 module.exports = {
   defaultNetwork: 'localhost',
@@ -25,6 +27,12 @@ module.exports = {
       /*accounts: {
         mnemonic: "**SOME MNEMONIC**"
       },*/
+    },
+    kovan: {
+      url: 'https://kovan.infura.io/v3/3b076e7d293041b684349d436904ccdb',//+infura_project_id,
+      accounts: {
+        mnemonic: secrets.mnemonic
+      },
     },
   },
   solc: {
