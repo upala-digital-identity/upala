@@ -249,7 +249,9 @@ contract Upala is IUpala {
         }
 
         // explode
-        identities[bot].exploded = true;
+        delete identities[bot];
+        delete holderToIdentity[msg.sender];
+        // identities[bot].exploded = true;
     }
 
     // Ascends the path in groups hierarchy and confirms identity score (path validity)
