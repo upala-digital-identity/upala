@@ -248,7 +248,8 @@ contract Upala is IUpala {
             }
         }
 
-        // explode
+        // explode 
+        // TODO check conditions where identities[bot].exploded = true; 
         delete identities[bot];
         delete holderToIdentity[msg.sender];
         // identities[bot].exploded = true;

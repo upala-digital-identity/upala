@@ -73,8 +73,10 @@ async function main() {
   console.log("Group1 Pool Address: ", group1PoolAddress);
 
   // fill up group's pool
-  const poolDonation = ethers.utils.parseEther("10");
+  const poolDonation = ethers.utils.parseEther("1000");
   tx = await fakeDai.freeDaiToTheWorld(group1PoolAddress, poolDonation);
+  const group1Pool_balance = await fakeDai.balanceOf(group1PoolAddress);
+  console.log("group1 Pool balance:", ethers.utils.formatEther(group1Pool_balance));
 
   // group announces and immediately sets BotReward (since for now attack window is 0)
   const defaultBotReward = ethers.utils.parseEther("3");

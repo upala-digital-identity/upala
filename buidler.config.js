@@ -33,6 +33,7 @@ module.exports = {
       accounts: {
         mnemonic: secrets.mnemonic
       },
+      timeout: 60000,
     },
   },
   solc: {
