@@ -12,7 +12,8 @@ async function main() {
   // to make sure everything is compiled
   // await bre.run('compile');
 
-  const publishDir =  "../scaffold-eth/rad-new-dapp/packages/react-app/src/contracts"
+  const networkName = bre.network.name;
+  const publishDir =  "../scaffold-eth/rad-new-dapp/packages/react-app/src/contracts/" + networkName;
   if (!fs.existsSync(publishDir)){
     fs.mkdirSync(publishDir);
   }
@@ -20,7 +21,7 @@ async function main() {
   let finalContractList = []
   var finalContracts = {}
 
-  console.log("📡 Deploy")
+  console.log("📡 Deploying to", networkName)
 
   async function deployContract(contractName, ...args) {
     const contractFactory = await ethers.getContractFactory(contractName);
