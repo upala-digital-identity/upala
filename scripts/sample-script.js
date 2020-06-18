@@ -50,7 +50,6 @@ async function main() {
         // fs.writeFileSync(publishDir+"/"+contractName+".bytecode.js","module.exports = \""+contract.bytecode+"\"");
         fs.writeFileSync(publishDir+"/"+contractName+".bytecode.js","module.exports = \""+contractFactory.bytecode+"\"");
         finalContractList.push(contractName)
-        console.log(contractName, " Published")
 
       }catch(e){console.log(e)}
       
@@ -65,26 +64,59 @@ async function main() {
   basicPoolFactory = await deployContract("BasicPoolFactory", fakeDai.address);
   await upala.setapprovedPoolFactory(basicPoolFactory.address, "true");
 
-  // create ProtoGroup
-  group1 = await deployContract("ProtoGroup", upala.address, basicPoolFactory.address); // {from: groupManager}
-  const group1ID = await group1.getUpalaGroupID();
-  const group1PoolAddress = await group1.getGroupPoolAddress();
-  console.log("Group1 Upala ID: ", group1ID.toNumber());
-  console.log("Group1 Upala ID: ", group1ID);
-  console.log("Group1 Pool Address: ", group1PoolAddress);
 
-  // fill up group's pool
-  const poolDonation = ethers.utils.parseEther("1000");
-  tx = await fakeDai.freeDaiToTheWorld(group1PoolAddress, poolDonation);
-  const group1Pool_balance = await fakeDai.balanceOf(group1PoolAddress);
-  console.log("group1 Pool balance:", ethers.utils.formatEther(group1Pool_balance));
 
-  // group announces and immediately sets BotReward (since for now attack window is 0)
+
+
+
+
+  console.log(chalk.green("\nDEPLOYING GROUPS \n"));
+
   const defaultBotReward = ethers.utils.parseEther("3");
-  tx = await group1.announceAndSetBotReward(defaultBotReward);
-  console.log("Bot reward: ", ethers.utils.formatEther(await upala.getBotReward(group1ID)));
+  const poolDonation = ethers.utils.parseEther("1000");
+  var groupsAddresses = []
+
+  async function deployGroup(multiplier) {
+    newGroup = await deployContract("ProtoGroup", upala.address, basicPoolFactory.address); // {from: groupManager}
+    groupsAddresses.push(newGroup.address);
+
+    let newGroupID = await newGroup.getUpalaGroupID();
+    let newGroupPoolAddress = await newGroup.getGroupPoolAddress();
+    tx = await fakeDai.freeDaiToTheWorld(newGroupPoolAddress, poolDonation.mul(multiplier));
+    tx = await newGroup.announceAndSetBotReward(defaultBotReward.mul(multiplier));
+
+    console.log(
+      chalk.blue("Upala ID:"), newGroupID.toNumber(), 
+      chalk.blue("Pool:"), newGroupPoolAddress,
+      chalk.blue("Bal:"), ethers.utils.formatEther(await fakeDai.balanceOf(newGroupPoolAddress)),
+      chalk.blue("Reward:"), ethers.utils.formatEther(await upala.getBotReward(newGroupID)));
+      // "Group details", "Score provider details"
+    // For Score providers load the last group in the attack/scoring path
+    console.log(chalk.blue("Details: "), (await newGroup.getGroupDetails()).slice(0, 40));
+    console.log(chalk.blue("Deposit: "), (ethers.utils.formatEther(await newGroup.getGroupDepositAmount.call()), " FakeDAI"));
+    
+    return [newGroup, newGroupID];
+  }
+
+  /* {"name": "ProtoGroup",
+    "version": "0.1",
+    "description": "Autoassigns FakeDAI score to anyone who joins",
+    "join-terms": "No deposit required (ignore the ammount you see and join)",
+    "leave-terms": "No deposit - no refund"} */
+
+  const [group1, group1ID] = await deployGroup(1);
+  const [group2, group2ID] = await deployGroup(2);
+  const [group3, group3ID] = await deployGroup(3);
 
 
+
+
+
+
+
+
+
+  console.log(chalk.green("\nTESTING GROUPS\n"));
 
   const [owner, m1, m2, m3, u1, u2, u3] = await ethers.getSigners();
 
@@ -108,12 +140,7 @@ async function main() {
   // console.log(error);
   // TODO probably better return 0 from Upala...
 
-  // "Group details", "Score provider details"
-  // name, join and leave terms - all in json string
-  // deposit amount 
-  // For Score providers load the last group in the attack/scoring path
-  console.log("Group details: ", (await group1.getGroupDetails()).slice(0, 40));
-  console.log("Group deposit: ", (ethers.utils.formatEther(await group1.getGroupDepositAmount.call()), " FakeDAI"));
+
 
   // "Deposit and join" button
   tx = await group1.connect(u1).join(user1ID);
@@ -185,10 +212,10 @@ async function main() {
   //     });
   // });
 
+  console.log(chalk.green("\n📡 PUBLISHING\n"));
 
-  console.log("📡 Publishing \n")
-  fs.writeFileSync(publishDir+"/contracts.js","module.exports = "+JSON.stringify(finalContractList))
-
+  fs.writeFileSync(publishDir+"/contracts.js","module.exports = "+JSON.stringify(finalContractList));
+  fs.writeFileSync(publishDir+"/groups.js","module.exports = "+JSON.stringify(groupsAddresses));
 
 
 }

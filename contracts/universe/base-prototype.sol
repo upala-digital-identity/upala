@@ -22,6 +22,10 @@ contract BasePrototype {
         scoringFee = _scoringFee;
     }
 
+    function setDetails(string calldata newDetails) external {
+        details = newDetails;
+    }
+    
     function getGroupDetails() external view returns (string memory){
         return details;
     }
