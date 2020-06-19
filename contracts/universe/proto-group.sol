@@ -33,7 +33,7 @@ contract ProtoGroup is UpalaScoreProvider, BasePrototype {
         _announceAndSetBotnetLimit(identityID, newBotnetLimit);
     }
 
-    function getScoreByPath(uint160[] memory path) internal view returns (uint256) {
+    function getScoreByPath(uint160[] calldata path) external view returns (uint256) {
         // charge();
         // (address identityManager, uint256 score)
         // uint160[] memory memPath = path;

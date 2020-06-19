@@ -76,15 +76,15 @@ async function main() {
   const poolDonation = ethers.utils.parseEther("1000");
   var groupsAddresses = []
 
-  async function deployGroup(multiplier) {
+  async function deployGroup(details, multiplier) {
     newGroup = await deployContract("ProtoGroup", upala.address, basicPoolFactory.address); // {from: groupManager}
     groupsAddresses.push(newGroup.address);
 
     let newGroupID = await newGroup.getUpalaGroupID();
     let newGroupPoolAddress = await newGroup.getGroupPoolAddress();
-    tx = await fakeDai.freeDaiToTheWorld(newGroupPoolAddress, poolDonation.mul(multiplier));
-    tx = await newGroup.announceAndSetBotReward(defaultBotReward.mul(multiplier));
-
+    await fakeDai.freeDaiToTheWorld(newGroupPoolAddress, poolDonation.mul(multiplier));
+    await newGroup.announceAndSetBotReward(defaultBotReward.mul(multiplier));
+    await newGroup.setDetails(details);
     console.log(
       chalk.blue("Upala ID:"), newGroupID.toNumber(), 
       chalk.blue("Pool:"), newGroupPoolAddress,
@@ -98,15 +98,30 @@ async function main() {
     return [newGroup, newGroupID];
   }
 
-  /* {"name": "ProtoGroup",
+  /* {
     "version": "0.1",
+    "title": "Base group",
     "description": "Autoassigns FakeDAI score to anyone who joins",
     "join-terms": "No deposit required (ignore the ammount you see and join)",
     "leave-terms": "No deposit - no refund"} */
-
-  const [group1, group1ID] = await deployGroup(1);
-  const [group2, group2ID] = await deployGroup(2);
-  const [group3, group3ID] = await deployGroup(3);
+  group1Details = {
+    "title": "MetaCartel",
+    "description": "Currently autoassigns FakeDAI score to anyone who joins",
+    "short_description": "MetaCartel members only"
+    }
+  group2Details = {
+    "title": "MolochDAO",
+    "description": "Currently autoassigns FakeDAI score to anyone who joins",
+    "short_description": "MolochDAO members only"
+    }
+  group3Details = {
+    "title": "MetaGame",
+    "description": "Currently autoassigns FakeDAI score to anyone who joins",
+    "short_description": "MetaGamers only"
+    }
+  const [group1, group1ID] = await deployGroup(JSON.stringify(group1Details), 1);
+  const [group2, group2ID] = await deployGroup(JSON.stringify(group2Details), 2);
+  const [group3, group3ID] = await deployGroup(JSON.stringify(group3Details), 3);
 
 
 
