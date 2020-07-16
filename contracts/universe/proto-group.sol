@@ -1,29 +1,23 @@
 pragma solidity ^0.6.0;
 
 import "../protocol/upala.sol";
-import "./upala-score-provider.sol";
-import "./base-prototype.sol";
+import "./using-cached-paths.sol";
+import "./upala-group.sol";
+// import "./base-prototype.sol";
 
-contract ProtoGroup is UpalaScoreProvider, BasePrototype {
+contract ProtoGroup is UpalaGroup, UsingCachedPaths {
 
-     uint256 defaultLimit = 1000000 * 10 ** 18;  // one million dollars [*places little finger near mouth*]
+    uint256 defaultLimit = 1000000 * 10 ** 18;  // one million dollars [*places little finger near mouth*]
 
     constructor (
         address upalaProtocolAddress,
         address poolFactory
-    ) UpalaScoreProvider (
+    ) UpalaGroup (
         upalaProtocolAddress,
         poolFactory
-    ) BasePrototype (
-        '{"name": "ProtoGroup","version": "0.1","description": "Autoassigns FakeDAI score to anyone who joins","join-terms": "No deposit required (ignore the ammount you see and join)","leave-terms": "No deposit - no refund"}',
-        2 * 10 ** 18,
-        0
-    )
+    ) 
     public {
-        upala = Upala(upalaProtocolAddress);
-        (groupID, groupPool) = upala.newGroup(address(this), poolFactory);
     }
-
 
     function announceAndSetBotReward(uint botReward) external {
         _announceAndSetBotReward(botReward);

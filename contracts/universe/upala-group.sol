@@ -8,11 +8,21 @@ contract UpalaGroup {
     /********
     CONSTANTS
     /********/
+
     // address of the Upala protocol
     // now it works as a guildBank
     Upala upala;
+    bool public isUpalaGroup = true;
+
     uint160 groupID;
     address groupPool;
+
+    /* {"name": "ProtoGroup",
+    "version": "0.1",
+    "description": "Autoassigns FakeDAI score to anyone who joins",
+    "join-terms": "No deposit required (ignore the ammount you see and join)",
+    "leave-terms": "No deposit - no refund"} */
+    string public details;  // json with ^details^
 
     constructor(
         address upalaProtocolAddress,
@@ -22,6 +32,15 @@ contract UpalaGroup {
     {
         upala = Upala(upalaProtocolAddress);
         (groupID, groupPool) = upala.newGroup(address(this), poolFactory);
+    }
+
+    
+    function setDetails(string calldata newDetails) external {
+        details = newDetails;
+    }
+    
+    function getGroupDetails() external view returns (string memory){
+        return details;
     }
 
     /******
@@ -40,7 +59,7 @@ contract UpalaGroup {
         _setBotnetLimit(identityID, newBotnetLimit);
     }
 
-    // Provides interface to Upala functions
+    // Interface to Upala functions
 
     function _announceBotReward(uint botReward) internal {
         upala.announceBotReward(groupID, botReward);
@@ -74,4 +93,11 @@ contract UpalaGroup {
         return groupPool;
     }
 
+    function _getScoreByPath(uint160[] memory path) internal view returns (uint256) {
+        return upala.memberScore(path);
+    }
+
+    function _getIdentityHolder(uint160 memberID) internal view returns (address) {
+        return upala.getIdentityHolder(memberID);
+    }
 }

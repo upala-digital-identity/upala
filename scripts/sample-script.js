@@ -93,7 +93,7 @@ async function main() {
       // "Group details", "Score provider details"
     // For Score providers load the last group in the attack/scoring path
     console.log(chalk.blue("Details: "), (await newGroup.getGroupDetails()).slice(0, 40));
-    console.log(chalk.blue("Deposit: "), (ethers.utils.formatEther(await newGroup.getGroupDepositAmount.call()), " FakeDAI"));
+    // console.log(chalk.blue("Deposit: "), (ethers.utils.formatEther(await newGroup.getGroupDepositAmount.call()), " FakeDAI"));
     
     return [newGroup, newGroupID];
   }
