@@ -56,7 +56,7 @@ async function main() {
       return contractInstance;
   }
 
-  await deployContract("SmartContractWallet", "0xf53bbfbff01c50f2d42d542b09637dca97935ff7");
+  // await deployContract("SmartContractWallet", "0xf53bbfbff01c50f2d42d542b09637dca97935ff7");
   upala = await deployContract("Upala")
 
   // Testing environment
@@ -70,14 +70,16 @@ async function main() {
 
 
 
+
   console.log(chalk.green("\nDEPLOYING GROUPS \n"));
+  /////////////////////////////////////////////////
 
   const defaultBotReward = ethers.utils.parseEther("3");
   const poolDonation = ethers.utils.parseEther("1000");
   var groupsAddresses = []
 
-  async function deployGroup(details, multiplier) {
-    newGroup = await deployContract("ProtoGroup", upala.address, basicPoolFactory.address); // {from: groupManager}
+  async function deployGroup(groupContractName, details, multiplier) {
+    newGroup = await deployContract(groupContractName, upala.address, basicPoolFactory.address); // {from: groupManager}
     groupsAddresses.push(newGroup.address);
 
     let newGroupID = await newGroup.getUpalaGroupID();
@@ -119,19 +121,31 @@ async function main() {
     "description": "Currently autoassigns FakeDAI score to anyone who joins",
     "short_description": "MetaGamers only"
     }
-  const [group1, group1ID] = await deployGroup(JSON.stringify(group1Details), 1);
-  const [group2, group2ID] = await deployGroup(JSON.stringify(group2Details), 2);
-  const [group3, group3ID] = await deployGroup(JSON.stringify(group3Details), 3);
+
+  const [group1, group1ID] = await deployGroup("ProtoGroup", JSON.stringify(group1Details), 1);
+  const [group2, group2ID] = await deployGroup("ProtoGroup", JSON.stringify(group2Details), 2);
+  const [group3, group3ID] = await deployGroup("ProtoGroup", JSON.stringify(group3Details), 3);
 
 
 
 
 
+  console.log(chalk.green("\nDEPLOYING BLADERUNNER \n"));
+  ///////////////////////////////////////////////////////
+
+
+  bladerunnerDetails = {
+    "title": "BladerunnerDAO",
+    "description": "Users cannot join this group directly - only its subgroups (entry-tests). Members of BladerunnerDAO decide which entry-tests to approve.",
+    "short_description": "Bladerunner Score provider"
+    }
+  const [bladerunner, bladerunnerID] = await deployGroup("BladerunnerDAO", JSON.stringify(bladerunnerDetails), 5);
 
 
 
 
   console.log(chalk.green("\nTESTING GROUPS\n"));
+  ///////////////////////////////////////////////
 
   const [owner, m1, m2, m3, u1, u2, u3] = await ethers.getSigners();
 
@@ -191,6 +205,22 @@ async function main() {
   );
 
 
+  console.log(chalk.green("\nTESTING BLADERUNNER SCORE\n"));
+  ///////////////////////////////////////////////
+  
+  // approve all 3 groups in BladeRunner by setting very high bot net limits
+  await bladerunner.connect(u1).announceAndSetBotnetLimit(group1ID, defaultBotReward.mul(100));
+  await bladerunner.connect(u1).announceAndSetBotnetLimit(group2ID, defaultBotReward.mul(100));
+  await bladerunner.connect(u1).announceAndSetBotnetLimit(group3ID, defaultBotReward.mul(100));
+  const pathToBladerunner = [user1ID, group1ID, bladerunnerID];
+  console.log(
+    "User score in Bladerunner:", 
+    ethers.utils.formatEther(await upala.connect(u1).memberScore(pathToBladerunner)), 
+    "FakeDAI"
+  );
+
+
+
 
   // "Explode"
   const user1_balance_before_attack = await fakeDai.connect(u1).balanceOf(u1.getAddress());
@@ -211,6 +241,7 @@ async function main() {
   console.log("UBIExampleDApp address: ", sampleDapp.address);
   // console.log("User 1 UBI balance: ", await sampleDapp.connect(u1).myUBIBalance());
   console.log("User 1 UBI balance: ", ethers.utils.formatEther(await sampleDapp.connect(u1).myUBIBalance()));
+
 
 
 

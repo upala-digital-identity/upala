@@ -187,10 +187,11 @@ contract Upala is IUpala {
         // the last group in path must be managed by the msg.sender
         uint160 groupID = path[path.length-1];
         uint160 IdentityID = path[0];
-        require(
-            groups[groupID].manager == msg.sender || identities[IdentityID].holder == msg.sender,
-            "msg.sender is not identity holder or group manager within the provided path"
-        );
+        // temporary removed authorization (for hackathon) TODO bring it back!
+        // require(
+        //     groups[groupID].manager == msg.sender || identities[IdentityID].holder == msg.sender,
+        //     "msg.sender is not identity holder or group manager within the provided path"
+        // );
         return (_memberScore(path));
     }
 

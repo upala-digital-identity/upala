@@ -15,7 +15,7 @@ async function main() {
     console.log("\n")
   }
 
-  await deployContract("SmartContractWallet", "0xf53bbfbff01c50f2d42d542b09637dca97935ff7");
+  // await deployContract("SmartContractWallet", "0xf53bbfbff01c50f2d42d542b09637dca97935ff7");
   await deployContract("Upala");
 
 }

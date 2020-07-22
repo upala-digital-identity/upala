@@ -2,6 +2,7 @@ const Upala = artifacts.require("Upala");
 const FakeDai = artifacts.require("FakeDai");
 const BasicPoolFactory = artifacts.require("BasicPoolFactory");
 const ProtoGroup = artifacts.require("ProtoGroup");
+const BladerunnerDAO = artifacts.require("BladerunnerDAO");
 const UBIExampleDApp = artifacts.require("UBIExampleDApp");
 
 const BN = web3.utils.BN;

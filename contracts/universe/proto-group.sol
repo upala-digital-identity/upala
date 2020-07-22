@@ -3,7 +3,6 @@ pragma solidity ^0.6.0;
 import "../protocol/upala.sol";
 import "./using-cached-paths.sol";
 import "./upala-group.sol";
-// import "./base-prototype.sol";
 
 contract ProtoGroup is UpalaGroup, UsingCachedPaths {
 
@@ -15,7 +14,7 @@ contract ProtoGroup is UpalaGroup, UsingCachedPaths {
     ) UpalaGroup (
         upalaProtocolAddress,
         poolFactory
-    ) 
+    )
     public {
     }
 
@@ -47,7 +46,7 @@ contract ProtoGroup is UpalaGroup, UsingCachedPaths {
     }
 
     // User joins
-    function join(uint160 identityID) external {
+    function join(uint160 identityID) external virtual {
         identityIDs[msg.sender] = identityID;
         _announceAndSetBotnetLimit(identityID, defaultLimit);
     }
