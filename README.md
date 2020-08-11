@@ -1,3 +1,4 @@
+[![hackmd-github-sync-badge](https://hackmd.io/tHhYT-4QRy-syvNkoBa_ZA/badge)](https://hackmd.io/tHhYT-4QRy-syvNkoBa_ZA)
 ## Upala digital identity
 
 
@@ -15,3 +16,4 @@ Replace it with the path to the upala front-end contracts folder (smth. like you
 4. Create "localhost" folder in your-projects-dir/upala-front/packages/react-app/src/contracts/
 5. run buidler local network at 8545
 6. In upala project root. Run 'npx buidler run scripts/sample-script.js'
+7. To deploy to a testnet run 'npx buidler run scripts/sample-script.js --network test-net-name' where test-net-name = kovan | ropsten | rinkeby ...
