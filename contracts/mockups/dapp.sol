@@ -7,12 +7,9 @@ import "../universe/i-score-provider.sol";
 contract usingUpala {
 
     mapping (uint160 => bool) trustedScoreProviders;
+    mapping (uint160 => address) scoreProviderAddresses;
 
-    IScoreProvider scoreProviderContract;  // e.g. BladerunnerDAO 
-
-    constructor (address _userScoreProvider) public {
-        scoreProviderContract = IScoreProvider(_userScoreProvider);
-    }
+    IScoreProvider scoreProviderContract;  // e.g. BladerunnerDAO
 
     /*****
     SCORES
@@ -22,13 +19,18 @@ contract usingUpala {
     function getUncofirmedUserIdentity(uint160[] memory path) internal pure returns (uint160){
         return path[0];
     }
-    // this func does verify identity holder
-    function getScoreByPath(address wallet, uint160[] memory path) internal returns (uint256){
-        require (trustedScoreProviders[path[path.length-1]] == true, "score provider is not proved");
-        return scoreProviderContract.getScoreByPath(path);
-    }
+    
     function scoreIsAboveThreshold(address wallet, uint160[] memory path, uint256 threshold) internal returns (bool) {
         return (getScoreByPath(wallet, path) >= threshold);
+    }
+
+    // this func does verify identity holder
+    
+    function getScoreByPath(address wallet, uint160[] memory path) internal returns (uint256){
+        require (trustedScoreProviders[path[path.length-1]] == true, "score provider is not proved");
+        uint160 scoreProviderID = path[path.length-1];
+        address scoreProviderAddress = scoreProviderAddresses[scoreProviderID];
+        return IScoreProvider(scoreProviderAddress).getScoreByPath(path);
     }
 
     /*****
@@ -36,8 +38,14 @@ contract usingUpala {
     ******/
 
     // Manage trusted score providers
-    function addScoreProvider(uint160 providerUpalaID) internal {
+    // no need to check if scoreProviderAddresses is the group manager.
+    // Upala protocol will not let non-managers to get the score.
+    // path[path.length-1] = groupID, 
+    // scoreProviderAddress is groupID manager - ensured by the protocol
+    function approveScoreProviderByAddress(address scoreProviderAddress) internal {
+        uint160 providerUpalaID = IScoreProvider(scoreProviderAddress).groupID();
         trustedScoreProviders[providerUpalaID] = true;
+        scoreProviderAddresses[providerUpalaID] = scoreProviderAddress;
     }
     function removeScoreProvider(uint160 providerUpalaID) internal {
         delete trustedScoreProviders[providerUpalaID];
@@ -52,18 +60,8 @@ contract UBIExampleDApp is usingUpala {
     mapping (uint160 => bool) claimed;
     mapping (address => uint256) balances;
 
-    constructor (address _userScoreProvider) usingUpala (_userScoreProvider) public {
-    }
-
-    // scoreProviderContract stores cached
-    function claimUBICachedPath() external {
-        address wallet = msg.sender;
-        (uint160 identityID, uint256 score) = scoreProviderContract.getScoreByManager(wallet);
-
-        require (claimed[identityID] == false, "Already claimed");
-        require(score >= MINIMAL_SCORE, "Score is too low");
-
-        _payOutUBI(identityID, wallet);
+    constructor (address _userScoreProviderAddress) public {
+        approveScoreProviderByAddress(_userScoreProviderAddress);
     }
 
     function claimUBI(uint160[] calldata path) external {

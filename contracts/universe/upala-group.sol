@@ -14,7 +14,7 @@ contract UpalaGroup {
     Upala upala;
     bool public isUpalaGroup = true;
 
-    uint160 groupID;
+    uint160 public groupID;
     address groupPool;
 
     /* {"name": "ProtoGroup",

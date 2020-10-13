@@ -237,7 +237,8 @@ async function main() {
   sampleDapp = await deployContract("UBIExampleDApp", group1.address);
   
   // DApp UX
-  tx = await sampleDapp.connect(u1).claimUBICachedPath();
+  const path = [user1ID, group1ID];
+  tx = await sampleDapp.connect(u1).claimUBI(path);
   console.log("UBIExampleDApp address: ", sampleDapp.address);
   // console.log("User 1 UBI balance: ", await sampleDapp.connect(u1).myUBIBalance());
   console.log("User 1 UBI balance: ", ethers.utils.formatEther(await sampleDapp.connect(u1).myUBIBalance()));

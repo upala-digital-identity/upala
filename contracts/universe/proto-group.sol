@@ -34,17 +34,6 @@ contract ProtoGroup is UpalaGroup, UsingCachedPaths {
         return _getScoreByPath(path);
     }
 
-    function getScoreByManager(address manger) external view returns (address, uint256) {
-        uint160[] memory path = new uint160[](2);
-        path[0] = identityIDs[manger];
-        path[1] = groupID;
-        uint256 score = _getScoreByPath(path);
-        address holder = _getIdentityHolder(path[0]);
-        return (holder, score);
-        // charge();
-        //(uint160 identityID, uint256 score)
-    }
-
     // User joins
     function join(uint160 identityID) external virtual {
         identityIDs[msg.sender] = identityID;
