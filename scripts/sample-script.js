@@ -178,7 +178,7 @@ async function main() {
   // Membership status (user is a member of a group)
   // A user is a member if a group assignes any score
   //const membershipCheckPath = [user1ID, group1ID];
-  const userScoreIn = await upala.connect(u1).memberScore(membershipCheckPath);
+  const userScoreIn = await upala.connect(u1).myScore(membershipCheckPath);
   console.log("User is member of Group1:", userScoreIn.gt(0));  // true if user score greater than 0.
 
   // "waiting for confirmation" message 
@@ -200,7 +200,7 @@ async function main() {
   const path1 = [user1ID, group1ID];
   console.log(
     "User score in ProtoGroup:", 
-    ethers.utils.formatEther(await upala.connect(u1).memberScore(path1)), 
+    ethers.utils.formatEther(await upala.connect(u1).myScore(path1)), 
     "FakeDAI"
   );
 
@@ -215,7 +215,7 @@ async function main() {
   const pathToBladerunner = [user1ID, group1ID, bladerunnerID];
   console.log(
     "User score in Bladerunner:", 
-    ethers.utils.formatEther(await upala.connect(u1).memberScore(pathToBladerunner)), 
+    ethers.utils.formatEther(await upala.connect(u1).myScore(pathToBladerunner)), 
     "FakeDAI"
   );
 

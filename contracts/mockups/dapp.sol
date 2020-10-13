@@ -30,7 +30,7 @@ contract usingUpala {
         require (trustedScoreProviders[path[path.length-1]] == true, "score provider is not proved");
         uint160 scoreProviderID = path[path.length-1];
         address scoreProviderAddress = scoreProviderAddresses[scoreProviderID];
-        return IScoreProvider(scoreProviderAddress).getScoreByPath(path);
+        return IScoreProvider(scoreProviderAddress).getScoreByPath(wallet, path);
     }
 
     /*****

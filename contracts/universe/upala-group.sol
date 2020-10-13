@@ -93,8 +93,8 @@ contract UpalaGroup {
         return groupPool;
     }
 
-    function _getScoreByPath(uint160[] memory path) internal view returns (uint256) {
-        return upala.memberScore(path);
+    function _getScoreByPath(address wallet, uint160[] memory path) internal view returns (uint256) {
+        return upala.memberScore(wallet, path);
     }
 
     function _getIdentityHolder(uint160 memberID) internal view returns (address) {

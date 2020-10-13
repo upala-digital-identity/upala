@@ -26,12 +26,12 @@ contract ProtoGroup is UpalaGroup, UsingCachedPaths {
         _announceAndSetBotnetLimit(identityID, newBotnetLimit);
     }
 
-    function getScoreByPath(uint160[] calldata path) external view returns (uint256) {
+    function getScoreByPath(address wallet, uint160[] calldata path) external view returns (uint256) {
         // charge();
         // (address identityManager, uint256 score)
         // uint160[] memory memPath = path;
         // return upala.memberScore(memPath);
-        return _getScoreByPath(path);
+        return _getScoreByPath(wallet, path);
     }
 
     // User joins

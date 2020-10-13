@@ -176,22 +176,49 @@ contract Upala is IUpala {
     path is an array of addressess.
     */
 
-    // TODO now it is only identity score (cannot score groups)
-    function memberScore(uint160[] calldata path)
+    // depricate in favor of proveScore and myscore func
+    // function memberScore(uint160[] calldata path)
+    //     external
+    //     view
+    //     // TODO onlyValidPath
+    //     override(IUpala)
+    //     returns(uint256)
+    // {
+    //     // the last group in path must be managed by the msg.sender
+    //     uint160 groupID = path[path.length-1];
+    //     uint160 IdentityID = path[0];
+    //     // temporary removed authorization (for hackathon) TODO bring it back!
+    //     // require(
+    //     //     groups[groupID].manager == msg.sender || identities[IdentityID].holder == msg.sender,
+    //     //     "msg.sender is not identity holder or group manager within the provided path"
+    //     // );
+    //     return (_memberScore(path));
+    // }
+
+    function myScore(uint160[] calldata path)
         external
         view
         // TODO onlyValidPath
         override(IUpala)
         returns(uint256)
     {
-        // the last group in path must be managed by the msg.sender
-        uint160 groupID = path[path.length-1];
-        uint160 IdentityID = path[0];
-        // temporary removed authorization (for hackathon) TODO bring it back!
-        // require(
-        //     groups[groupID].manager == msg.sender || identities[IdentityID].holder == msg.sender,
-        //     "msg.sender is not identity holder or group manager within the provided path"
-        // );
+        require(identities[path[0]].holder == msg.sender,
+            "identity is not owned by the msg.sender"
+        );
+        return (_memberScore(path));
+    }
+
+    function memberScore(address holder, uint160[] calldata path)
+        external
+        view
+        // TODO onlyValidPath
+        override(IUpala)
+        returns(uint256)
+    {
+        require(holder == identities[path[0]].holder, 
+            "the holder address doesn't own the id");
+        require(groups[path[path.length-1]].manager == msg.sender, 
+            "the last group in the path is not managed by the msg.sender");
         return (_memberScore(path));
     }
 

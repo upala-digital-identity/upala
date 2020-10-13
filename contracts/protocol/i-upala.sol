@@ -6,6 +6,7 @@ interface IUpala {
     function setIdentityHolder(uint160, address)  external;
     function attack(uint160[] calldata) external;
     function myId() external view returns(uint160);
+    function myScore(uint160[] calldata) external view returns(uint256);
 
     // groups
     function newGroup(address groupManager, address poolFactory) external payable returns (uint160, address);
@@ -13,7 +14,7 @@ interface IUpala {
 
     // groups (only managers)
     function setGroupManager(uint160, address) external;
-    function memberScore(uint160[] calldata) external view returns(uint256);
+    function memberScore(address, uint160[] calldata) external view returns(uint256);
     function announceBotReward(uint160, uint) external returns (uint256);
     function announceBotnetLimit(uint160, uint160, uint) external returns (uint256);
     function announceAttachPool(uint160, address) external returns (uint256);
