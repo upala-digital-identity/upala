@@ -47,16 +47,13 @@ contract UpalaGroup {
     SCORING
     /*****/
 
-    // Prototype functions (bot attack window is 0 - group owners can frontrun bot attack)
-
-    function _announceAndSetBotReward(uint botReward) internal {
-        _announceBotReward(botReward);
-        _setBotReward(botReward);
+    // credit app
+    function _increaseAppCredit(address appAddress, uint256 amount) internal {
+        upala.increaseAppCredit(appAddress, amount);
     }
 
-    function _announceAndSetBotnetLimit(uint160 identityID, uint256 newBotnetLimit) internal {
-        _announceBotnetLimit(identityID, newBotnetLimit);
-        _setBotnetLimit(identityID, newBotnetLimit);
+    function _decreaseAppCredit(address appAddress, uint256 amount) internal {
+        upala.decreaseAppCredit(appAddress, amount);
     }
 
     // Interface to Upala functions
@@ -97,7 +94,7 @@ contract UpalaGroup {
         return upala.memberScore(wallet, path);
     }
 
-    function _getIdentityHolder(uint160 memberID) internal view returns (address) {
-        return upala.getIdentityHolder(memberID);
-    }
+    // function _getIdentityHolder(uint160 memberID) internal view returns (address) {
+    //     return upala.getIdentityHolder(memberID);
+    // }
 }

@@ -35,6 +35,6 @@ contract MolochGroup is UpalaGroup { // , BasePrototype {
     function join(uint160 identityID) external {
         require(_isMember(msg.sender), "msg.sender is not a member");
         // TODO _isIdentityHolder require()
-        _announceAndSetBotnetLimit(identityID, defaultLimit);
+        //_announceAndSetBotnetLimit(identityID, defaultLimit);
     }
 }

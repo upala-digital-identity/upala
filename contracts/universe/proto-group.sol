@@ -18,25 +18,26 @@ contract ProtoGroup is UpalaGroup, UsingCachedPaths {
     public {
     }
 
+    // Prototype functions (bot attack window is 0 - group owners can frontrun bot attack)
+
     function announceAndSetBotReward(uint botReward) external {
-        _announceAndSetBotReward(botReward);
+        _announceBotReward(botReward);
+        _setBotReward(botReward);
     }
 
-    function announceAndSetBotnetLimit(uint160 identityID, uint256 newBotnetLimit) external {
-        _announceAndSetBotnetLimit(identityID, newBotnetLimit);
+    function announceAndSetBotnetLimit(uint160 identityID, uint256 newBotnetLimit) public {
+        _announceBotnetLimit(identityID, newBotnetLimit);
+        _setBotnetLimit(identityID, newBotnetLimit);
     }
 
-    function getScoreByPath(address wallet, uint160[] calldata path) external view returns (uint256) {
-        // charge();
-        // (address identityManager, uint256 score)
-        // uint160[] memory memPath = path;
-        // return upala.memberScore(memPath);
-        return _getScoreByPath(wallet, path);
+    // this group proves scores for free. Anyone can add any dapp to get free scores
+    function freeAppCredit(address appAddress) external {
+        _increaseAppCredit(appAddress, 1000000000);
     }
 
     // User joins
     function join(uint160 identityID) external virtual {
         identityIDs[msg.sender] = identityID;
-        _announceAndSetBotnetLimit(identityID, defaultLimit);
+        announceAndSetBotnetLimit(identityID, defaultLimit);
     }
 }

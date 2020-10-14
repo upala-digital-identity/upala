@@ -222,21 +222,30 @@ async function main() {
 
 
 
-  // "Explode"
-  const user1_balance_before_attack = await fakeDai.connect(u1).balanceOf(u1.getAddress());
-  tx = await upala.connect(u1).attack(path1);
-  const user1_balance_after_attack = await fakeDai.connect(u1).balanceOf(u1.getAddress());
-  console.log("isBN", defaultBotReward.eq(user1_balance_after_attack.sub(user1_balance_before_attack)));
-  assert.equal(
-    defaultBotReward.eq(user1_balance_after_attack.sub(user1_balance_before_attack)), 
-    true,
-    "Owner of Ads wasn't set right!");
+  // // "Explode"
+  // const user1_balance_before_attack = await fakeDai.connect(u1).balanceOf(u1.getAddress());
+  // tx = await upala.connect(u1).attack(path1);
+  // const user1_balance_after_attack = await fakeDai.connect(u1).balanceOf(u1.getAddress());
+  // console.log("isBN", defaultBotReward.eq(user1_balance_after_attack.sub(user1_balance_before_attack)));
+  // assert.equal(
+  //   defaultBotReward.eq(user1_balance_after_attack.sub(user1_balance_before_attack)), 
+  //   true,
+  //   "Owner of Ads wasn't set right!");
 
 
-  // deploy DApp 
-  sampleDapp = await deployContract("UBIExampleDApp", group1.address);
+
+  console.log(chalk.green("\nTESTING DAPP\n"));
+  ///////////////////////////////////////////////
+
+  // deploy DApp
+  // setUpala
+  // approve score provider by id
+  // constructor (address upalaAddress, address trustedProviderUpalaID) 
+  sampleDapp = await deployContract("UBIExampleDApp", upala.address, group1ID);
   
-  // DApp UX
+  // add credit
+  tx = await group1.connect(u1).freeAppCredit(sampleDapp.address);
+
   const path = [user1ID, group1ID];
   tx = await sampleDapp.connect(u1).claimUBI(path);
   console.log("UBIExampleDApp address: ", sampleDapp.address);

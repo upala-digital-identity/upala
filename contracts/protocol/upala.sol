@@ -75,12 +75,16 @@ contract Upala is IUpala {
         // @dev Used to check membership when calculating score
         mapping(uint160 => uint256) botnetLimit;
 
+        // every DApp gets credits of successfull score approvals for its users
+        mapping(address => uint256) appCredits;
+
         // Queue of execution? experiment
         uint256 annoucementNonce;
         uint256 lastExecutedAnnouncement;
     }
     // These addresses are permanent. Serve as IDs.
     mapping(uint160 => Group) groups;
+    mapping(address => uint160) managerToGroup;
 
     // Identities
     // Ensures that identities and groups are different entities
@@ -126,6 +130,7 @@ contract Upala is IUpala {
         entityCounter++;
         groups[entityCounter].manager = groupManager;
         groups[entityCounter].pool = _newPool(poolFactory, entityCounter);
+        managerToGroup[groupManager] = entityCounter;
         return (entityCounter, groups[entityCounter].pool);
     }
 
@@ -154,7 +159,10 @@ contract Upala is IUpala {
     }
 
     function setGroupManager(uint160 group, address newGroupManager) external onlyGroupManager(group) override(IUpala) {
+        address currentManager = groups[group].manager;
         groups[group].manager = newGroupManager;
+        delete managerToGroup[currentManager];
+        managerToGroup[newGroupManager] = group;
     }
 
     function setIdentityHolder(uint160 identity, address newIdentityHolder)  external onlyIdentityHolder(identity) override(IUpala) {
@@ -195,6 +203,7 @@ contract Upala is IUpala {
     //     return (_memberScore(path));
     // }
 
+    // only for users
     function myScore(uint160[] calldata path)
         external
         view
@@ -208,6 +217,7 @@ contract Upala is IUpala {
         return (_memberScore(path));
     }
 
+    // only for groups
     function memberScore(address holder, uint160[] calldata path)
         external
         view
@@ -215,16 +225,29 @@ contract Upala is IUpala {
         override(IUpala)
         returns(uint256)
     {
-        require(holder == identities[path[0]].holder, 
+        require(holder == identities[path[0]].holder,
             "the holder address doesn't own the id");
         require(groups[path[path.length-1]].manager == msg.sender, 
             "the last group in the path is not managed by the msg.sender");
         return (_memberScore(path));
     }
 
-    function getIdentityHolder(uint160 identityID) external view returns (address) {
-        return identities[identityID].holder;
+    // only for dapps
+    function userScore(address holder, uint160[] calldata path)
+        external
+        // TODO onlyValidPath
+        override(IUpala)
+        returns(uint256)
+    {
+        require(holder == identities[path[0]].holder,
+            "the holder address doesn't own the user id");
+        // will break if score is <0 or invalid path
+        uint256 score = _memberScore(path);
+        // require(_chargeDApp(path[path.length-1], msg.sender),
+        //     "the DApp has insufficient credits");
+        return score;
     }
+
 
     // Allows any identity to attack any group, run with the money and self-destruct.
     // Only those with scores will succeed.
@@ -310,6 +333,12 @@ contract Upala is IUpala {
         return true;
     }
 
+    // charges dapp by address, withdraws credits given by the group
+    function _chargeDApp(uint160 groupID, address dappAddress) private returns (bool) {
+        groups[groupID].appCredits[dappAddress].sub(1);
+        return true;
+    }
+
 
 
 
@@ -386,6 +415,16 @@ contract Upala is IUpala {
 
     // TODO function executeNextAnnouncement(uint160 group) external {}
 
+    function increaseAppCredit(address appAddress, uint256 amount) external override(IUpala){
+        uint160 groupID = groupIDbyManager(msg.sender);
+        groups[groupID].appCredits[appAddress].add(amount);
+    }
+
+    function decreaseAppCredit(address appAddress, uint256 amount) external override(IUpala){
+        uint160 groupID = groupIDbyManager(msg.sender);
+        groups[groupID].appCredits[appAddress].sub(amount);
+    }
+
     // Sets the maximum possible bot reward for the group.
     function setBotReward(uint160 group, uint botReward) external override(IUpala) {
         groups[group].lastExecutedAnnouncement++;
@@ -443,10 +482,9 @@ contract Upala is IUpala {
         return holderToIdentity[msg.sender];
     }
 
-    // function getGroupManager() external view returns(address) {
-    //     return groups[group].botReward;
-    // }
-
+    function groupIDbyManager(address manager) internal view returns(uint160) {
+        return managerToGroup[manager];
+    }
 
 
     /************************
