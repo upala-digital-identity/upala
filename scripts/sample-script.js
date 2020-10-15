@@ -248,6 +248,8 @@ async function main() {
 
   const path = [user1ID, group1ID];
   tx = await sampleDapp.connect(u1).claimUBI(path);
+  console.log("App credit: ", ethers.utils.formatEther(await upala.connect(u1).appBalance(group1ID, sampleDapp.address)));
+
   console.log("UBIExampleDApp address: ", sampleDapp.address);
   // console.log("User 1 UBI balance: ", await sampleDapp.connect(u1).myUBIBalance());
   console.log("User 1 UBI balance: ", ethers.utils.formatEther(await sampleDapp.connect(u1).myUBIBalance()));
@@ -268,10 +270,10 @@ async function main() {
   //     });
   // });
 
-  console.log(chalk.green("\n📡 PUBLISHING\n"));
+  // console.log(chalk.green("\n📡 PUBLISHING\n"));
 
-  fs.writeFileSync(publishDir+"/contracts.js","module.exports = "+JSON.stringify(finalContractList));
-  fs.writeFileSync(publishDir+"/groups.js","module.exports = "+JSON.stringify(groupsAddresses));
+  // fs.writeFileSync(publishDir+"/contracts.js","module.exports = "+JSON.stringify(finalContractList));
+  // fs.writeFileSync(publishDir+"/groups.js","module.exports = "+JSON.stringify(groupsAddresses));
 
 
 }

@@ -10,6 +10,7 @@ import "./i-upala.sol";
 import "../libraries/openzeppelin-contracts/contracts/math/SafeMath.sol";
 import "../pools/i-pool-factory.sol";
 import "../pools/i-pool.sol";
+import "@nomiclabs/buidler/console.sol";
 
 /*
 The Upala contract is the protocol itself.
@@ -243,8 +244,8 @@ contract Upala is IUpala {
             "the holder address doesn't own the user id");
         // will break if score is <0 or invalid path
         uint256 score = _memberScore(path);
-        // require(_chargeDApp(path[path.length-1], msg.sender),
-        //     "the DApp has insufficient credits");
+        require(_chargeDApp(path[path.length-1], msg.sender),
+            "the DApp has insufficient credits");
         return score;
     }
 
@@ -335,7 +336,7 @@ contract Upala is IUpala {
 
     // charges dapp by address, withdraws credits given by the group
     function _chargeDApp(uint160 groupID, address dappAddress) private returns (bool) {
-        groups[groupID].appCredits[dappAddress].sub(1);
+        groups[groupID].appCredits[dappAddress] = groups[groupID].appCredits[dappAddress].sub(1);
         return true;
     }
 
@@ -417,13 +418,23 @@ contract Upala is IUpala {
 
     function increaseAppCredit(address appAddress, uint256 amount) external override(IUpala){
         uint160 groupID = groupIDbyManager(msg.sender);
-        groups[groupID].appCredits[appAddress].add(amount);
+        // console.log("Increase app credit:", appAddress, groupID, amount);
+        groups[groupID].appCredits[appAddress] = groups[groupID].appCredits[appAddress].add(amount);
     }
 
     function decreaseAppCredit(address appAddress, uint256 amount) external override(IUpala){
         uint160 groupID = groupIDbyManager(msg.sender);
-        groups[groupID].appCredits[appAddress].sub(amount);
+        groups[groupID].appCredits[appAddress] = groups[groupID].appCredits[appAddress].sub(amount);
     }
+
+    function appBalance(uint160 groupID, address appAddress) external view returns(uint256){
+        // todo permissions (either group or dapp can access)
+        // console.log("App balance:", appAddress, groupID, groups[groupID].appCredits[appAddress]);
+        return groups[groupID].appCredits[appAddress];
+    }
+
+
+
 
     // Sets the maximum possible bot reward for the group.
     function setBotReward(uint160 group, uint botReward) external override(IUpala) {
