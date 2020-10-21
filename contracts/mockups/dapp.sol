@@ -57,7 +57,7 @@ contract usingUpala {
 contract UBIExampleDApp is usingUpala {
 
     uint256 MINIMAL_SCORE = 1 * 10 ** 18;  // 1 DAI
-    uint256 UBI = 1000;  // 1 Token
+    uint256 UBI = 10 * 10 ** 18;  // 10 Tokens
 
     mapping (uint160 => bool) claimed;
     mapping (address => uint256) balances;
@@ -83,5 +83,9 @@ contract UBIExampleDApp is usingUpala {
 
     function myUBIBalance() external view returns (uint256) {
         return balances[msg.sender];
+    }
+
+    function myUBIBalanceTest() external view returns (address) {
+        return msg.sender;
     }
 }

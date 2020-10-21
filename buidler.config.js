@@ -35,6 +35,13 @@ module.exports = {
       },
       timeout: 60000,
     },
+    rinkeby: {
+      url: 'https://rinkeby.infura.io/v3/3b076e7d293041b684349d436904ccdb',//+infura_project_id,
+      accounts: {
+        mnemonic: secrets.mnemonic
+      },
+      timeout: 60000,
+    },
   },
   solc: {
     version : "0.6.6",

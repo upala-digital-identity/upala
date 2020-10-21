@@ -6,6 +6,30 @@ const bre = require("@nomiclabs/buidler");
 const fs = require('fs');
 const chalk = require('chalk');
 
+
+async function write(functionName, args, successCallback, rejectCallback) {
+    try {
+      let tx = await this.read(functionName, args);
+      // console.log("sent");
+      if (tx) {
+        tx.wait()
+          .then(() => {
+            successCallback();
+            console.log("mined");
+          })
+          .catch((e) => {
+            rejectCallback(e);
+          });
+      }
+    } catch (e) {
+      rejectCallback(e);
+    }
+  }
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function main() {
   // Buidler always runs the compile task when running scripts through it. 
   // If this runs in a standalone fashion you may want to call compile manually 
@@ -14,13 +38,28 @@ async function main() {
 
   const networkName = bre.network.name;
   const publishDir =  "../scaffold-eth/rad-new-dapp/packages/react-app/src/contracts/" + networkName;
+  const exampleDappDir = "../example-app/packages/react-app/src/contracts/"
   if (!fs.existsSync(publishDir)){
     fs.mkdirSync(publishDir);
+  }
+  if (!fs.existsSync(exampleDappDir)){
+    fs.mkdirSync(exampleDappDir);
   }
 
   let finalContractList = []
   var finalContracts = {}
 
+  const [owner, m1, m2, m3, u1, u2, u3] = await ethers.getSigners();
+  console.log(
+    "owner", await owner.getAddress(), ethers.utils.formatEther(await owner.getBalance()),
+    "\nm1", await m1.getAddress(), ethers.utils.formatEther(await m1.getBalance()),
+    "\nm2", await m2.getAddress(), ethers.utils.formatEther(await m2.getBalance()),
+    "\nm3", await m3.getAddress(), ethers.utils.formatEther(await m3.getBalance()),
+    "\nu1", await u1.getAddress(), ethers.utils.formatEther(await u1.getBalance()),
+    "\nu2", await u2.getAddress(), ethers.utils.formatEther(await u2.getBalance()),
+    "\nu3", await u3.getAddress(), ethers.utils.formatEther(await u3.getBalance())
+    );
+  
   console.log("📡 Deploying to", networkName)
 
   async function deployContract(contractName, ...args) {
@@ -49,10 +88,19 @@ async function main() {
         fs.writeFileSync(publishDir+"/"+contractName+".abi.js","module.exports = "+JSON.stringify(contract.abi));
         // fs.writeFileSync(publishDir+"/"+contractName+".bytecode.js","module.exports = \""+contract.bytecode+"\"");
         fs.writeFileSync(publishDir+"/"+contractName+".bytecode.js","module.exports = \""+contractFactory.bytecode+"\"");
+        
+        // PublishToExampleDapp
+        fs.writeFileSync(exampleDappDir+"/"+contractName+".address.js","module.exports = \""+address+"\"");
+        fs.writeFileSync(exampleDappDir+"/"+contractName+".abi.js","module.exports = "+JSON.stringify(contract.abi));
+        // fs.writeFileSync(exampleDappDir+"/"+contractName+".bytecode.js","module.exports = \""+contract.bytecode+"\"");
+        fs.writeFileSync(exampleDappDir+"/"+contractName+".bytecode.js","module.exports = \""+contractFactory.bytecode+"\"");
+
+
         finalContractList.push(contractName)
 
       }catch(e){console.log(e)}
       
+
       return contractInstance;
   }
 
@@ -62,8 +110,8 @@ async function main() {
   // Testing environment
   fakeDai = await deployContract("FakeDai");
   basicPoolFactory = await deployContract("BasicPoolFactory", fakeDai.address);
-  await upala.setapprovedPoolFactory(basicPoolFactory.address, "true");
-
+  const basicPoolFactory_tx = await upala.setapprovedPoolFactory(basicPoolFactory.address, "true");
+  console.log("approvedPoolFactory");
 
 
 
@@ -79,9 +127,10 @@ async function main() {
   var groupsAddresses = []
 
   async function deployGroup(groupContractName, details, multiplier) {
+    console.log("deployContract", groupContractName, upala.address, basicPoolFactory.address);
     newGroup = await deployContract(groupContractName, upala.address, basicPoolFactory.address); // {from: groupManager}
     groupsAddresses.push(newGroup.address);
-
+    console.log(chalk.blue("newGroup.address:"), newGroup.address)
     let newGroupID = await newGroup.getUpalaGroupID();
     let newGroupPoolAddress = await newGroup.getGroupPoolAddress();
     await fakeDai.freeDaiToTheWorld(newGroupPoolAddress, poolDonation.mul(multiplier));
@@ -122,6 +171,9 @@ async function main() {
     "short_description": "MetaGamers only"
     }
 
+  console.log("deployGroup, wait 60 sec");
+  await sleep(60000);
+  console.log("deploy");
   const [group1, group1ID] = await deployGroup("ProtoGroup", JSON.stringify(group1Details), 1);
   const [group2, group2ID] = await deployGroup("ProtoGroup", JSON.stringify(group2Details), 2);
   const [group3, group3ID] = await deployGroup("ProtoGroup", JSON.stringify(group3Details), 3);
@@ -147,15 +199,22 @@ async function main() {
   console.log(chalk.green("\nTESTING GROUPS\n"));
   ///////////////////////////////////////////////
 
-  const [owner, m1, m2, m3, u1, u2, u3] = await ethers.getSigners();
+  
 
   // Upala prototype UX
   // "Create ID" button
   tx = await upala.connect(u1).newIdentity(u1.getAddress());
+  tx = await upala.connect(u2).newIdentity(u2.getAddress());
 
   // ID details
   const user1ID = await upala.connect(u1).myId();
-  console.log("User1 ID: ", user1ID.toNumber());
+  const user2ID = await upala.connect(u2).myId();
+  
+  console.log(chalk.blue("User1 Address: "), await u1.getAddress());
+  console.log(chalk.blue("User2 Address: "), await u2.getAddress());
+
+  console.log(chalk.blue("User1 ID: "), user1ID.toNumber());
+  console.log(chalk.blue("User2 ID: "), user2ID.toNumber());
 
   // "Groups list"
   // No on-chain data for the list - fetch from 3Box (private Spaces and 3Box.js)
@@ -173,7 +232,7 @@ async function main() {
 
   // "Deposit and join" button
   tx = await group1.connect(u1).join(user1ID);
-  console.log("group1.connect(u1)");
+  tx = await group1.connect(u2).join(user2ID);
 
   // Membership status (user is a member of a group)
   // A user is a member if a group assignes any score
@@ -241,14 +300,15 @@ async function main() {
   // setUpala
   // approve score provider by id
   // constructor (address upalaAddress, address trustedProviderUpalaID) 
-  sampleDapp = await deployContract("UBIExampleDApp", upala.address, group1ID);
+  sampleDapp = await deployContract("UBIExampleDApp", upala.address, bladerunnerID);
   
   // add credit
-  tx = await group1.connect(u1).freeAppCredit(sampleDapp.address);
-
-  const path = [user1ID, group1ID];
+  await sleep(60000);
+  tx = await bladerunner.connect(u1).freeAppCredit(sampleDapp.address);
+  await sleep(60000);
+  const path = [user1ID, group1ID, bladerunnerID];
   tx = await sampleDapp.connect(u1).claimUBI(path);
-  console.log("App credit: ", ethers.utils.formatEther(await upala.connect(u1).appBalance(group1ID, sampleDapp.address)));
+  console.log("App credit: ", ethers.utils.formatEther(await upala.connect(u1).appBalance(bladerunnerID, sampleDapp.address)));
 
   console.log("UBIExampleDApp address: ", sampleDapp.address);
   // console.log("User 1 UBI balance: ", await sampleDapp.connect(u1).myUBIBalance());
@@ -270,11 +330,13 @@ async function main() {
   //     });
   // });
 
-  // console.log(chalk.green("\n📡 PUBLISHING\n"));
+  console.log(chalk.green("\n📡 PUBLISHING\n"));
 
-  // fs.writeFileSync(publishDir+"/contracts.js","module.exports = "+JSON.stringify(finalContractList));
-  // fs.writeFileSync(publishDir+"/groups.js","module.exports = "+JSON.stringify(groupsAddresses));
+  fs.writeFileSync(publishDir+"/contracts.js","module.exports = "+JSON.stringify(finalContractList));
+  fs.writeFileSync(publishDir+"/groups.js","module.exports = "+JSON.stringify(groupsAddresses));
 
+  fs.writeFileSync(exampleDappDir+"/contracts.js","module.exports = "+JSON.stringify(finalContractList));
+  fs.writeFileSync(exampleDappDir+"/groups.js","module.exports = "+JSON.stringify(groupsAddresses));
 
 }
 
