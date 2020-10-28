@@ -42,6 +42,17 @@ module.exports = {
       },
       timeout: 60000,
     },
+    matic: {
+      //provider: () => new HDWalletProvider(mnemonic, `https://rpc-mumbai.matic.today`),
+      network_id: 80001,
+      url: `https://rpc-mumbai.matic.today`,
+      confirmations: 2,
+      timeoutBlocks: 200,
+      skipDryRun: true,
+      accounts: {
+        mnemonic: secrets.mnemonic
+      },
+    },
   },
   solc: {
     version : "0.6.6",

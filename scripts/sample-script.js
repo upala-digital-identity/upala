@@ -38,7 +38,8 @@ async function main() {
 
   const networkName = bre.network.name;
   const publishDir =  "../scaffold-eth/rad-new-dapp/packages/react-app/src/contracts/" + networkName;
-  const exampleDappDir = "../example-app/packages/react-app/src/contracts/"
+  // const exampleDappDir = "../example-app/packages/react-app/src/contracts2/" + networkName;
+  const exampleDappDir = "../example-app/packages/contracts2/";
   if (!fs.existsSync(publishDir)){
     fs.mkdirSync(publishDir);
   }
@@ -69,31 +70,28 @@ async function main() {
     console.log(chalk.cyan(contractName),"deployed to:", chalk.magenta(contractInstance.address));
     // fs.writeFileSync("artifacts/"+contractName+".address",contractInstance.address);
 
-
     finalContracts[contractName] = {
       address: contractInstance.address,
-      bytecode: contractFactory.bytecode,
-      interface: contractInstance.interface, // TODO will it work as ABI in Front-end
+      abi: contractInstance.interface.abi, // TODO will it work as ABI in Front-end
     };
 
-    
     try {
-        let contract = fs.readFileSync(bre.config.paths.artifacts+"/"+contractName+".json").toString()
-        // let address = fs.readFileSync(bre.config.paths.artifacts+"/"+contractName+".address").toString()
-        let address = contractInstance.address;
-        contract = JSON.parse(contract);
+        // let contract = fs.readFileSync(bre.config.paths.artifacts+"/"+contractName+".json").toString()
+        // // let address = fs.readFileSync(bre.config.paths.artifacts+"/"+contractName+".address").toString()
+        // let address = contractInstance.address;
+        // contract = JSON.parse(contract);
 
-        // Publish
-        fs.writeFileSync(publishDir+"/"+contractName+".address.js","module.exports = \""+address+"\"");
-        fs.writeFileSync(publishDir+"/"+contractName+".abi.js","module.exports = "+JSON.stringify(contract.abi));
-        // fs.writeFileSync(publishDir+"/"+contractName+".bytecode.js","module.exports = \""+contract.bytecode+"\"");
-        fs.writeFileSync(publishDir+"/"+contractName+".bytecode.js","module.exports = \""+contractFactory.bytecode+"\"");
+        // // Publish
+        // fs.writeFileSync(publishDir+"/"+contractName+".address.js","module.exports = \""+address+"\"");
+        // fs.writeFileSync(publishDir+"/"+contractName+".abi.js","module.exports = "+JSON.stringify(contract.abi));
+        // // fs.writeFileSync(publishDir+"/"+contractName+".bytecode.js","module.exports = \""+contract.bytecode+"\"");
+        // fs.writeFileSync(publishDir+"/"+contractName+".bytecode.js","module.exports = \""+contractFactory.bytecode+"\"");
         
-        // PublishToExampleDapp
-        fs.writeFileSync(exampleDappDir+"/"+contractName+".address.js","module.exports = \""+address+"\"");
-        fs.writeFileSync(exampleDappDir+"/"+contractName+".abi.js","module.exports = "+JSON.stringify(contract.abi));
-        // fs.writeFileSync(exampleDappDir+"/"+contractName+".bytecode.js","module.exports = \""+contract.bytecode+"\"");
-        fs.writeFileSync(exampleDappDir+"/"+contractName+".bytecode.js","module.exports = \""+contractFactory.bytecode+"\"");
+        // // PublishToExampleDapp
+        // fs.writeFileSync(exampleDappDir+"/"+contractName+".address.js","module.exports = \""+address+"\"");
+        // fs.writeFileSync(exampleDappDir+"/"+contractName+".abi.js","module.exports = "+JSON.stringify(contract.abi));
+        // // fs.writeFileSync(exampleDappDir+"/"+contractName+".bytecode.js","module.exports = \""+contract.bytecode+"\"");
+        // fs.writeFileSync(exampleDappDir+"/"+contractName+".bytecode.js","module.exports = \""+contractFactory.bytecode+"\"");
 
 
         finalContractList.push(contractName)
@@ -172,7 +170,7 @@ async function main() {
     }
 
   console.log("deployGroup, wait 60 sec");
-  await sleep(60000);
+  // sleep(60000);
   console.log("deploy");
   const [group1, group1ID] = await deployGroup("ProtoGroup", JSON.stringify(group1Details), 1);
   const [group2, group2ID] = await deployGroup("ProtoGroup", JSON.stringify(group2Details), 2);
@@ -303,9 +301,9 @@ async function main() {
   sampleDapp = await deployContract("UBIExampleDApp", upala.address, bladerunnerID);
   
   // add credit
-  await sleep(60000);
+  //await sleep(60000);
   tx = await bladerunner.connect(u1).freeAppCredit(sampleDapp.address);
-  await sleep(60000);
+  //await sleep(60000);
   const path = [user1ID, group1ID, bladerunnerID];
   tx = await sampleDapp.connect(u1).claimUBI(path);
   console.log("App credit: ", ethers.utils.formatEther(await upala.connect(u1).appBalance(bladerunnerID, sampleDapp.address)));
@@ -332,11 +330,74 @@ async function main() {
 
   console.log(chalk.green("\n📡 PUBLISHING\n"));
 
-  fs.writeFileSync(publishDir+"/contracts.js","module.exports = "+JSON.stringify(finalContractList));
-  fs.writeFileSync(publishDir+"/groups.js","module.exports = "+JSON.stringify(groupsAddresses));
+  
+  
+  function exportAddresses(contracts) {
+    fileContents = "const addresses = {";
+    for (const [contract, params] of Object.entries(contracts)) {
+      fileContents += "\n  " + contract + ": \"" + params.address + "\",";
+    }
+    fileContents += "\n};\nexport default addresses;"
+    return fileContents;
+  }
 
-  fs.writeFileSync(exampleDappDir+"/contracts.js","module.exports = "+JSON.stringify(finalContractList));
-  fs.writeFileSync(exampleDappDir+"/groups.js","module.exports = "+JSON.stringify(groupsAddresses));
+  function exportAbis(contracts) {
+    function abiImports(contracts) {
+      fileContents = "";
+      for (const [contract, params] of Object.entries(contracts)) {
+        fileContents += "import " + contract + " from \"./abis/" + contract + ".json\";\n";
+      }
+      return fileContents;
+    }
+
+    function abisObject(contracts) {
+      fileContents = "const abis = {";
+      for (const [contract, params] of Object.entries(contracts)) {
+        fileContents += "\n  " + contract + ": " + contract + ",";
+      }
+      fileContents += "\n}; \nexport default abis;"
+      return fileContents;
+    }
+    return abiImports(contracts) + abisObject(contracts);
+  }
+
+  function exportAbiFiles(contracts, pubDir, network) {
+    const srcDir = pubDir + "src/";
+    const abisDir = pubDir + "src/abis/";
+
+    // create dirs
+    const dirs = [pubDir, srcDir, abisDir];
+    dirs.forEach(entry => {
+        if (!fs.existsSync(entry)){
+          fs.mkdirSync(entry);
+        }
+      });
+
+    // write abis
+    for (const [contract, params] of Object.entries(contracts)) {
+      fs.writeFileSync(abisDir + "/" + contract + ".json", JSON.stringify(params.abi));
+    }
+
+    fs.writeFileSync(srcDir + "/addresses-" + network + ".js", exportAddresses(contracts));
+    fs.writeFileSync(srcDir + "/abis.js", exportAbis(contracts));
+    fs.copyFile('./scripts/exporter/index.js.template', srcDir + "index.js", (err) => {
+      if (err) throw err;
+    });
+    fs.copyFile('./scripts/exporter/package.json.template', pubDir + "/package.json", (err) => {
+      if (err) throw err;
+    });
+  }
+
+
+  exportAbiFiles(finalContracts, exampleDappDir, "rinkeby");
+  
+
+
+  // fs.writeFileSync(publishDir+"/contracts.js","module.exports = "+JSON.stringify(finalContractList));
+  // fs.writeFileSync(publishDir+"/groups.js","module.exports = "+JSON.stringify(groupsAddresses));
+
+  // fs.writeFileSync(exampleDappDir+"/contracts.js","module.exports = "+JSON.stringify(finalContractList));
+  // fs.writeFileSync(exampleDappDir+"/groups.js","module.exports = "+JSON.stringify(groupsAddresses));
 
 }
 
