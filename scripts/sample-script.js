@@ -39,7 +39,7 @@ async function main() {
   const networkName = bre.network.name;
   const publishDir =  "../scaffold-eth/rad-new-dapp/packages/react-app/src/contracts/" + networkName;
   // const exampleDappDir = "../example-app/packages/react-app/src/contracts2/" + networkName;
-  const exampleDappDir = "../example-app/packages/contracts2/";
+  const exampleDappDir = "../example-app/packages/contracts/";
   if (!fs.existsSync(publishDir)){
     fs.mkdirSync(publishDir);
   }
@@ -334,8 +334,10 @@ async function main() {
   
   function exportAddresses(contracts) {
     fileContents = "const addresses = {";
-    for (const [contract, params] of Object.entries(contracts)) {
-      fileContents += "\n  " + contract + ": \"" + params.address + "\",";
+    if (contracts) {
+      for (const [contract, params] of Object.entries(contracts)) {
+        fileContents += "\n  " + contract + ": \"" + params.address + "\",";
+      }
     }
     fileContents += "\n};\nexport default addresses;"
     return fileContents;
@@ -373,6 +375,20 @@ async function main() {
         }
       });
 
+    // create empty addresses files if files don't exist
+    const addressesFiles = [
+      srcDir + "addresses-main.js",
+      srcDir + "addresses-rinkeby.js",
+      srcDir + "addresses-localhost.js",
+      srcDir + "addresses-goerli.js",
+      srcDir + "addresses-mumbai.js",
+      ];
+    addressesFiles.forEach(path => {
+        if (!fs.existsSync(path)){
+          fs.writeFileSync(path, exportAddresses());
+        }
+      });
+
     // write abis
     for (const [contract, params] of Object.entries(contracts)) {
       fs.writeFileSync(abisDir + "/" + contract + ".json", JSON.stringify(params.abi));
@@ -389,7 +405,7 @@ async function main() {
   }
 
 
-  exportAbiFiles(finalContracts, exampleDappDir, "rinkeby");
+  exportAbiFiles(finalContracts, exampleDappDir, "localhost");
   
 
 
