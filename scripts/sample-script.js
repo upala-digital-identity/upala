@@ -40,6 +40,7 @@ async function main() {
   const publishDir =  "../scaffold-eth/rad-new-dapp/packages/react-app/src/contracts/" + networkName;
   // const exampleDappDir = "../example-app/packages/react-app/src/contracts2/" + networkName;
   const exampleDappDir = "../example-app/packages/contracts/";
+  const newPublishDir = "../scaffold-eth/rad-new-dapp/packages/contracts/"
   if (!fs.existsSync(publishDir)){
     fs.mkdirSync(publishDir);
   }
@@ -49,6 +50,7 @@ async function main() {
 
   let finalContractList = []
   var finalContracts = {}
+  var finalGroups = {}
 
   const [owner, m1, m2, m3, u1, u2, u3] = await ethers.getSigners();
   console.log(
@@ -76,16 +78,16 @@ async function main() {
     };
 
     try {
-        // let contract = fs.readFileSync(bre.config.paths.artifacts+"/"+contractName+".json").toString()
-        // // let address = fs.readFileSync(bre.config.paths.artifacts+"/"+contractName+".address").toString()
-        // let address = contractInstance.address;
-        // contract = JSON.parse(contract);
+        let contract = fs.readFileSync(bre.config.paths.artifacts+"/"+contractName+".json").toString()
+        // let address = fs.readFileSync(bre.config.paths.artifacts+"/"+contractName+".address").toString()
+        let address = contractInstance.address;
+        contract = JSON.parse(contract);
 
-        // // Publish
-        // fs.writeFileSync(publishDir+"/"+contractName+".address.js","module.exports = \""+address+"\"");
-        // fs.writeFileSync(publishDir+"/"+contractName+".abi.js","module.exports = "+JSON.stringify(contract.abi));
-        // // fs.writeFileSync(publishDir+"/"+contractName+".bytecode.js","module.exports = \""+contract.bytecode+"\"");
-        // fs.writeFileSync(publishDir+"/"+contractName+".bytecode.js","module.exports = \""+contractFactory.bytecode+"\"");
+        // Publish
+        fs.writeFileSync(publishDir+"/"+contractName+".address.js","module.exports = \""+address+"\"");
+        fs.writeFileSync(publishDir+"/"+contractName+".abi.js","module.exports = "+JSON.stringify(contract.abi));
+        // fs.writeFileSync(publishDir+"/"+contractName+".bytecode.js","module.exports = \""+contract.bytecode+"\"");
+        fs.writeFileSync(publishDir+"/"+contractName+".bytecode.js","module.exports = \""+contractFactory.bytecode+"\"");
         
         // // PublishToExampleDapp
         // fs.writeFileSync(exampleDappDir+"/"+contractName+".address.js","module.exports = \""+address+"\"");
@@ -124,9 +126,15 @@ async function main() {
   const poolDonation = ethers.utils.parseEther("1000");
   var groupsAddresses = []
 
-  async function deployGroup(groupContractName, details, multiplier) {
+  async function deployGroup(groupName, groupContractName, details, multiplier) {
     console.log("deployContract", groupContractName, upala.address, basicPoolFactory.address);
     newGroup = await deployContract(groupContractName, upala.address, basicPoolFactory.address); // {from: groupManager}
+    
+    finalGroups[groupName] = {
+      address: newGroup.address,
+      abi: newGroup.interface.abi,
+    };
+
     groupsAddresses.push(newGroup.address);
     console.log(chalk.blue("newGroup.address:"), newGroup.address)
     let newGroupID = await newGroup.getUpalaGroupID();
@@ -172,9 +180,9 @@ async function main() {
   console.log("deployGroup, wait 60 sec");
   // sleep(60000);
   console.log("deploy");
-  const [group1, group1ID] = await deployGroup("ProtoGroup", JSON.stringify(group1Details), 1);
-  const [group2, group2ID] = await deployGroup("ProtoGroup", JSON.stringify(group2Details), 2);
-  const [group3, group3ID] = await deployGroup("ProtoGroup", JSON.stringify(group3Details), 3);
+  const [group1, group1ID] = await deployGroup(group1Details.title, "ProtoGroup", JSON.stringify(group1Details), 1);
+  const [group2, group2ID] = await deployGroup(group2Details.title, "ProtoGroup", JSON.stringify(group2Details), 2);
+  const [group3, group3ID] = await deployGroup(group3Details.title, "ProtoGroup", JSON.stringify(group3Details), 3);
 
 
 
@@ -189,7 +197,7 @@ async function main() {
     "description": "Users cannot join this group directly - only its subgroups (entry-tests). Members of BladerunnerDAO decide which entry-tests to approve.",
     "short_description": "Bladerunner Score provider"
     }
-  const [bladerunner, bladerunnerID] = await deployGroup("BladerunnerDAO", JSON.stringify(bladerunnerDetails), 5);
+  const [bladerunner, bladerunnerID] = await deployGroup(bladerunnerDetails.title, "BladerunnerDAO", JSON.stringify(bladerunnerDetails), 5);
 
 
 
@@ -332,43 +340,48 @@ async function main() {
 
   
   
-  function exportAddresses(contracts) {
-    fileContents = "const addresses = {";
-    if (contracts) {
-      for (const [contract, params] of Object.entries(contracts)) {
-        fileContents += "\n  " + contract + ": \"" + params.address + "\",";
-      }
-    }
-    fileContents += "\n};\nexport default addresses;"
-    return fileContents;
-  }
 
-  function exportAbis(contracts) {
-    function abiImports(contracts) {
-      fileContents = "";
-      for (const [contract, params] of Object.entries(contracts)) {
-        fileContents += "import " + contract + " from \"./abis/" + contract + ".json\";\n";
+
+  function exportContracts(contracts, groups, pubDir, network) {
+    
+    function exportAddresses(contracts) {
+      fileContents = "const addresses = {";
+      if (contracts) {
+        for (const [contract, params] of Object.entries(contracts)) {
+          fileContents += "\n  " + contract + ": \"" + params.address + "\",";
+        }
       }
+      fileContents += "\n};\nexport default addresses;"
       return fileContents;
     }
 
-    function abisObject(contracts) {
-      fileContents = "const abis = {";
-      for (const [contract, params] of Object.entries(contracts)) {
-        fileContents += "\n  " + contract + ": " + contract + ",";
+    function exportAbis(contracts) {
+      function abiImports(contracts) {
+        fileContents = "";
+        for (const [contract, params] of Object.entries(contracts)) {
+          fileContents += "import " + contract + " from \"./abis/" + contract + ".json\";\n";
+        }
+        return fileContents;
       }
-      fileContents += "\n}; \nexport default abis;"
-      return fileContents;
-    }
-    return abiImports(contracts) + abisObject(contracts);
-  }
 
-  function exportAbiFiles(contracts, pubDir, network) {
+      function abisObject(contracts) {
+        fileContents = "\nconst abis = {";
+        for (const [contract, params] of Object.entries(contracts)) {
+          fileContents += "\n  " + contract + ": " + contract + ",";
+        }
+        fileContents += "\n}; \n\nexport default abis;"
+        return fileContents;
+      }
+      return abiImports(contracts) + abisObject(contracts);
+    }
+
     const srcDir = pubDir + "src/";
     const abisDir = pubDir + "src/abis/";
+    const addressesDir = pubDir + "src/addresses/";
+    const groupsDir = pubDir + "src/groups/";
 
     // create dirs
-    const dirs = [pubDir, srcDir, abisDir];
+    const dirs = [pubDir, srcDir, abisDir, addressesDir, groupsDir];
     dirs.forEach(entry => {
         if (!fs.existsSync(entry)){
           fs.mkdirSync(entry);
@@ -377,11 +390,17 @@ async function main() {
 
     // create empty addresses files if files don't exist
     const addressesFiles = [
-      srcDir + "addresses-main.js",
-      srcDir + "addresses-rinkeby.js",
-      srcDir + "addresses-localhost.js",
-      srcDir + "addresses-goerli.js",
-      srcDir + "addresses-mumbai.js",
+      addressesDir + "main.js",
+      addressesDir + "rinkeby.js",
+      addressesDir + "localhost.js",
+      addressesDir + "goerli.js",
+      addressesDir + "mumbai.js",
+
+      groupsDir + "main.js",
+      groupsDir + "rinkeby.js",
+      groupsDir + "localhost.js",
+      groupsDir + "goerli.js",
+      groupsDir + "mumbai.js",
       ];
     addressesFiles.forEach(path => {
         if (!fs.existsSync(path)){
@@ -389,12 +408,11 @@ async function main() {
         }
       });
 
-    // write abis
+    fs.writeFileSync(addressesDir + "/" + network + ".js", exportAddresses(contracts));
+    fs.writeFileSync(groupsDir + "/" + network + ".js", exportAddresses(groups));
     for (const [contract, params] of Object.entries(contracts)) {
       fs.writeFileSync(abisDir + "/" + contract + ".json", JSON.stringify(params.abi));
     }
-
-    fs.writeFileSync(srcDir + "/addresses-" + network + ".js", exportAddresses(contracts));
     fs.writeFileSync(srcDir + "/abis.js", exportAbis(contracts));
     fs.copyFile('./scripts/exporter/index.js.template', srcDir + "index.js", (err) => {
       if (err) throw err;
@@ -405,12 +423,12 @@ async function main() {
   }
 
 
-  exportAbiFiles(finalContracts, exampleDappDir, "localhost");
+  exportContracts(finalContracts, finalGroups, newPublishDir, networkName);
   
 
 
-  // fs.writeFileSync(publishDir+"/contracts.js","module.exports = "+JSON.stringify(finalContractList));
-  // fs.writeFileSync(publishDir+"/groups.js","module.exports = "+JSON.stringify(groupsAddresses));
+  fs.writeFileSync(publishDir+"/contracts.js","module.exports = "+JSON.stringify(finalContractList));
+  fs.writeFileSync(publishDir+"/groups.js","module.exports = "+JSON.stringify(groupsAddresses));
 
   // fs.writeFileSync(exampleDappDir+"/contracts.js","module.exports = "+JSON.stringify(finalContractList));
   // fs.writeFileSync(exampleDappDir+"/groups.js","module.exports = "+JSON.stringify(groupsAddresses));
