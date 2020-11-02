@@ -62,7 +62,7 @@ async function main() {
   // Testing environment
   fakeDai = await deployContract("FakeDai");
   basicPoolFactory = await deployContract("BasicPoolFactory", fakeDai.address);
-  const basicPoolFactory_tx = await upala.setapprovedPoolFactory(basicPoolFactory.address, "true");
+  await upala.setapprovedPoolFactory(basicPoolFactory.address, "true").then((tx) => tx.wait());
   console.log("approvedPoolFactory");
 
 
@@ -129,8 +129,6 @@ async function main() {
     "short_description": "MetaGamers only"
     }
 
-  console.log("deployGroup, wait 60 sec");
-  // sleep(60000);
   console.log("deploy");
   const [group1, group1ID] = await deployGroup(group1Details.title, "ProtoGroup", JSON.stringify(group1Details), 1);
   const [group2, group2ID] = await deployGroup(group2Details.title, "ProtoGroup", JSON.stringify(group2Details), 2);
@@ -161,8 +159,8 @@ async function main() {
 
   // Upala prototype UX
   // "Create ID" button
-  tx = await upala.connect(u1).newIdentity(u1.getAddress());
-  tx = await upala.connect(u2).newIdentity(u2.getAddress());
+  await upala.connect(u1).newIdentity(u1.getAddress()).then((tx) => tx.wait());
+  await upala.connect(u2).newIdentity(u2.getAddress()).then((tx) => tx.wait());
 
   // ID details
   const user1ID = await upala.connect(u1).myId();
@@ -189,8 +187,8 @@ async function main() {
 
 
   // "Deposit and join" button
-  tx = await group1.connect(u1).join(user1ID);
-  tx = await group1.connect(u2).join(user2ID);
+  await group1.connect(u1).join(user1ID).then((tx) => tx.wait());
+  await group1.connect(u2).join(user2ID).then((tx) => tx.wait());
 
   // Membership status (user is a member of a group)
   // A user is a member if a group assignes any score
@@ -262,10 +260,10 @@ async function main() {
   
   // add credit
   //await sleep(60000);
-  tx = await bladerunner.connect(u1).freeAppCredit(sampleDapp.address);
+  await bladerunner.connect(u1).freeAppCredit(sampleDapp.address).then((tx) => tx.wait());
   //await sleep(60000);
   const path = [user1ID, group1ID, bladerunnerID];
-  tx = await sampleDapp.connect(u1).claimUBI(path);
+  await sampleDapp.connect(u1).claimUBI(path).then((tx) => tx.wait());
   console.log("App credit: ", ethers.utils.formatEther(await upala.connect(u1).appBalance(bladerunnerID, sampleDapp.address)));
 
   console.log("UBIExampleDApp address: ", sampleDapp.address);
