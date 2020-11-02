@@ -6,29 +6,11 @@ const bre = require("@nomiclabs/buidler");
 const fs = require('fs');
 const chalk = require('chalk');
 
+const exampleDappDir = "../example-app/packages/contracts/";
+const newPublishDir = "../scaffold-eth/rad-new-dapp/packages/contracts/"
 
-async function write(functionName, args, successCallback, rejectCallback) {
-    try {
-      let tx = await this.read(functionName, args);
-      // console.log("sent");
-      if (tx) {
-        tx.wait()
-          .then(() => {
-            successCallback();
-            console.log("mined");
-          })
-          .catch((e) => {
-            rejectCallback(e);
-          });
-      }
-    } catch (e) {
-      rejectCallback(e);
-    }
-  }
 
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
+
 
 async function main() {
   // Buidler always runs the compile task when running scripts through it. 
@@ -37,25 +19,28 @@ async function main() {
   // await bre.run('compile');
 
   const networkName = bre.network.name;
-  const exampleDappDir = "../example-app/packages/contracts/";
-  const newPublishDir = "../scaffold-eth/rad-new-dapp/packages/contracts/"
 
-  let finalContractList = []
   var finalContracts = {}
   var finalGroups = {}
 
+  console.log(chalk.green("\n👤 USERS\n"));
+  /////////////////////////////////////////////////
+
   const [owner, m1, m2, m3, u1, u2, u3] = await ethers.getSigners();
   console.log(
-    "owner", await owner.getAddress(), ethers.utils.formatEther(await owner.getBalance()),
-    "\nm1", await m1.getAddress(), ethers.utils.formatEther(await m1.getBalance()),
-    "\nm2", await m2.getAddress(), ethers.utils.formatEther(await m2.getBalance()),
-    "\nm3", await m3.getAddress(), ethers.utils.formatEther(await m3.getBalance()),
-    "\nu1", await u1.getAddress(), ethers.utils.formatEther(await u1.getBalance()),
-    "\nu2", await u2.getAddress(), ethers.utils.formatEther(await u2.getBalance()),
-    "\nu3", await u3.getAddress(), ethers.utils.formatEther(await u3.getBalance())
+    "owner", chalk.blue(await owner.getAddress()), ethers.utils.formatEther(await owner.getBalance()),
+    "\nm1", chalk.blue(await m1.getAddress()), ethers.utils.formatEther(await m1.getBalance()),
+    "\nm2", chalk.blue(await m2.getAddress()), ethers.utils.formatEther(await m2.getBalance()),
+    "\nm3", chalk.blue(await m3.getAddress()), ethers.utils.formatEther(await m3.getBalance()),
+    "\nu1", chalk.blue(await u1.getAddress()), ethers.utils.formatEther(await u1.getBalance()),
+    "\nu2", chalk.blue(await u2.getAddress()), ethers.utils.formatEther(await u2.getBalance()),
+    "\nu3", chalk.blue(await u3.getAddress()), ethers.utils.formatEther(await u3.getBalance())
     );
   
-  console.log("📡 Deploying to", networkName)
+
+  console.log(chalk.green("\n📡 DEPLOYING (", networkName, ")\n"));
+  /////////////////////////////////////////////////
+
 
   async function deployContract(contractName, ...args) {
     const contractFactory = await ethers.getContractFactory(contractName);
@@ -389,7 +374,7 @@ async function main() {
     });
   }
 
-  exportContracts(finalContracts, finalGroups, newPublishDir, networkName);
+  // exportContracts(finalContracts, finalGroups, newPublishDir, networkName);
 }
 
 

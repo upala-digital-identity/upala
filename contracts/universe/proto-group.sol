@@ -1,10 +1,9 @@
 pragma solidity ^0.6.0;
 
 import "../protocol/upala.sol";
-import "./using-cached-paths.sol";
 import "./upala-group.sol";
 
-contract ProtoGroup is UpalaGroup, UsingCachedPaths {
+contract ProtoGroup is UpalaGroup {
 
     uint256 defaultLimit = 1000000 * 10 ** 18;  // one million dollars [*places little finger near mouth*]
 
@@ -37,7 +36,6 @@ contract ProtoGroup is UpalaGroup, UsingCachedPaths {
 
     // User joins
     function join(uint160 identityID) external virtual {
-        identityIDs[msg.sender] = identityID;
         announceAndSetBotnetLimit(identityID, defaultLimit);
     }
 }
