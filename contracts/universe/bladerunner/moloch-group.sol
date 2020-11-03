@@ -1,12 +1,11 @@
 pragma solidity ^0.6.0;
 
-import "../protocol/upala.sol";
-import "./upala-group.sol";
-// import "./base-prototype.sol";
-import "../mockups/moloch-mock.sol";
+import "../../protocol/upala.sol";
+import "../../groups/upala-group.sol";
+import "../../mockups/moloch-mock.sol";
 
 // This Upala group auto-assigns scores to members of existing moloch based DAOs.
-contract MolochGroup is UpalaGroup { // , BasePrototype {
+contract MolochGroup is UpalaGroup { 
 
     Moloch moloch;
 

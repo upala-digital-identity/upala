@@ -1,7 +1,7 @@
 pragma solidity ^0.6.0;
 
-import "../protocol/upala.sol";
-import "./upala-group.sol";
+import "../../protocol/upala.sol";
+import "../../groups/upala-group.sol";
 
 contract ProtoGroup is UpalaGroup {
 

@@ -10,18 +10,12 @@ contract UpalaGroup {
     /********/
 
     // address of the Upala protocol
-    // now it works as a guildBank
     Upala upala;
     bool public isUpalaGroup = true;
 
     uint160 public groupID;
     address groupPool;
 
-    /* {"name": "ProtoGroup",
-    "version": "0.1",
-    "description": "Autoassigns FakeDAI score to anyone who joins",
-    "join-terms": "No deposit required (ignore the ammount you see and join)",
-    "leave-terms": "No deposit - no refund"} */
     string public details;  // json with ^details^
 
     constructor(
@@ -90,9 +84,9 @@ contract UpalaGroup {
         return groupPool;
     }
 
-    function _getScoreByPath(address wallet, uint160[] memory path) internal view returns (uint256) {
-        return upala.memberScore(wallet, path);
-    }
+    // function _getScoreByPath(address wallet, uint160[] memory path) internal view returns (uint256) {
+    //     return upala.memberScore(wallet, path);
+    // }
 
     // function _getIdentityHolder(uint160 memberID) internal view returns (address) {
     //     return upala.getIdentityHolder(memberID);
