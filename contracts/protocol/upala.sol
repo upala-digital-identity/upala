@@ -185,25 +185,6 @@ contract Upala is IUpala {
     path is an array of addressess.
     */
 
-    // depricate in favor of proveScore and myscore func
-    // function memberScore(uint160[] calldata path)
-    //     external
-    //     view
-    //     // TODO onlyValidPath
-    //     override(IUpala)
-    //     returns(uint256)
-    // {
-    //     // the last group in path must be managed by the msg.sender
-    //     uint160 groupID = path[path.length-1];
-    //     uint160 IdentityID = path[0];
-    //     // temporary removed authorization (for hackathon) TODO bring it back!
-    //     // require(
-    //     //     groups[groupID].manager == msg.sender || identities[IdentityID].holder == msg.sender,
-    //     //     "msg.sender is not identity holder or group manager within the provided path"
-    //     // );
-    //     return (_memberScore(path));
-    // }
-
     // only for users
     function myScore(uint160[] calldata path)
         external

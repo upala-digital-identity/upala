@@ -1,37 +1,20 @@
 pragma solidity ^0.6.0;
 
-import "../../protocol/upala.sol";
 import "../../groups/upala-group.sol";
+import "../../groups/ignoring-attack-window.sol";
+import "../../groups/free-provider.sol";
 
-contract ProtoGroup is UpalaGroup {
+contract ProtoGroup is UpalaGroup, IgnoringAttackWindow, FreeProvider { // is ScoreProvider
 
     uint256 defaultLimit = 1000000 * 10 ** 18;  // one million dollars [*places little finger near mouth*]
 
-    constructor (
+    constructor(
         address upalaProtocolAddress,
         address poolFactory
-    ) UpalaGroup (
-        upalaProtocolAddress,
-        poolFactory
     )
-    public {
-    }
-
-    // Prototype functions (bot attack window is 0 - group owners can frontrun bot attack)
-
-    function announceAndSetBotReward(uint botReward) external {
-        _announceBotReward(botReward);
-        _setBotReward(botReward);
-    }
-
-    function announceAndSetBotnetLimit(uint160 identityID, uint256 newBotnetLimit) public {
-        _announceBotnetLimit(identityID, newBotnetLimit);
-        _setBotnetLimit(identityID, newBotnetLimit);
-    }
-
-    // this group proves scores for free. Anyone can add any dapp to get free scores
-    function freeAppCredit(address appAddress) external {
-        _increaseAppCredit(appAddress, 1000);
+        public
+    {
+        createGroup(upalaProtocolAddress, poolFactory);
     }
 
     // User joins

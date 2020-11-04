@@ -1,26 +1,22 @@
 pragma solidity ^0.6.0;
 
-import "../../protocol/upala.sol";
-import "../../groups/upala-group.sol";
+import "./proto-group.sol";
 import "../../mockups/moloch-mock.sol";
 
 // This Upala group auto-assigns scores to members of existing moloch based DAOs.
-contract MolochGroup is UpalaGroup { 
+contract MolochGroup is UpalaGroup, IgnoringAttackWindow, FreeProvider { 
 
     Moloch moloch;
 
-    uint256 defaultLimit = 1000000 * 10 ** 18;  // one million dollars [*places little finger near mouth*]
+    // uint256 defaultLimit = 1000000 * 10 ** 18;  // one million dollars [*places little finger near mouth*]
 
     constructor (
         address upalaProtocolAddress,
         address poolFactory,
         address payable molochAddress
-    ) UpalaGroup (
-        upalaProtocolAddress,
-        poolFactory
-    ) 
-
-    public {        
+    )
+    public {
+        createGroup(upalaProtocolAddress, poolFactory);
         moloch = Moloch(molochAddress);
     }
 

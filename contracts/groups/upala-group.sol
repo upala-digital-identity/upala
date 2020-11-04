@@ -16,26 +16,22 @@ contract UpalaGroup {
     uint160 public groupID;
     address groupPool;
 
-    string public details;  // json with ^details^
+    string public details;  // json with ^details^ // or link/hash
 
-    constructor(
-        address upalaProtocolAddress,
-        address poolFactory
-    )
-        public
-    {
+
+    function createGroup(address upalaProtocolAddress, address poolFactory) internal {
         upala = Upala(upalaProtocolAddress);
         (groupID, groupPool) = upala.newGroup(address(this), poolFactory);
     }
 
-    
+    function connectGroup(address upalaProtocolAddress, uint160 groupID, address poolFactory) internal { 
+    }
+
     function setDetails(string calldata newDetails) external {
         details = newDetails;
     }
     
-    function getGroupDetails() external view returns (string memory){
-        return details;
-    }
+
 
     /******
     SCORING
@@ -73,7 +69,10 @@ contract UpalaGroup {
     GETTERS
     /*****/
 
-    function getMyScore(uint160[] memory path) internal returns (address, uint256) {
+    // function getMyScore(uint160[] memory path) internal returns (address, uint256) {
+    // }
+    function getGroupDetails() external view returns (string memory){
+        return details;
     }
 
     function getUpalaGroupID() external view returns (uint160) {
@@ -82,6 +81,9 @@ contract UpalaGroup {
 
     function getGroupPoolAddress() external view returns (address) {
         return groupPool;
+    }
+
+    function getPoolBalance() external view returns (uint256) {
     }
 
     // function _getScoreByPath(address wallet, uint160[] memory path) internal view returns (uint256) {
