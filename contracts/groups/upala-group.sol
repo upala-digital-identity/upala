@@ -38,13 +38,14 @@ contract UpalaGroup {
     /*****/
 
     // credit app
-    function _increaseAppCredit(address appAddress, uint256 amount) internal {
-        upala.increaseAppCredit(appAddress, amount);
-    }
+    // temporarily removed for faster MVP (UIP-3)
+    // function _increaseAppCredit(address appAddress, uint256 amount) internal {
+    //     upala.increaseAppCredit(appAddress, amount);
+    // }
 
-    function _decreaseAppCredit(address appAddress, uint256 amount) internal {
-        upala.decreaseAppCredit(appAddress, amount);
-    }
+    // function _decreaseAppCredit(address appAddress, uint256 amount) internal {
+    //     upala.decreaseAppCredit(appAddress, amount);
+    // }
 
     // Interface to Upala functions
 

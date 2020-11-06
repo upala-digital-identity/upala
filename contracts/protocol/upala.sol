@@ -77,7 +77,8 @@ contract Upala is IUpala {
         mapping(uint160 => uint256) botnetLimit;
 
         // every DApp gets credits of successfull score approvals for its users
-        mapping(address => uint256) appCredits;
+        // removed for faster MVP (UIP-3)
+        // mapping(address => uint256) appCredits;
 
         // Queue of execution? experiment
         uint256 annoucementNonce;
@@ -317,7 +318,8 @@ contract Upala is IUpala {
 
     // charges dapp by address, withdraws credits given by the group
     function _chargeDApp(uint160 groupID, address dappAddress) private returns (bool) {
-        groups[groupID].appCredits[dappAddress] = groups[groupID].appCredits[dappAddress].sub(1);
+        // removed temporarily (UIP-3)
+        // groups[groupID].appCredits[dappAddress] = groups[groupID].appCredits[dappAddress].sub(1);
         return true;
     }
 
@@ -397,23 +399,26 @@ contract Upala is IUpala {
 
     // TODO function executeNextAnnouncement(uint160 group) external {}
 
-    function increaseAppCredit(address appAddress, uint256 amount) external override(IUpala){
-        uint160 groupID = groupIDbyManager(msg.sender);
-        // console.log("Increase app credit:", appAddress, groupID, amount);
-        groups[groupID].appCredits[appAddress] = groups[groupID].appCredits[appAddress].add(amount);
-    }
 
-    function decreaseAppCredit(address appAddress, uint256 amount) external override(IUpala){
-        uint160 groupID = groupIDbyManager(msg.sender);
-        groups[groupID].appCredits[appAddress] = groups[groupID].appCredits[appAddress].sub(amount);
-    }
+    // AppCredits. Begin
+    // Removed for faster MVP. (UIP-3)
+    // function increaseAppCredit(address appAddress, uint256 amount) external override(IUpala){
+    //     uint160 groupID = groupIDbyManager(msg.sender);
+    //     // console.log("Increase app credit:", appAddress, groupID, amount);
+    //     groups[groupID].appCredits[appAddress] = groups[groupID].appCredits[appAddress].add(amount);
+    // }
 
-    function appBalance(uint160 groupID, address appAddress) external view returns(uint256){
-        // todo permissions (either group or dapp can access)
-        // console.log("App balance:", appAddress, groupID, groups[groupID].appCredits[appAddress]);
-        return groups[groupID].appCredits[appAddress];
-    }
+    // function decreaseAppCredit(address appAddress, uint256 amount) external override(IUpala){
+    //     uint160 groupID = groupIDbyManager(msg.sender);
+    //     groups[groupID].appCredits[appAddress] = groups[groupID].appCredits[appAddress].sub(amount);
+    // }
 
+    // function appBalance(uint160 groupID, address appAddress) external view returns(uint256){
+    //     // todo permissions (either group or dapp can access)
+    //     // console.log("App balance:", appAddress, groupID, groups[groupID].appCredits[appAddress]);
+    //     return groups[groupID].appCredits[appAddress];
+    // }
+    // AppCredits. End
 
 
 

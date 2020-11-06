@@ -15,8 +15,8 @@ interface IUpala {
     // groups (only managers)
     function setGroupManager(uint160, address) external;
     function memberScore(address, uint160[] calldata) external view returns(uint256);
-    function increaseAppCredit(address, uint256) external;
-    function decreaseAppCredit(address, uint256) external;
+    // function increaseAppCredit(address, uint256) external;
+    // function decreaseAppCredit(address, uint256) external;
 
     function announceBotReward(uint160, uint) external returns (uint256);
     function announceBotnetLimit(uint160, uint160, uint) external returns (uint256);

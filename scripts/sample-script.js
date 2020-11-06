@@ -258,13 +258,10 @@ async function main() {
   // constructor (address upalaAddress, address trustedProviderUpalaID) 
   sampleDapp = await deployContract("UBIExampleDApp", upala.address, bladerunnerID);
   
-  // add credit
-  //await sleep(60000);
-  await bladerunner.connect(u1).freeAppCredit(sampleDapp.address).then((tx) => tx.wait());
-  //await sleep(60000);
+  // await bladerunner.connect(u1).freeAppCredit(sampleDapp.address).then((tx) => tx.wait());
   const path = [user1ID, group1ID, bladerunnerID];
   await sampleDapp.connect(u1).claimUBI(path).then((tx) => tx.wait());
-  console.log("App credit: ", ethers.utils.formatEther(await upala.connect(u1).appBalance(bladerunnerID, sampleDapp.address)));
+  // console.log("App credit: ", ethers.utils.formatEther(await upala.connect(u1).appBalance(bladerunnerID, sampleDapp.address)));
 
   console.log("UBIExampleDApp address: ", sampleDapp.address);
   // console.log("User 1 UBI balance: ", await sampleDapp.connect(u1).myUBIBalance());
