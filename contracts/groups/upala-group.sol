@@ -51,18 +51,18 @@ contract UpalaGroup {
 
     function _announceBotReward(uint botReward) internal {
         upala.announceBotReward(groupID, botReward);
-    }
+    }   
 
-    function _announceBotnetLimit(uint160 member, uint limit) internal {
-        upala.announceBotnetLimit(groupID, member, limit);
+    function _announceTrust(uint160 member, uint8 trust) internal {
+        upala.announceTrust(groupID, member, trust);
     }
 
     function _setBotReward(uint botReward) internal {
         upala.setBotReward(groupID, botReward);
     }
 
-    function _setBotnetLimit(uint160 identityID, uint256 newBotnetLimit) internal {
-        upala.setBotnetLimit(groupID, identityID, newBotnetLimit);
+    function _setTrust(uint160 identityID, uint8 trust) internal {
+        upala.setTrust(groupID, identityID, trust);
     }
 
 

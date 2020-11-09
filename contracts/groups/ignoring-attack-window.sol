@@ -5,14 +5,14 @@ import "./upala-group.sol";
 contract IgnoringAttackWindow is UpalaGroup {
 	
 	// Prototype functions (bot attack window is 0 - group owners can frontrun bot attack)
-    function announceAndSetBotReward(uint botReward) external {
+    function announceAndSetBotReward(uint256 botReward) external {
         _announceBotReward(botReward);
         _setBotReward(botReward);
     }
 
-    function announceAndSetBotnetLimit(uint160 identityID, uint256 newBotnetLimit) public {
-        _announceBotnetLimit(identityID, newBotnetLimit);
-        _setBotnetLimit(identityID, newBotnetLimit);
+    function announceAndSetTrust(uint160 identityID, uint8 trust) public {
+        _announceTrust(identityID, trust);
+        _setTrust(identityID, trust);
     }
 
 }

@@ -224,9 +224,9 @@ async function main() {
   ///////////////////////////////////////////////
   
   // approve all 3 groups in BladeRunner by setting very high bot net limits
-  await bladerunner.connect(u1).announceAndSetBotnetLimit(group1ID, defaultBotReward.mul(100));
-  await bladerunner.connect(u1).announceAndSetBotnetLimit(group2ID, defaultBotReward.mul(100));
-  await bladerunner.connect(u1).announceAndSetBotnetLimit(group3ID, defaultBotReward.mul(100));
+  await bladerunner.connect(u1).announceAndSetTrust(group1ID, 100);
+  await bladerunner.connect(u1).announceAndSetTrust(group2ID, 100);
+  await bladerunner.connect(u1).announceAndSetTrust(group3ID, 100);
   const pathToBladerunner = [user1ID, group1ID, bladerunnerID];
   console.log(
     "User score in Bladerunner:", 

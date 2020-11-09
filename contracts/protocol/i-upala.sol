@@ -19,15 +19,15 @@ interface IUpala {
     // function decreaseAppCredit(address, uint256) external;
 
     function announceBotReward(uint160, uint) external returns (uint256);
-    function announceBotnetLimit(uint160, uint160, uint) external returns (uint256);
+    // function announceBotnetLimit(uint160, uint160, uint) external returns (uint256);
     function announceAttachPool(uint160, address) external returns (uint256);
     function announceWithdrawFromPool(uint160, address, uint) external returns (uint256);
     // function acceptInvitation(uint160, uint160, bool) external;
-    function getBotnetLimit(uint160, uint160) external view returns (uint256);
+    // function getBotnetLimit(uint160, uint160) external view returns (uint256);
 
     // groups (anyone)
     function setBotReward(uint160, uint) external;
-    function setBotnetLimit(uint160, uint160, uint) external;
+    // function setBotnetLimit(uint160, uint160, uint) external;
     function attachPool(uint160, address) external;
     function withdrawFromPool(uint160, address, uint) external;
 

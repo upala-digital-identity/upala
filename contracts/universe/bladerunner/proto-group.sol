@@ -6,7 +6,7 @@ import "../../groups/free-provider.sol";
 
 contract ProtoGroup is UpalaGroup, IgnoringAttackWindow, FreeProvider { // is ScoreProvider
 
-    uint256 defaultLimit = 1000000 * 10 ** 18;  // one million dollars [*places little finger near mouth*]
+    uint8 defaultTrust = 100;  // one million dollars [*places little finger near mouth*]
 
     constructor(
         address upalaProtocolAddress,
@@ -19,6 +19,6 @@ contract ProtoGroup is UpalaGroup, IgnoringAttackWindow, FreeProvider { // is Sc
 
     // User joins
     function join(uint160 identityID) external virtual {
-        announceAndSetBotnetLimit(identityID, defaultLimit);
+        announceAndSetTrust(identityID, defaultTrust);
     }
 }

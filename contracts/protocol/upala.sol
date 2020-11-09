@@ -69,12 +69,10 @@ contract Upala is IUpala {
         // The most important obligation of a group is to pay bot rewards.
         // A group can set its own maximum bot reward
         // Actual bot reward depends on identity score? TODO or maybe not.
-        uint256 botReward;
+        uint256 botReward;  // botReward
 
-        // A bot net reward. Limits maximum bot rewards for a group member
-        // can be unlimited.
-        // @dev Used to check membership when calculating score
-        mapping(uint160 => uint256) botnetLimit;
+        // [Member botReward within group] = botReward * trust / 100 
+        mapping(uint160 => uint8) trust;  // limit, exposure, score
 
         // every DApp gets credits of successfull score approvals for its users
         // removed for faster MVP (UIP-3)
@@ -93,7 +91,6 @@ contract Upala is IUpala {
     // Ensures that an exploded bot will never be able to get a score or explode again
     // Human, Individual, Identity
     struct Identity {
-        bool exploded;
         address holder;  // wallet, manager, owner
     }
     mapping(uint160 => Identity) identities;
@@ -226,8 +223,6 @@ contract Upala is IUpala {
             "the holder address doesn't own the user id");
         // will break if score is <0 or invalid path
         uint256 score = _memberScore(path);
-        require(_chargeDApp(path[path.length-1], msg.sender),
-            "the DApp has insufficient credits");
         return score;
     }
 
@@ -241,87 +236,64 @@ contract Upala is IUpala {
         override(IUpala)
         onlyIdentityHolder(path[0])  // first member in path must be an identity, managed by message sender
     {
+        // get scores along the path (checks validity too)
+        uint256[] memory scores = new uint256[](path.length);
+        scores = _scores(path);
+
         uint160 bot = path[0];
-        require(identities[bot].exploded == false, "bot already exploded");
-
-        // calculates reward and checks path
-        uint unpaidBotReward = _memberScore(path);
-
-        // ascend the path and payout rewards
-        uint160 member;
+        address botOwner = identities[bot].holder; 
+        // pay rewards
         uint160 group;
-        uint256 groupBotReward;
-        uint256 reward;
-        address botOwner = identities[bot].holder;
         for (uint i = 0; i<=path.length-2; i++) {
-
-            member = path[i];
             group = path[i+1];
-
-            // check if the reward is already payed out
-            if (unpaidBotReward > 0) {
-
-                groupBotReward = groups[group].botReward;
-
-                if (unpaidBotReward >= groupBotReward) {
-                    reward = groupBotReward;
-                    unpaidBotReward.sub(reward);
-                } else {
-                    reward = unpaidBotReward;
-                    unpaidBotReward = 0;
-                }
-
-                // transfer to identity (bot)
-                // balances[group].sub(reward);  // $$$
-                // balances[bot].add(reward); // $$$
-                IPool(groups[group].pool).payBotReward(botOwner, reward);
-
-                // reduce botnetLimit for the member in the sup group
-                // @dev botnetLimit[member] >= botReward is checked when validating path
-                groups[group].botnetLimit[member].sub(reward); // $$$
+            IPool(groups[group].pool).payBotReward(botOwner, scores[i]); // $$$
             }
-        }
 
-        // explode 
-        // TODO check conditions where identities[bot].exploded = true; 
+        // explode
+        delete groups[path[1]].trust[bot]; // delete bot score in the above group
         delete identities[bot];
         delete holderToIdentity[msg.sender];
-        // identities[bot].exploded = true;
     }
 
     // Ascends the path in groups hierarchy and confirms identity score (path validity)
     // TODO overflow safe
-    function _memberScore(uint160[] memory path) private view returns(uint) {
-        require (_isValidPath(path), "Provided path is not valid");
-        return groups[path[path.length-1]].botReward;
+    function _memberScore(uint160[] memory path)
+        private
+        view
+        returns (uint256)
+    {
+        // get scores along the path (checks validity too)
+        uint256[] memory scores = new uint256[](path.length);
+        scores = _scores(path);
+
+        // sumup the scores
+        uint256 score = 0;
+        for (uint i = 0; i<=path.length-2; i++) {
+            score += scores[i];
+        }
+        return score;
     }
 
-    function _isValidPath(uint160[] memory path) private view returns(bool) {
-        // todo what is valid path length
+    function _scores(uint160[] memory path) private view returns (uint256[] memory) {
         require(path.length != 0, "path too short");
         require(path.length <= maxPathLength, "path too long");
 
-        // FUTURE check invitations (A group may or may not become a member of a superior group)
-        // check the path from identity to the top
+        uint256[] memory scores = new uint256[](path.length);
+
         uint160 member;
         uint160 group;
+        uint256 memberReward;
         for (uint i = 0; i<=path.length-2; i++) {
             member = path[i];
             group = path[i+1];
-            // reqiure(balances[group] >= groups[group].botReward);
-            // TODO check accepted invitations
-            require(IPool(groups[group].pool).hasEnoughFunds(groups[group].botReward), "A group in path is unable to pay declared bot reward.");
-            require(groups[group].botnetLimit[member] >= groups[group].botReward, "Bot reward exceeds bot-net limit for current member");
+            memberReward = groups[group].botReward * groups[group].trust[member] / 100; // TODO overflow-safe mul!
+            require(IPool(groups[group].pool).hasEnoughFunds(memberReward), "A group in path is unable to pay declared bot reward.");
+            scores[i] = memberReward;
         }
-        return true;
+
+        return scores;
     }
 
-    // charges dapp by address, withdraws credits given by the group
-    function _chargeDApp(uint160 groupID, address dappAddress) private returns (bool) {
-        // removed temporarily (UIP-3)
-        // groups[groupID].appCredits[dappAddress] = groups[groupID].appCredits[dappAddress].sub(1);
-        return true;
-    }
 
 
 
@@ -355,12 +327,12 @@ contract Upala is IUpala {
         return groups[group].annoucementNonce;
     }
 
-    function announceBotnetLimit(uint160 group, uint160 member, uint limit) external onlyGroupManager(group) override(IUpala) returns (uint256) {
-        require(member != group, "cannot assign limit to oneself");  // todo what about manager?
+    function announceTrust(uint160 group, uint160 member, uint8 trust) external onlyGroupManager(group) returns (uint256) {
+        require(member != group, "cannot assign trust to oneself");  // todo what about manager?
         groups[group].annoucementNonce++;
-        bytes32 hash = keccak256(abi.encodePacked("setBotnetLimit", group, member, limit, groups[group].annoucementNonce));
+        bytes32 hash = keccak256(abi.encodePacked("trust", group, member, trust, groups[group].annoucementNonce));
         commitsTimestamps[hash] = now;
-        // emit Announce("NewRewardsLimit", msg.sender, member, limit, hash)
+        // emit Announce("NewRewardstrust", msg.sender, member, trust, hash)
         return groups[group].annoucementNonce;
     }
 
@@ -431,10 +403,19 @@ contract Upala is IUpala {
         // emit Set("NewBotReward", hash);
     }
 
-    function setBotnetLimit(uint160 group, uint160 member, uint limit) external override(IUpala) {
+    // function setBotnetLimit(uint160 group, uint160 member, uint limit) external override(IUpala) {
+    //     groups[group].lastExecutedAnnouncement++;
+    //     bytes32 hash = checkHash(keccak256(abi.encodePacked("setBotnetLimit", group, member, limit, groups[group].lastExecutedAnnouncement)));
+    //     groups[group].trust[member] = limit;
+    //     delete commitsTimestamps[hash];
+    //     // emit Set("setBotnetLimit", hash);
+    // }
+
+    function setTrust(uint160 group, uint160 member, uint8 trust) external {
+        require (trust <= 100, "Provided trust percent is above 100");
         groups[group].lastExecutedAnnouncement++;
-        bytes32 hash = checkHash(keccak256(abi.encodePacked("setBotnetLimit", group, member, limit, groups[group].lastExecutedAnnouncement)));
-        groups[group].botnetLimit[member] = limit;
+        bytes32 hash = checkHash(keccak256(abi.encodePacked("trust", group, member, trust, groups[group].lastExecutedAnnouncement)));
+        groups[group].trust[member] = trust;
         delete commitsTimestamps[hash];
         // emit Set("setBotnetLimit", hash);
     }
@@ -465,10 +446,10 @@ contract Upala is IUpala {
     // A member of a group is either a group or an identity.
     // TODO if public, can outside contracts do without Upala?
     // Only group manager can access
-    function getBotnetLimit(uint160 group, uint160 member) external view onlyGroupManager(group) override(IUpala) returns (uint256) {
-        //...
-        return (groups[group].botnetLimit[member]);
-    }
+    // function getBotnetLimit(uint160 group, uint160 member) external view onlyGroupManager(group) override(IUpala) returns (uint256) {
+    //     //...
+    //     return (groups[group].trust[member]);
+    // }
 
     function getBotReward(uint160 group) external view override(IUpala) returns (uint) {
         return groups[group].botReward;
