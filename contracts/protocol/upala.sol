@@ -69,10 +69,10 @@ contract Upala is IUpala {
         // The most important obligation of a group is to pay bot rewards.
         // A group can set its own maximum bot reward
         // Actual bot reward depends on identity score? TODO or maybe not.
-        uint256 botReward;  // botReward
+        uint256 botReward;  // botReward  .. baseReward
 
         // [Member botReward within group] = botReward * trust / 100 
-        mapping(uint160 => uint8) trust;  // limit, exposure, score
+        mapping(uint160 => uint8) trust;  // limit, exposure, scoreMultiplier
 
         // every DApp gets credits of successfull score approvals for its users
         // removed for faster MVP (UIP-3)
@@ -286,6 +286,9 @@ contract Upala is IUpala {
         for (uint i = 0; i<=path.length-2; i++) {
             member = path[i];
             group = path[i+1];
+
+            require (groups[group].trust[member] > 0, "Not a member");
+            
             memberReward = groups[group].botReward * groups[group].trust[member] / 100; // TODO overflow-safe mul!
             require(IPool(groups[group].pool).hasEnoughFunds(memberReward), "A group in path is unable to pay declared bot reward.");
             scores[i] = memberReward;
