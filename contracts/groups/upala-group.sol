@@ -37,32 +37,18 @@ contract UpalaGroup {
     SCORING
     /*****/
 
-    // credit app
-    // temporarily removed for faster MVP (UIP-3)
-    // function _increaseAppCredit(address appAddress, uint256 amount) internal {
-    //     upala.increaseAppCredit(appAddress, amount);
-    // }
-
-    // function _decreaseAppCredit(address appAddress, uint256 amount) internal {
-    //     upala.decreaseAppCredit(appAddress, amount);
-    // }
-
     // Interface to Upala functions
 
-    function _announceBotReward(uint botReward) internal {
-        upala.announceBotReward(groupID, botReward);
-    }   
-
-    function _announceTrust(uint160 member, uint8 trust) internal {
-        upala.announceTrust(groupID, member, trust);
+    function _commitHash(bytes32 hash) internal {
+        upala.commitHash(hash);
     }
 
     function _setBotReward(uint botReward) internal {
-        upala.setBotReward(groupID, botReward);
+        upala.setBotReward(botReward, "0x0");
     }
 
     function _setTrust(uint160 identityID, uint8 trust) internal {
-        upala.setTrust(groupID, identityID, trust);
+        upala.setTrust(identityID, trust, "0x0");
     }
 
 
@@ -87,11 +73,4 @@ contract UpalaGroup {
     function getPoolBalance() external view returns (uint256) {
     }
 
-    // function _getScoreByPath(address wallet, uint160[] memory path) internal view returns (uint256) {
-    //     return upala.memberScore(wallet, path);
-    // }
-
-    // function _getIdentityHolder(uint160 memberID) internal view returns (address) {
-    //     return upala.getIdentityHolder(memberID);
-    // }
 }

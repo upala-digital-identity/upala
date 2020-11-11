@@ -369,7 +369,7 @@ async function main() {
     });
   }
 
-  // exportContracts(finalContracts, finalGroups, newPublishDir, networkName);
+  exportContracts(finalContracts, finalGroups, newPublishDir, networkName);
 }
 
 
