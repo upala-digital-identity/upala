@@ -12,8 +12,6 @@ Every group to manages its poool in it's own way.
 Or even to share one pool among several groups.
 */
 
-// Creates Upala and Moloch compatible Guilbanks
-// i.e. the banks that are deliberately vulnerable to bot attacks
 contract BasicPoolFactory is IPoolFactory {
 
     address public approvedToken;
@@ -60,9 +58,9 @@ contract BasicPool is IPool {
     }
 
     // basic pool does not allow withdrawals
-    function withdrawAvailable(uint160 group, address receiver, uint256 amount, uint256 nonce) external onlyUpala override(IPool) returns (uint256) {
-        group; receiver; amount; nonce;  // just silencing warnings
-        return 0; 
+    function withdrawAvailable(address receiver, uint256 amount) external onlyUpala override(IPool) returns (uint256) {
+        receiver; amount;  // just silencing warnings todo
+        return 0;
     }
 
     function _withdraw(address recipient, uint amount) internal returns (bool) {

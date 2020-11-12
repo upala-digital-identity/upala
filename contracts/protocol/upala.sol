@@ -1,29 +1,10 @@
 pragma solidity ^0.6.0;
 
-/*/// WARNING
-
-The code is under heavy developement
-
-/// WARNING */
-
 // import "./i-upala.sol";
 import "../libraries/openzeppelin-contracts/contracts/math/SafeMath.sol";
 import "../pools/i-pool-factory.sol";
 import "../pools/i-pool.sol";
 import "@nomiclabs/buidler/console.sol";
-
-/*
-The Upala contract is the protocol itself.
-Identity systems can use this contract to comply with universal bot explosion rules.
-These identity systems will then be compatible.
-
-Upala-native identity systems are presumed to consist of groups of many levels.
-Each group is a smart contract with arbitary logic.
-*/
-
-
-
-
 
 // The Upala ledger (protocol)
 contract Upala {
@@ -51,36 +32,28 @@ contract Upala {
     GROUPS, IDENTITIES AND POOLS
     ***************************/
 
-    // keep track of new groups, identities and pools ids
+    // keep track of new groups, identities and pools
     uint160 entityCounter;
-
-    // Managed by Upala admin
-    mapping(address => bool) approvedPoolFactories;
 
     // Groups are outside contracts with arbitary logic
     struct Group {
 
-        // A group address within Upala is permanent. Ownership provides group upgradability
+        // A group id within Upala is permanent. 
+        // Ownership provides group upgradability
         address manager;
 
         // Pools are created by Upala-approved pool factories
         // Each group may manage their own pool in their own way.
-        // But they must be made deliberately vulnerable to bot attacks
+        // But they are all deliberately vulnerable to bot attacks
         address pool;
 
         // The most important obligation of a group is to pay bot rewards.
         // A group can set its own maximum bot reward
-        uint256 botReward;  // botReward  .. baseReward
+        uint256 botReward;  // baseReward
 
-        // [Member botReward within group] = botReward * trust / 100 
+        // Member botReward within group = botReward * trust / 100 
         mapping(uint160 => uint8) trust;  // limit, exposure, scoreMultiplier, rewardMultiplier
-
-        // removed for faster MVP (UIP-3, UIP-8)
-        // mapping(address => uint256) appCredits;
-        // uint256 annoucementNonce;
-        // uint256 lastExecutedAnnouncement;
     }
-    // These addresses are permanent. Serve as IDs.
     mapping(uint160 => Group) groups;
     mapping(address => uint160) managerToGroup;
 
@@ -94,14 +67,16 @@ contract Upala {
     mapping(uint160 => Identity) identities;
     mapping(address => uint160) holderToIdentity;
 
-    // Every pool spawned by approved Pool Factories
-    mapping(address => uint160) poolsOwners;
+    // Pools
+    // Pool Factories approved by Upala admin
+    mapping(address => bool) approvedPoolFactories;
+    // Pools owners by Upala group ID - will allow to switch pools and add other logic.
+    mapping(address => uint160) poolsOwners;  
 
     /************
     ANNOUNCEMENTS
     *************/
 
-    // Humans commit changes, this mapping stores hashes and timestamps
     // Any changes that can hurt bot rights must wait for an attackWindow to expire
     mapping(bytes32 => uint) commitsTimestamps;
 
@@ -132,14 +107,7 @@ contract Upala {
         return entityCounter;
     }
 
-    // created by approved pool factories
     // tokens are only stable USDs
-    function newPool(address poolFactory, uint160 poolOwner) external payable returns (address) {
-        // TODO check poolOwner exists
-        require(msg.value == registrationFee, "Incorrect registration fee");  // draft
-        return _newPool(poolFactory, poolOwner);
-    }
-
     function _newPool(address poolFactory, uint160 poolOwner) private returns (address) {
         require(approvedPoolFactories[poolFactory] == true, "Pool factory is not approved");
         // require PoolOwner exists // todo?
@@ -313,11 +281,6 @@ contract Upala {
         return hash;
     }
 
-    // https://medium.com/swlh/exploring-commit-reveal-schemes-on-ethereum-c4ff5a777db8
-    // https://solidity.readthedocs.io/en/v0.5.3/solidity-by-example.html#id2
-    // https://gitcoin.co/blog/commit-reveal-scheme-on-ethereum/
-
-
     /*Changes that may hurt bots rights*/
 
     // Sets the maximum possible bot reward for the group.
@@ -338,23 +301,16 @@ contract Upala {
         // emit Set("setBotnetLimit", hash);
     }
 
-    function attachPool(address pool, bytes32 secret) external {
-        uint160 group = managerToGroup[msg.sender];
-        bytes32 hash = checkHash(keccak256(abi.encodePacked("attachPool", group, pool)));
-        groups[group].pool = pool;
-        delete commitsTimestamps[hash];
-    }
-
-    function withdrawFromPool(address recipient, uint amount, bytes32 secret) external { // $$$
+    // tries to withdraw as much as possible (bots could have attacked after an announcement) 
+    function withdrawFromPool(address recipient, uint amount, bytes32 secret) external returns (uint256){ // $$$
         uint160 group = managerToGroup[msg.sender];
         bytes32 hash = checkHash(keccak256(abi.encodePacked("withdrawFromPool", group, recipient, amount)));
-        // tries to withdraw as much as possible (bots could have attacked after an announcement)
-        IPool(groups[group].pool).withdrawAvailable(group, recipient, amount, 0);
+        uint256 withdrawnAmount = IPool(groups[group].pool).withdrawAvailable(recipient, amount);
         delete commitsTimestamps[hash];
         // emit Set("withdrawFromPool", withdrawed);
+        return withdrawnAmount;
     }
 
-    /*Changes that cannot hurt bots rights*/
 
     /**************
     GETTER FUNCTIONS
@@ -392,9 +348,7 @@ contract Upala {
 
 /* todo consider:
 
-- gas costs for calculation and for the attack (consider path length limitation)
-- invitations. what if a very expensive group adds a cheap group. Many could decide to explode
 - loops in social graphs. is nonReentrant enough?
-- who is the manager? it can set scores and it can be a member
+- can a group manager be a member
 
 */
