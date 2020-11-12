@@ -70,17 +70,13 @@ contract Upala {
 
         // The most important obligation of a group is to pay bot rewards.
         // A group can set its own maximum bot reward
-        // Actual bot reward depends on identity score? TODO or maybe not.
         uint256 botReward;  // botReward  .. baseReward
 
         // [Member botReward within group] = botReward * trust / 100 
         mapping(uint160 => uint8) trust;  // limit, exposure, scoreMultiplier, rewardMultiplier
 
-        // every DApp gets credits of successfull score approvals for its users
-        // removed for faster MVP (UIP-3)
+        // removed for faster MVP (UIP-3, UIP-8)
         // mapping(address => uint256) appCredits;
-
-        // Queue of execution? experiment
         // uint256 annoucementNonce;
         // uint256 lastExecutedAnnouncement;
     }
@@ -98,28 +94,21 @@ contract Upala {
     mapping(uint160 => Identity) identities;
     mapping(address => uint160) holderToIdentity;
 
-    // Humans commit changes, this mapping stores hashes and timestamps
-    // Any changes that can hurt bot rights must wait for an hour
-    mapping(bytes32 => uint) commitsTimestamps;
-
     // Every pool spawned by approved Pool Factories
     mapping(address => uint160) poolsOwners;
+
+    /************
+    ANNOUNCEMENTS
+    *************/
+
+    // Humans commit changes, this mapping stores hashes and timestamps
+    // Any changes that can hurt bot rights must wait for an attackWindow to expire
+    mapping(bytes32 => uint) commitsTimestamps;
 
 
     constructor () public {
         // todo
     }
-
-    modifier onlyGroupManager(uint160 group) {
-        require(groups[group].manager == msg.sender, "msg.sender is not group manager");
-        _;
-    }
-
-    modifier onlyIdentityHolder(uint160 identity) {
-        require(identities[identity].holder == msg.sender, "msg.sender is not identity holder");
-        _;
-    }
-
 
 
     /************************************
@@ -160,7 +149,8 @@ contract Upala {
     }
 
     // TODO get group from msg.sender
-    function setGroupManager(uint160 group, address newGroupManager) external onlyGroupManager(group) {
+    function setGroupManager(address newGroupManager) external {
+        uint160 group = managerToGroup[msg.sender];
         address currentManager = groups[group].manager;
         groups[group].manager = newGroupManager;
         delete managerToGroup[currentManager];
@@ -168,7 +158,8 @@ contract Upala {
     }
 
     // TODO get ID from msg.sender
-    function setIdentityHolder(uint160 identity, address newIdentityHolder)  external onlyIdentityHolder(identity) {
+    function setIdentityHolder(address newIdentityHolder)  external {
+        uint160 identity = holderToIdentity[msg.sender];
         address currentHolder = identities[identity].holder;
         identities[identity].holder = newIdentityHolder;
         delete holderToIdentity[currentHolder];
@@ -179,13 +170,6 @@ contract Upala {
     /*********************
     SCORING AND BOT ATTACK
     **********************/
-    /*
-    The score is first calculated off-chain and then approved on-chain.
-    To approve one needs to publish a "path" from ....the topmost group
-    (the one for which the score is being approved) down to the identity...reversed
-    TODO cooment
-    path is an array of addressess.
-    */
 
     // only for users
     function myScore(uint160[] calldata path)
@@ -230,23 +214,22 @@ contract Upala {
         return score;
     }
 
-
     // Allows any identity to attack any group, run with the money and self-destruct.
     // Only those with scores will succeed.
     // todo no nonReentrant?
-    // @note experimental. the exact attack algorithm to be approved later
     function attack(uint160[] calldata path)
         external
+    { 
+        // first member in path must be an identity, managed by message sender
+        require(identities[path[0]].holder == msg.sender, "msg.sender is not identity holder");
         
-        onlyIdentityHolder(path[0])  // first member in path must be an identity, managed by message sender
-    {
         // get scores along the path (checks validity too)
         uint256[] memory scores = new uint256[](path.length);
         scores = _scores(path);
 
-        uint160 bot = path[0];
-        address botOwner = identities[bot].holder; 
         // pay rewards
+        uint160 bot = path[0];
+        address botOwner = identities[bot].holder;  
         uint160 group;
         for (uint i = 0; i<=path.length-2; i++) {
             group = path[i+1];
@@ -260,7 +243,6 @@ contract Upala {
     }
 
     // Ascends the path in groups hierarchy and confirms identity score (path validity)
-    // TODO overflow safe
     function _memberScore(uint160[] memory path)
         private
         view
@@ -363,7 +345,6 @@ contract Upala {
         delete commitsTimestamps[hash];
     }
 
-    // this may fail due to insufficient funds. TODO what to do?
     function withdrawFromPool(address recipient, uint amount, bytes32 secret) external { // $$$
         uint160 group = managerToGroup[msg.sender];
         bytes32 hash = checkHash(keccak256(abi.encodePacked("withdrawFromPool", group, recipient, amount)));
@@ -417,7 +398,3 @@ contract Upala {
 - who is the manager? it can set scores and it can be a member
 
 */
-
-
-
-
