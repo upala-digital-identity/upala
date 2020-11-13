@@ -57,10 +57,15 @@ contract BasicPool is IPool {
         return true;
     }
 
-    // basic pool does not allow withdrawals
-    function withdrawAvailable(address receiver, uint256 amount) external onlyUpala override(IPool) returns (uint256) {
-        receiver; amount;  // just silencing warnings todo
-        return 0;
+    function withdrawAvailable(address receiver, uint256 amount) external onlyUpala override(IPool) returns (uint256 whitdrawnAmount) {
+        uint256 balance = approvedToken.balanceOf(address(this));
+        if (balance >= amount) {
+            _withdraw(receiver, amount);
+            return amount;
+        } else {
+            _withdraw(receiver, balance);
+            return balance;
+        }
     }
 
     function _withdraw(address recipient, uint amount) internal returns (bool) {
