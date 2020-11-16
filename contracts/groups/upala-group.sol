@@ -3,7 +3,7 @@ pragma solidity ^0.6.0;
 import "../protocol/upala.sol";
 
 // Basic Upala Group
-contract UpalaGroup {
+contract UpalaGroup { 
 
     /********
     CONSTANTS
@@ -43,14 +43,13 @@ contract UpalaGroup {
         upala.commitHash(hash);
     }
 
-    function _setBotReward(uint botReward) internal {
-        upala.setBotReward(botReward, "0x0");
+    function _setBotReward(uint newBotReward) internal {
+        upala.setBotReward(newBotReward, "0x0");
     }
 
     function _setTrust(uint160 identityID, uint8 trust) internal {
         upala.setTrust(identityID, trust, "0x0");
     }
-
 
     /******
     GETTERS

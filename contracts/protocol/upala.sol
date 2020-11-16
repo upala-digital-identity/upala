@@ -40,6 +40,7 @@ contract Upala {
 
         // A group id within Upala is permanent. 
         // Ownership provides group upgradability
+        // Group manager - is any entity in control of a group.
         address manager;
 
         // Pools are created by Upala-approved pool factories
@@ -258,9 +259,6 @@ contract Upala {
     /************
     MANAGE GROUPS
     *************/
-    /*
-    Group admin - is any entity in control of a group.
-    A group may decide to chose a trusted person, or it may make decisions based on voting.*/
 
     /*Announcements*/
     // Announcements prevents front-running bot-exposions. Groups must announce
@@ -311,6 +309,20 @@ contract Upala {
         return withdrawnAmount;
     }
 
+    /*Changes that don't hurt bots rights*/
+
+    function increaseReward(uint newBotReward) external {
+        uint160 group = managerToGroup[msg.sender];
+        require (newBotReward > groups[group].botReward, "To decrease reward, make an announcement first");
+        groups[group].botReward = newBotReward;
+    }
+
+    function increaseTrust(uint160 member, uint8 newTrust) external {
+        uint160 group = managerToGroup[msg.sender];
+        require (newTrust <= 100, "Provided trust percent is above 100");
+        require (newTrust > groups[group].trust[member], "To decrease trust, make an announcement first");
+        groups[group].trust[member] = newTrust;
+    }
 
     /**************
     GETTER FUNCTIONS
@@ -349,6 +361,5 @@ contract Upala {
 /* todo consider:
 
 - loops in social graphs. is nonReentrant enough?
-- can a group manager be a member
 
 */

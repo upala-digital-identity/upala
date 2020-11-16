@@ -2,7 +2,10 @@
 // Credits - https://github.com/trustlines-protocol/merkle-drop/blob/master/contracts/contracts/MerkleDrop.sol
 pragma solidity ^0.5.8;
 
-contract MerkleScoreDrop {  // is owned
+import "../oz/ownership/Ownable.sol";
+import "./upala-group.sol";
+
+contract usingMerkleDrop { // is owned
 
     bytes32 public root;
 
