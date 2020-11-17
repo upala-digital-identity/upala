@@ -1,11 +1,10 @@
 // https://blog.ricmoo.com/merkle-air-drops-e6406945584d
 // Credits - https://github.com/trustlines-protocol/merkle-drop/blob/master/contracts/contracts/MerkleDrop.sol
-pragma solidity ^0.5.8;
+pragma solidity ^0.6.0;
 
-import "../oz/ownership/Ownable.sol";
-import "./upala-group.sol";
+import "../libraries/openzeppelin-contracts/contracts/access/Ownable.sol";
 
-contract usingMerkleDrop { // is owned
+contract usingMerkleDrop is Ownable {
 
     bytes32 public root;
 
@@ -13,17 +12,10 @@ contract usingMerkleDrop { // is owned
         root = newRoot;
     }
 
-    // users assign scores to themselves using Merkle proof
-    function assignScore(uint value, bytes32[] memory proof) public {
-        // require msg.sender is Upala ID owner
-        require(verifyEntitled(msg.sender, value, proof), "The proof could not be verified.");
-        // assign Upala score here
-    }
-
-    function verifyEntitled(address recipient, uint value, bytes32[] memory proof) public view returns (bool) {
+    function verifyEntitled(uint160 upalaID, uint8 value, bytes32[] memory proof) public view returns (bool) {
         // We need to pack the 20 bytes address to the 32 bytes value
         // to match with the proof made with the python merkle-drop package
-        bytes32 leaf = keccak256(abi.encodePacked(recipient, value));
+        bytes32 leaf = keccak256(abi.encodePacked(upalaID, value));
         return verifyProof(leaf, proof);
     }
 

@@ -4,7 +4,7 @@ import "../../groups/upala-group.sol";
 import "../../groups/ignoring-attack-window.sol";
 import "../../groups/free-provider.sol";
 
-contract ProtoGroup is UpalaGroup, IgnoringAttackWindow, FreeProvider { // is ScoreProvider
+contract ProtoGroup is UpalaGroup, IgnoringAttackWindow { // is ScoreProvider, FreeProvider
 
     uint8 defaultTrust = 100;  // one million dollars [*places little finger near mouth*]
 

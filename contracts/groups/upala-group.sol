@@ -1,9 +1,10 @@
 pragma solidity ^0.6.0;
 
 import "../protocol/upala.sol";
+import "../libraries/openzeppelin-contracts/contracts/access/Ownable.sol";
 
 // Basic Upala Group
-contract UpalaGroup { 
+contract UpalaGroup is Ownable { 
 
     /********
     CONSTANTS
@@ -24,10 +25,10 @@ contract UpalaGroup {
         (groupID, groupPool) = upala.newGroup(address(this), poolFactory);
     }
 
-    function connectGroup(address upalaProtocolAddress, uint160 groupID, address poolFactory) internal { 
+    function connectGroup(address upalaProtocolAddress, uint160 groupID, address poolFactory) onlyOwner external { 
     }
 
-    function setDetails(string calldata newDetails) external {
+    function setDetails(string calldata newDetails) onlyOwner external {
         details = newDetails;
     }
     
@@ -39,16 +40,24 @@ contract UpalaGroup {
 
     // Interface to Upala functions
 
-    function _commitHash(bytes32 hash) internal {
+    function commitHash(bytes32 hash) onlyOwner external {
         upala.commitHash(hash);
     }
 
-    function _setBotReward(uint newBotReward) internal {
+    function setBotReward(uint newBotReward) onlyOwner external {
         upala.setBotReward(newBotReward, "0x0");
     }
 
-    function _setTrust(uint160 identityID, uint8 trust) internal {
+    function setTrust(uint160 identityID, uint8 trust) onlyOwner external {
         upala.setTrust(identityID, trust, "0x0");
+    }
+
+    function increaseReward(uint newBotReward) onlyOwner external {
+        upala.increaseReward(newBotReward);
+    }
+
+    function increaseTrust(uint160 member, uint8 newTrust) onlyOwner external {
+        upala.increaseTrust(member, newTrust);
     }
 
     /******
