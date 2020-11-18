@@ -7,6 +7,9 @@ import "../groups/merkle-drop.sol";
 contract GitcoinGroup is UpalaGroup, usingMerkleDrop {
 
     Moloch moloch;
+    mapping (address => bool) approvedMolochs;
+    mapping (address => mapping(address => bool)) claimed;
+    uint8 defaultScore = 1;
 
     function initialize (address upalaProtocolAddress, address poolFactory) external {
         createGroup(upalaProtocolAddress, poolFactory);
@@ -20,22 +23,32 @@ contract GitcoinGroup is UpalaGroup, usingMerkleDrop {
         upala.increaseTrust(identityID, trust);
     }
 
-    function molochIncreaseTrust(uint160 identityID, uint8 trust) external {
+    // moloch delegate key or member address may be different from
+    // Upala ID holder address, so let moloch member assign score to any 
+    // existing Upala ID, but only once
+    // Molochs have different weights
+    function molochIncreaseTrust(uint160 identityID, address payable moloch) external {
         // check membership
-        upala.increaseTrust(identityID, trust);
-    }
-    
-    // any moloch-based group will work 
-    function _isMolochMember(address candidate) private view returns (bool) {
-        // (address delegateKey, uint256 shares, bool exists) = Moloch(molochAddress).members(candidate);
-        // require(delegateKey == candidate, "Candidate is not a member or delegate");
-        // require(shares > 0, "Candidate has 0 shares");
-        return true;
+        require (approvedMolochs[moloch] == true, "Moloch address is not approved by the group");
+        address molMember = Moloch(moloch).memberAddressByDelegateKey(msg.sender);
+        require (claimed[moloch][molMember] == false, "Member has already claimed the score");
+        (address delegateKey, uint256 shares, bool exists) = Moloch(moloch).members(molMember);
+        require(shares > 0, "Candidate has 0 shares");
+
+        // increase trust
+        upala.increaseTrust(identityID, defaultScore);
+        claimed[moloch][molMember] == true;
     }
 
-    function join(uint160 identityID) external {
-        require(_isMolochMember(msg.sender), "msg.sender is not a member");
-        // TODO _isIdentityHolder require()
-        //_announceAndSetBotnetLimit(identityID, defaultLimit);
+    /***************
+    GROUP MANAGEMENT
+    ****************/
+
+    function setApprovedMoloch(address moloch, bool isApproved) onlyOwner external {
+        approvedMolochs[moloch] = isApproved;
+    }
+    
+    function setMolochWeights() onlyOwner external {
+        
     }
 }
