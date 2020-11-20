@@ -3,33 +3,52 @@ pragma solidity ^0.6.0;
 import "../groups/upala-group.sol";
 import "../mockups/moloch-mock.sol";
 
-// This Upala group auto-assigns scores to members of existing moloch based DAOs.
+// This Upala group auto-assigns scores to members of existing moloch-based DAOs.
+// Every moloch has its own weight defined by the group admin (individual or DAO)
+// For now, weight equal to the score (trust) that a user can get from this moloch
+// No summing up. User score IS the maximum weight among molochs they are a member of.
 contract MolochGroup is UpalaGroup { 
 
-    Moloch moloch;
+    mapping (address => mapping(address => bool)) claimed;  // a member can only claim once
+    mapping (address => uint8) molochWeights;
 
-    // uint256 defaultLimit = 1000000 * 10 ** 18;  // one million dollars [*places little finger near mouth*]
-
-    constructor (
-        address upalaProtocolAddress,
-        address poolFactory,
-        address payable molochAddress
-    )
-    public {
+    // contract constructor
+    function initialize (address upalaProtocolAddress, address poolFactory) external {
         createGroup(upalaProtocolAddress, poolFactory);
-        moloch = Moloch(molochAddress);
     }
 
-    function _isMember(address candidate) internal view returns (bool) {
-        (address delegateKey, uint256 shares, bool exists) = moloch.members(candidate);
-        require(delegateKey == candidate, "Candidate is not a member or delegate");
+    // moloch delegate key or member address may be different from
+    // Upala ID holder address, so let moloch member assign score to any 
+    // existing Upala ID, but only once
+    // Molochs have different weights
+    function molochIncreaseScore(uint160 identityID, address payable moloch) external {
+        // check membership
+        uint8 molWeight = molochWeights[moloch];
+        require (molWeight > 0, "Moloch address is not approved by the group");
+        address molMember = Moloch(moloch).memberAddressByDelegateKey(msg.sender);
+        require (claimed[moloch][molMember] == false, "Member has already claimed the score");
+        (address delegateKey, uint256 shares, bool exists) = Moloch(moloch).members(molMember);
         require(shares > 0, "Candidate has 0 shares");
-        return exists;
+
+        // increase score
+        upala.increaseTrust(identityID, molochWeights[moloch]);
+        claimed[moloch][molMember] == true;
     }
 
-    function join(uint160 identityID) external {
-        require(_isMember(msg.sender), "msg.sender is not a member");
-        // TODO _isIdentityHolder require()
-        //_announceAndSetBotnetLimit(identityID, defaultLimit);
+    /***************
+    GROUP MANAGEMENT
+    ****************/
+
+    function setMolochWeight(address moloch, uint8 newWeight) onlyOwner external {
+        molochWeights[moloch] = newWeight;
     }
+
+    /******
+    GETTERS
+    *******/
+
+    // function checkForExplosion () returns(bool res) {
+        
+    // }
+    
 }
