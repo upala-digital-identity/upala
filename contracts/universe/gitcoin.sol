@@ -8,11 +8,15 @@ import "../groups/merkle-drop.sol";
 // retrieves scores from multiple sources and calculates own score
 contract GitcoinGroup is UpalaGroup, usingMerkleDrop {
 
-    mapping (string => mapping(uint8 => uint8)) scoresByMethod;
-    
+    uint256 ERROR_VALUE = 99999999999999;
+    // methods are Upala groups with their own entry conditions
+    // e.g. group based on DAO membership or using Merkle drop
+    mapping (uint160 => uint8) methodWeight;
+    mapping (uint160 => mapping(uint8 => uint8)) userScoreByMethod;
+    uint160[] approvedMethods;
+
     // contract constructor 
     function initialize (address upalaProtocolAddress, address poolFactory) external {
-        
         createGroup(upalaProtocolAddress, poolFactory);
     }
 
@@ -26,19 +30,51 @@ contract GitcoinGroup is UpalaGroup, usingMerkleDrop {
     }
 
     // ON-Chain scores
-
-
-    // array
-    // function molochIncreaseScore(uint160 identityID, address payable moloch) returns(bool res) internal {
-        
-    // }
+    // combine scores from multiple sources
+    function fetchScores(uint160 identityID) internal {
+        uint8 userScore = 0;
+        uint160 groupID;
+        for (uint i = 0; i<=approvedMethods.length-1; i++) {
+            groupID = approvedMethods[i];
+            // TODO overflow safety
+            userScore += uint8(fetchScore(identityID, groupID) * methodWeight[groupID] / 100);
+            }
+        upala.increaseTrust(identityID, userScore);
+    }
     
+    function fetchScore(uint160 identityID, uint160 groupID) internal returns (uint256) {
+        return 5;
+    }
 
-    // // combine scores from multiple sources
-    // function increaseScore () returns(bool res) internal {
-        
-    // }
-    
+    /***************
+    GROUP MANAGEMENT
+    ****************/
 
+    function addMethod(uint160 groupID, uint8 weight) external onlyOwner {
+        uint256 index = _searchMethod(groupID);
+        if (index != ERROR_VALUE) {
+            approvedMethods.push(groupID);
+        }
+        methodWeight[groupID] = weight;
+    }
 
+    function removeMethod(uint160 groupID) external onlyOwner returns (uint160) {
+        uint256 index = _searchMethod(groupID);
+        if (index != ERROR_VALUE) {
+            uint160 groupToRemove = approvedMethods[index];
+            approvedMethods[index] = approvedMethods[approvedMethods.length - 1];
+            delete approvedMethods[approvedMethods.length - 1];
+            delete methodWeight[groupToRemove];
+            return groupToRemove;
+        }
+    }
+
+    function _searchMethod(uint160 groupID) private returns(uint256) {
+        for (uint i = 0; i<=approvedMethods.length-1; i++) {
+            if (approvedMethods[i] == groupID) {
+                return i;
+            }
+        }
+        return ERROR_VALUE;
+    }
 }
