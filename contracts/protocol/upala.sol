@@ -328,6 +328,7 @@ contract Upala {
     GETTER FUNCTIONS
     ***************/
 
+    // used by gitcoin group (aggregator) to reverse-engineer member trust within a group
     function getBotReward(uint160 group) external view returns (uint) {
         return groups[group].botReward;
     }

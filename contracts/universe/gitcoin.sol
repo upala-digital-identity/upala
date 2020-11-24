@@ -7,13 +7,14 @@ import "../groups/merkle-drop.sol";
 // a score aggregator group
 // retrieves scores from multiple sources and calculates own score
 contract GitcoinGroup is UpalaGroup, usingMerkleDrop {
-
-    uint256 ERROR_VALUE = 99999999999999;
     // methods are Upala groups with their own entry conditions
-    // e.g. group based on DAO membership or using Merkle drop
+    // e.g. a group based on DAO membership or POAP token
     mapping (uint160 => uint8) methodWeight;
-    mapping (uint160 => mapping(uint8 => uint8)) userScoreByMethod;
+    mapping (uint160 => mapping(uint160 => uint8)) userScoreByMethod;
     uint160[] approvedMethods;
+    uint160 MERKLE_GROUP = 0;  // special value to represent user score from merkle drop
+    // housekeeping
+    uint256 ERROR_VALUE = 99999999999999;  // a special error return value
 
     // contract constructor 
     function initialize (address upalaProtocolAddress, address poolFactory) external {
@@ -26,26 +27,42 @@ contract GitcoinGroup is UpalaGroup, usingMerkleDrop {
     // to make a commitment and wait for the attack window to pass (see UpalaGroup contract)
     function merkleIncreaseScore(uint160 identityID, uint8 score, bytes32[] calldata proof) external {
         require(verifyEntitled(identityID, score, proof), "The proof could not be verified.");
-        upala.increaseTrust(identityID, score);
+        userScoreByMethod[MERKLE_GROUP][identityID] = score;
+        pushScores(identityID);
     }
 
     // ON-Chain scores
-    // combine scores from multiple sources
+    // combine scores from multiple on-chain sources
     function fetchScores(uint160 identityID) internal {
-        uint8 userScore = 0;
-        uint160 groupID;
         for (uint i = 0; i<=approvedMethods.length-1; i++) {
-            groupID = approvedMethods[i];
-            // TODO overflow safety
-            userScore += uint8(fetchScore(identityID, groupID) * methodWeight[groupID] / 100);
+            fetchScore(identityID, approvedMethods[i]);
             }
-        upala.increaseTrust(identityID, userScore);
-    }
-    
-    function fetchScore(uint160 identityID, uint160 groupID) internal returns (uint256) {
-        return 5;
+        pushScores(identityID); 
     }
 
+    // fetch user score from single Upala group
+    // notice. the score here is not in DAI. 
+    function fetchScore(uint160 identityID, uint160 groupID) public returns (uint256) {
+        address holder = msg.sender;
+        uint160[] memory path;
+        path[0] = identityID;
+        path[1] = groupID;
+        // this group acts as DApp to retrieve other group's score
+        uint8 userScore = uint8(upala.userScore(holder, path) / upala.getBotReward(groupID));
+        userScoreByMethod[groupID][identityID] = userScore;
+        return userScore;
+    }
+
+    // combine and push scores
+    function pushScores(uint160 identityID) public {
+        uint8 totalScore = userScoreByMethod[MERKLE_GROUP][identityID];
+        for (uint i = 0; i<=approvedMethods.length-1; i++) {
+            totalScore += userScoreByMethod[approvedMethods[i]][identityID] * methodWeight[approvedMethods[i]] / 100;
+        }
+        upala.increaseTrust(identityID, totalScore);
+    }
+    
+    
     /***************
     GROUP MANAGEMENT
     ****************/
