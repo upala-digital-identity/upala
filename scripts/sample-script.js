@@ -2,7 +2,8 @@
 // but useful for running the script in a standalone fashion through `node <script>`.
 // When running the script with `buidler run <script>` you'll find the Buidler
 // Runtime Environment's members available in the global scope.
-const bre = require("@nomiclabs/buidler");
+// const bre = require("@nomiclabs/buidler");
+const bre = require("hardhat");
 const fs = require('fs');
 const chalk = require('chalk');
 
@@ -128,7 +129,7 @@ async function main() {
     "description": "Currently autoassigns FakeDAI score to anyone who joins",
     "short_description": "MetaGamers only"
     }
-
+    ///home/petr/Projects/2019-10-10-Upala/contracts/universe/bladerunner
   console.log("deploy");
   const [group1, group1ID] = await deployGroup(group1Details.title, "ProtoGroup", JSON.stringify(group1Details), 1);
   const [group2, group2ID] = await deployGroup(group2Details.title, "ProtoGroup", JSON.stringify(group2Details), 2);

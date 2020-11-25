@@ -1,5 +1,5 @@
-usePlugin("@nomiclabs/buidler-waffle");
-usePlugin("@nomiclabs/buidler-truffle5");
+require("@nomiclabs/hardhat-waffle");
+require("@nomiclabs/hardhat-truffle5");
 
 // This is a sample Buidler task. To learn how to create your own go to
 // https://buidler.dev/guides/create-task.html
@@ -54,11 +54,12 @@ module.exports = {
       },
     },
   },
-  solc: {
-    version : "0.6.6",
-    optimizer: {
-      enabled: true,
-      runs: 200
+  solidity: {
+    version: "0.6.6",
+    settings: {
+      optimizer: {
+        enabled: true
+      }
     }
   }
 };

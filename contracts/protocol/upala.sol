@@ -4,7 +4,7 @@ pragma solidity ^0.6.0;
 import "../libraries/openzeppelin-contracts/contracts/math/SafeMath.sol";
 import "../pools/i-pool-factory.sol";
 import "../pools/i-pool.sol";
-import "@nomiclabs/buidler/console.sol";
+import "hardhat/console.sol";
 
 // The Upala ledger (protocol)
 contract Upala {
