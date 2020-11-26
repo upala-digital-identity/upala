@@ -1,5 +1,6 @@
 secrets.js
 contracts/oz/*
+.openzeppelin/*
 cheatsheet
 build
 package-lock.json

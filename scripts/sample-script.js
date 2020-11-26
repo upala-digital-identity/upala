@@ -4,6 +4,7 @@
 // Runtime Environment's members available in the global scope.
 // const bre = require("@nomiclabs/buidler");
 const bre = require("hardhat");
+const { ethers, upgrades } = require("hardhat");
 const fs = require('fs');
 const chalk = require('chalk');
 
@@ -58,7 +59,13 @@ async function main() {
   }
 
   // await deployContract("SmartContractWallet", "0xf53bbfbff01c50f2d42d542b09637dca97935ff7");
-  upala = await deployContract("Upala")
+  // upala = await deployContract("Upala")
+
+  // deploy upgradable Upala
+  const Upala = await ethers.getContractFactory("Upala");
+  const upala = await upgrades.deployProxy(Upala);
+  await upala.deployed();
+  console.log(chalk.cyan("Upala"), "deployed to:", chalk.magenta(upala.address));
 
   // Testing environment
   fakeDai = await deployContract("FakeDai");

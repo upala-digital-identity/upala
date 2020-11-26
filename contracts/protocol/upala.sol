@@ -2,12 +2,14 @@ pragma solidity ^0.6.0;
 
 // import "./i-upala.sol";
 import "../libraries/openzeppelin-contracts/contracts/math/SafeMath.sol";
+import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "../pools/i-pool-factory.sol";
 import "../pools/i-pool.sol";
 import "hardhat/console.sol";
 
+
 // The Upala ledger (protocol)
-contract Upala {
+contract Upala is Initializable{
     using SafeMath for uint256;
 
     IPoolFactory pFactory;
@@ -17,16 +19,16 @@ contract Upala {
     SETTINGS
     ********/
 
-    uint256 registrationFee = 0 wei;   // spam protection + susteinability
+    uint256 registrationFee;   // spam protection + susteinability
 
     // the maximum depth of hierarchy
     // ensures attack gas cost is always lower than block maximum.
-    uint256 maxPathLength = 10;
+    uint256 maxPathLength;
 
     // any changes that hurt bots rights must be announced an hour in advance
     // changes must be executed within execution window
-    uint256 attackWindow = 0 hours;  // 0 - for tests // TODO set to 1 hour at production
-    uint256 executionWindow = 1000 hours; // 1000 - for tests
+    uint256 attackWindow;  // 0 - for tests // TODO set to 1 hour at production
+    uint256 executionWindow; // 1000 - for tests
 
     /***************************
     GROUPS, IDENTITIES AND POOLS
@@ -35,37 +37,30 @@ contract Upala {
     // keep track of new groups, identities and pools
     uint160 entityCounter;
 
+    // Groups 
     // Groups are outside contracts with arbitary logic
-    struct Group {
-
-        // A group id within Upala is permanent. 
-        // Ownership provides group upgradability
-        // Group manager - is any entity in control of a group.
-        address manager;
-
-        // Pools are created by Upala-approved pool factories
-        // Each group may manage their own pool in their own way.
-        // But they are all deliberately vulnerable to bot attacks
-        address pool;
-
-        // The most important obligation of a group is to pay bot rewards.
-        // A group can set its own maximum bot reward
-        uint256 botReward;  // baseReward
-
-        // Member botReward within group = botReward * trust / 100 
-        mapping(uint160 => uint8) trust;  // limit, exposure, scoreMultiplier, rewardMultiplier
-    }
-    mapping(uint160 => Group) groups;
+    // A group id within Upala is permanent. 
+    // Ownership provides group upgradability
+    // Group manager - is any entity in control of a group.
+    mapping(uint160 => address) groupManager;
     mapping(address => uint160) managerToGroup;
+    // Pools are created by Upala-approved pool factories
+    // Each group may manage their own pool in their own way.
+    // But they are all deliberately vulnerable to bot attacks
+    mapping(uint160 => address) groupPool;
+    // The most important obligation of a group is to pay bot rewards.
+    // A group can set its own maximum bot reward
+    mapping(uint160 => uint256) groupBotReward;  // baseReward
+    // Member botReward within group = botReward * trust / 100 
+    // limit, exposure, scoreMultiplier, rewardMultiplier
+    mapping(uint160 => mapping (uint160 => uint8)) memberTrust;  
+    
 
     // Identities
     // Ensures that identities and groups are different entities
     // Ensures that an exploded bot will never be able to get a score or explode again
     // Human, Individual, Identity
-    struct Identity {
-        address holder;  // wallet, manager, owner
-    }
-    mapping(uint160 => Identity) identities;
+    mapping(uint160 => address) identityHolder;
     mapping(address => uint160) holderToIdentity;
 
     // Pools
@@ -81,30 +76,35 @@ contract Upala {
     // Any changes that can hurt bot rights must wait for an attackWindow to expire
     mapping(bytes32 => uint) commitsTimestamps;
 
+    /**********
+    CONSTRUCTOR
+    ***********/
 
-    constructor () public {
-        // todo
+    function initialize () external {
+        registrationFee = 0 wei;
+        maxPathLength = 10;
+        attackWindow = 0 hours;
+        executionWindow = 1000 hours;
     }
-
 
     /************************************
     REGISTER GROUPS, IDENTITIES AND POOLS
     ************************************/
 
-    function newGroup(address groupManager, address poolFactory) external payable returns (uint160, address) {
+    function newGroup(address newGroupManager, address poolFactory) external payable returns (uint160, address) {
         require(msg.value == registrationFee, "Incorrect registration fee");  // draft
         entityCounter++;
-        groups[entityCounter].manager = groupManager;
-        groups[entityCounter].pool = _newPool(poolFactory, entityCounter);
-        managerToGroup[groupManager] = entityCounter;
-        return (entityCounter, groups[entityCounter].pool);
+        groupManager[entityCounter] = newGroupManager;
+        groupPool[entityCounter] = _newPool(poolFactory, entityCounter);
+        managerToGroup[newGroupManager] = entityCounter;
+        return (entityCounter, groupPool[entityCounter]);
     }
 
-    function newIdentity(address identityHolder) external payable returns (uint160) {
+    function newIdentity(address newIdentityHolder) external payable returns (uint160) {
         require(msg.value == registrationFee, "Incorrect registration fee");  // draft
         entityCounter++;
-        identities[entityCounter].holder = identityHolder;
-        holderToIdentity[identityHolder] = entityCounter;
+        identityHolder[entityCounter] = newIdentityHolder;
+        holderToIdentity[newIdentityHolder] = entityCounter;
         return entityCounter;
     }
 
@@ -120,8 +120,8 @@ contract Upala {
     // TODO get group from msg.sender
     function setGroupManager(address newGroupManager) external {
         uint160 group = managerToGroup[msg.sender];
-        address currentManager = groups[group].manager;
-        groups[group].manager = newGroupManager;
+        address currentManager = groupManager[group];
+        groupManager[group] = newGroupManager;
         delete managerToGroup[currentManager];
         managerToGroup[newGroupManager] = group;
     }
@@ -129,8 +129,8 @@ contract Upala {
     // TODO get ID from msg.sender
     function setIdentityHolder(address newIdentityHolder)  external {
         uint160 identity = holderToIdentity[msg.sender];
-        address currentHolder = identities[identity].holder;
-        identities[identity].holder = newIdentityHolder;
+        address currentHolder = identityHolder[identity];
+        identityHolder[identity] = newIdentityHolder;
         delete holderToIdentity[currentHolder];
         holderToIdentity[newIdentityHolder] = identity;
     }
@@ -148,7 +148,7 @@ contract Upala {
         
         returns(uint256)
     {
-        require(identities[path[0]].holder == msg.sender,
+        require(identityHolder[path[0]] == msg.sender,
             "identity is not owned by the msg.sender"
         );
         return (_memberScore(path));
@@ -162,9 +162,9 @@ contract Upala {
         
         returns(uint256)
     {
-        require(holder == identities[path[0]].holder,
+        require(holder == identityHolder[path[0]],
             "the holder address doesn't own the id");
-        require(groups[path[path.length-1]].manager == msg.sender, 
+        require(groupManager[path[path.length-1]] == msg.sender, 
             "the last group in the path is not managed by the msg.sender");
         return (_memberScore(path));
     }
@@ -176,7 +176,7 @@ contract Upala {
         
         returns(uint256)
     {
-        require(holder == identities[path[0]].holder,
+        require(holder == identityHolder[path[0]],
             "the holder address doesn't own the user id");
         // will break if score is <0 or invalid path
         uint256 score = _memberScore(path);
@@ -190,7 +190,7 @@ contract Upala {
         external
     { 
         // first member in path must be an identity, managed by message sender
-        require(identities[path[0]].holder == msg.sender, "msg.sender is not identity holder");
+        require(identityHolder[path[0]] == msg.sender, "msg.sender is not identity holder");
         
         // get scores along the path (checks validity too)
         uint256[] memory scores = new uint256[](path.length);
@@ -198,16 +198,17 @@ contract Upala {
 
         // pay rewards
         uint160 bot = path[0];
-        address botOwner = identities[bot].holder;  
+        address botOwner = identityHolder[bot];  
         uint160 group;
         for (uint i = 0; i<=path.length-2; i++) {
             group = path[i+1];
-            IPool(groups[group].pool).payBotReward(botOwner, scores[i]); // $$$
+            IPool(groupPool[group]).payBotReward(botOwner, scores[i]); // $$$
             }
 
         // explode
-        delete groups[path[1]].trust[bot]; // delete bot score in the above group
-        delete identities[bot];
+
+        delete memberTrust[path[1]][bot]; // delete bot score in the above group
+        delete identityHolder[bot];
         delete holderToIdentity[msg.sender];
     }
 
@@ -243,10 +244,10 @@ contract Upala {
             member = path[i];
             group = path[i+1];
 
-            require (groups[group].trust[member] > 0, "Not a member");
+            require (memberTrust[group][member] > 0, "Not a member");
             
-            memberReward = groups[group].botReward * groups[group].trust[member] / 100; // TODO overflow-safe mul!
-            require(IPool(groups[group].pool).hasEnoughFunds(memberReward), "A group in path is unable to pay declared bot reward.");
+            memberReward = groupBotReward[group] * memberTrust[group][member] / 100; // TODO overflow-safe mul!
+            require(IPool(groupPool[group]).hasEnoughFunds(memberReward), "A group in path is unable to pay declared bot reward.");
             scores[i] = memberReward;
         }
 
@@ -285,7 +286,7 @@ contract Upala {
     function setBotReward(uint botReward, bytes32 secret) external {
         uint160 group = managerToGroup[msg.sender];
         bytes32 hash = checkHash(keccak256(abi.encodePacked("setBotReward", group, botReward)));
-        groups[group].botReward = botReward;
+        groupBotReward[group] = botReward;
         delete commitsTimestamps[hash];
         // emit Set("NewBotReward", group, botReward);
     }
@@ -294,7 +295,7 @@ contract Upala {
         uint160 group = managerToGroup[msg.sender];
         require (trust <= 100, "Provided trust percent is above 100");
         bytes32 hash = checkHash(keccak256(abi.encodePacked("setTrust", group, member, trust)));
-        groups[group].trust[member] = trust;
+        memberTrust[group][member] = trust;
         delete commitsTimestamps[hash];
         // emit Set("setBotnetLimit", hash);
     }
@@ -303,7 +304,7 @@ contract Upala {
     function withdrawFromPool(address recipient, uint amount, bytes32 secret) external returns (uint256){ // $$$
         uint160 group = managerToGroup[msg.sender];
         bytes32 hash = checkHash(keccak256(abi.encodePacked("withdrawFromPool", group, recipient, amount)));
-        uint256 withdrawnAmount = IPool(groups[group].pool).withdrawAvailable(recipient, amount);
+        uint256 withdrawnAmount = IPool(groupPool[group]).withdrawAvailable(recipient, amount);
         delete commitsTimestamps[hash];
         // emit Set("withdrawFromPool", withdrawed);
         return withdrawnAmount;
@@ -313,15 +314,15 @@ contract Upala {
 
     function increaseReward(uint newBotReward) external {
         uint160 group = managerToGroup[msg.sender];
-        require (newBotReward > groups[group].botReward, "To decrease reward, make an announcement first");
-        groups[group].botReward = newBotReward;
+        require (newBotReward > groupBotReward[group], "To decrease reward, make an announcement first");
+        groupBotReward[group] = newBotReward;
     }
 
     function increaseTrust(uint160 member, uint8 newTrust) external {
         uint160 group = managerToGroup[msg.sender];
         require (newTrust <= 100, "Provided trust percent is above 100");
-        require (newTrust > groups[group].trust[member], "To decrease trust, make an announcement first");
-        groups[group].trust[member] = newTrust;
+        require (newTrust > memberTrust[group][member], "To decrease trust, make an announcement first");
+        memberTrust[group][member] = newTrust;
     }
 
     /**************
@@ -330,7 +331,7 @@ contract Upala {
 
     // used by gitcoin group (aggregator) to reverse-engineer member trust within a group
     function getBotReward(uint160 group) external view returns (uint) {
-        return groups[group].botReward;
+        return groupBotReward[group];
     }
 
     // returns upala identity id
