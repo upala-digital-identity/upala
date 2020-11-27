@@ -29,6 +29,7 @@ contract Upala is Initializable{
     // changes must be executed within execution window
     uint256 attackWindow;  // 0 - for tests // TODO set to 1 hour at production
     uint256 executionWindow; // 1000 - for tests
+    address EXPLODED; // assigned as identity holder after ID explosion
 
     /***************************
     GROUPS, IDENTITIES AND POOLS
@@ -85,6 +86,7 @@ contract Upala is Initializable{
         maxPathLength = 10;
         attackWindow = 0 hours;
         executionWindow = 1000 hours;
+        EXPLODED = 0x0000000000000000000000006578706c6f646564;  // Hex to ASCII = exploded
     }
 
     /************************************
@@ -206,9 +208,8 @@ contract Upala is Initializable{
             }
 
         // explode
-
+        identityHolder[bot] = EXPLODED;  // to tell exploded IDs apart from non existent (UIP-12)
         delete memberTrust[path[1]][bot]; // delete bot score in the above group
-        delete identityHolder[bot];
         delete holderToIdentity[msg.sender];
     }
 
@@ -338,6 +339,11 @@ contract Upala is Initializable{
     function myId() external view returns(uint160) {
         return holderToIdentity[msg.sender];
     }
+
+    function isExploded(uint160 identity) external returns(bool){
+        return (identityHolder[identity] == EXPLODED);
+    }
+    
 
     function groupIDbyManager(address manager) internal view returns(uint160) {
         return managerToGroup[manager];
