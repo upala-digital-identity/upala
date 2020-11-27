@@ -1,6 +1,6 @@
 pragma solidity ^0.6.0;
 
-import "../groups/upala-group.sol";
+import "./base-groups/upala-group.sol";
 import "../mockups/moloch-mock.sol";
 
 // This Upala group auto-assigns scores to members of existing moloch-based DAOs.

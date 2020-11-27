@@ -1,7 +1,7 @@
 pragma solidity ^0.6.0;
 
-import "../protocol/upala.sol";
-import "../libraries/openzeppelin-contracts/contracts/access/Ownable.sol";
+import "../../protocol/upala.sol";
+import "../../libraries/openzeppelin-contracts/contracts/access/Ownable.sol";
 
 // Basic Upala Group
 contract UpalaGroup is Ownable { 

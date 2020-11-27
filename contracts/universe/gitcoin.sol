@@ -1,8 +1,8 @@
 pragma solidity ^0.6.0;
 
-import "../groups/upala-group.sol";
+import "./base-groups/upala-group.sol";
 import "../mockups/moloch-mock.sol";
-import "../groups/merkle-drop.sol";
+import "./base-groups/merkle-drop.sol";
 
 // a score aggregator group
 // retrieves scores from multiple sources and calculates own score

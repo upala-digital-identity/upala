@@ -2,7 +2,7 @@
 // Credits - https://github.com/trustlines-protocol/merkle-drop/blob/master/contracts/contracts/MerkleDrop.sol
 pragma solidity ^0.6.0;
 
-import "../libraries/openzeppelin-contracts/contracts/access/Ownable.sol";
+import "../../libraries/openzeppelin-contracts/contracts/access/Ownable.sol";
 
 contract usingMerkleDrop is Ownable {
 

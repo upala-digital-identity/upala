@@ -1,8 +1,8 @@
 pragma solidity ^0.6.0;
 
-import "../../groups/upala-group.sol";
-import "../../groups/ignoring-attack-window.sol";
-import "../../groups/free-provider.sol";
+import "../base-groups/upala-group.sol";
+import "../base-groups/ignoring-attack-window.sol";
+import "../base-groups/free-provider.sol";
 
 contract ProtoGroup is UpalaGroup, IgnoringAttackWindow { // is ScoreProvider, FreeProvider
 
