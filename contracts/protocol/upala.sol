@@ -21,9 +21,6 @@ contract Upala is Initializable{
 
     uint256 registrationFee;   // spam protection + susteinability
 
-    // the maximum depth of hierarchy
-    // ensures attack gas cost is always lower than block maximum.
-    uint256 maxPathLength;
 
     // any changes that hurt bots rights must be announced an hour in advance
     // changes must be executed within execution window
@@ -51,10 +48,8 @@ contract Upala is Initializable{
     mapping(uint160 => address) groupPool;
     // The most important obligation of a group is to pay bot rewards.
     // A group can set its own maximum bot reward
-    mapping(uint160 => uint256) groupBotReward;  // baseReward
-    // Member botReward within group = botReward * trust / 100 
-    // limit, exposure, scoreMultiplier, rewardMultiplier
-    mapping(uint160 => mapping (uint160 => uint8)) memberTrust;  
+    mapping(uint160 => uint256) baseReward;  // baseReward
+    mapping(uint160 => mapping (bytes32 => bool)) roots;  
     
 
     // Identities
@@ -142,120 +137,33 @@ contract Upala is Initializable{
     SCORING AND BOT ATTACK
     **********************/
 
-    // only for users
-    function myScore(uint160[] calldata path)
-        external
-        view
-        // TODO onlyValidPath
-        
-        returns(uint256)
-    {
-        require(identityHolder[path[0]] == msg.sender,
-            "identity is not owned by the msg.sender"
-        );
-        return (_memberScore(path));
-    }
-
-    // only for groups
-    function memberScore(address holder, uint160[] calldata path)
-        external
-        view
-        // TODO onlyValidPath
-        
-        returns(uint256)
-    {
-        require(holder == identityHolder[path[0]],
-            "the holder address doesn't own the id");
-        require(groupManager[path[path.length-1]] == msg.sender, 
-            "the last group in the path is not managed by the msg.sender");
-        return (_memberScore(path));
-    }
-
-    // only for dapps
-    function userScore(address holder, uint160[] calldata path)
-        external
-        // TODO onlyValidPath
-        
-        returns(uint256)
-    {
-        require(holder == identityHolder[path[0]],
+    // for DApps
+    function verifyUserScore(uint160 groupID, uint160 identityID, address holder, uint8 score, bytes32[] calldata proof) external {
+        require(holder == identityHolder[identityID],
             "the holder address doesn't own the user id");
-        // will break if score is <0 or invalid path
-        uint256 score = _memberScore(path);
-        return score;
+        require (identityHolder[holder] != EXPLODED,
+            "This user has already exploded");
+        require (roots[groupID][getRoot(identityID, score, proof)] == true;
+        return baseReward[groupID] * score;
     }
 
     // Allows any identity to attack any group, run with the money and self-destruct.
     // Only those with scores will succeed.
     // todo no nonReentrant?
-    function attack(uint160[] calldata path)
+    function attack(uint160 groupID, uint160 identityID, uint8 score, bytes32[] calldata proof)
         external
-    { 
-        // first member in path must be an identity, managed by message sender
-        require(identityHolder[path[0]] == msg.sender, "msg.sender is not identity holder");
-        
-        // get scores along the path (checks validity too)
-        uint256[] memory scores = new uint256[](path.length);
-        scores = _scores(path);
+    {
+        uint160 bot = identityID;
+        address botOwner = msg.sender;
+        verifyUserScore(groupID, identityID, msg.sender, score, proof);
 
-        // pay rewards
-        uint160 bot = path[0];
-        address botOwner = identityHolder[bot];  
-        uint160 group;
-        for (uint i = 0; i<=path.length-2; i++) {
-            group = path[i+1];
-            IPool(groupPool[group]).payBotReward(botOwner, scores[i]); // $$$
-            }
+        uint256 reward = baseReward[group] * score;
+        IPool(groupPool[groupID]).payBotReward(botOwner, reward); // $$$
 
         // explode
         identityHolder[bot] = EXPLODED;  // to tell exploded IDs apart from non existent (UIP-12)
-        delete memberTrust[path[1]][bot]; // delete bot score in the above group
         delete holderToIdentity[msg.sender];
     }
-
-    // Ascends the path in groups hierarchy and confirms identity score (path validity)
-    function _memberScore(uint160[] memory path)
-        private
-        view
-        returns (uint256)
-    {
-        // get scores along the path (checks validity too)
-        uint256[] memory scores = new uint256[](path.length);
-        scores = _scores(path);
-
-        // sumup the scores
-        uint256 score = 0;
-        for (uint i = 0; i<=path.length-2; i++) {
-            score += scores[i];
-        }
-        return score;
-    }
-
-    // checks path for validity and returns an array of scores, corresponding to path
-    function _scores(uint160[] memory path) private view returns (uint256[] memory) {
-        require(path.length != 0, "path too short");
-        require(path.length <= maxPathLength, "path too long");
-
-        uint256[] memory scores = new uint256[](path.length);
-
-        uint160 member;
-        uint160 group;
-        uint256 memberReward;
-        for (uint i = 0; i<=path.length-2; i++) {
-            member = path[i];
-            group = path[i+1];
-
-            require (memberTrust[group][member] > 0, "Not a member");
-            
-            memberReward = groupBotReward[group] * memberTrust[group][member] / 100; // TODO overflow-safe mul!
-            require(IPool(groupPool[group]).hasEnoughFunds(memberReward), "A group in path is unable to pay declared bot reward.");
-            scores[i] = memberReward;
-        }
-
-        return scores;
-    }
-
-
 
 
     /************
@@ -271,7 +179,7 @@ contract Upala is Initializable{
     // nonce may be required for withdrawals or other logic
     function commitHash(bytes32 hash) external returns(uint256 nonce) {
         commitsTimestamps[hash] = now;
-        return 0; 
+        return 0;
     }
 
     function checkHash(bytes32 hash) internal view returns(bytes32){
@@ -284,21 +192,19 @@ contract Upala is Initializable{
     /*Changes that may hurt bots rights*/
 
     // Sets the maximum possible bot reward for the group.
-    function setBotReward(uint botReward, bytes32 secret) external {
+    function setBaseReward(uint botReward, bytes32 secret) external {
         uint160 group = managerToGroup[msg.sender];
-        bytes32 hash = checkHash(keccak256(abi.encodePacked("setBotReward", group, botReward)));
-        groupBotReward[group] = botReward;
+        bytes32 hash = checkHash(keccak256(abi.encodePacked("setBaseReward", group, botReward)));
+        baseReward[group] = botReward;
         delete commitsTimestamps[hash];
         // emit Set("NewBotReward", group, botReward);
     }
 
-    function setTrust(uint160 member, uint8 trust, bytes32 secret) external {
+    function deleteRoot(bytes32 root) {
         uint160 group = managerToGroup[msg.sender];
-        require (trust <= 100, "Provided trust percent is above 100");
-        bytes32 hash = checkHash(keccak256(abi.encodePacked("setTrust", group, member, trust)));
-        memberTrust[group][member] = trust;
+        bytes32 hash = checkHash(keccak256(abi.encodePacked("deleteRoot", group, root)));
         delete commitsTimestamps[hash];
-        // emit Set("setBotnetLimit", hash);
+        delete roots[group][root];
     }
 
     // tries to withdraw as much as possible (bots could have attacked after an announcement) 
@@ -315,15 +221,13 @@ contract Upala is Initializable{
 
     function increaseReward(uint newBotReward) external {
         uint160 group = managerToGroup[msg.sender];
-        require (newBotReward > groupBotReward[group], "To decrease reward, make an announcement first");
-        groupBotReward[group] = newBotReward;
+        require (newBotReward > baseReward[group], "To decrease reward, make a commitment first");
+        baseReward[group] = newBotReward;
     }
 
-    function increaseTrust(uint160 member, uint8 newTrust) external {
+    function publishRoot(bytes32 newRoot) external {
         uint160 group = managerToGroup[msg.sender];
-        require (newTrust <= 100, "Provided trust percent is above 100");
-        require (newTrust > memberTrust[group][member], "To decrease trust, make an announcement first");
-        memberTrust[group][member] = newTrust;
+        roots[group][newRoot] = true;
     }
 
     /**************
@@ -332,7 +236,7 @@ contract Upala is Initializable{
 
     // used by gitcoin group (aggregator) to reverse-engineer member trust within a group
     function getBotReward(uint160 group) external view returns (uint) {
-        return groupBotReward[group];
+        return baseReward[group];
     }
 
     // returns upala identity id
