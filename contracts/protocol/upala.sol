@@ -78,10 +78,10 @@ contract Upala is Initializable{
 
     function initialize () external {
         registrationFee = 0 wei;
-        maxPathLength = 10;
+        // maxPathLength = 10;
         attackWindow = 0 hours;
         executionWindow = 1000 hours;
-        EXPLODED = 0x0000000000000000000000006578706c6f646564;  // Hex to ASCII = exploded
+        EXPLODED = address(0x0000000000000000000000006578706c6f646564);  // Hex to ASCII = exploded
     }
 
     /************************************
@@ -137,14 +137,29 @@ contract Upala is Initializable{
     SCORING AND BOT ATTACK
     **********************/
 
+    function verifyTemp() public returns(bool res) { // a mock function before real Merkle is implemented
+        return true;
+    }
+
+    function getRootTemp(uint160 identityID, uint8 score, bytes32[] memory proof) public returns(bytes32 res) {
+        return "0x000000006578706c6f646564";
+    }
+    
+    function verifyScore (uint160 groupID, uint160 identityID, address holder, uint8 score, bytes32[] calldata proof) external {
+
+    }
+
     // for DApps
-    function verifyUserScore(uint160 groupID, uint160 identityID, address holder, uint8 score, bytes32[] calldata proof) external {
+    function userScore(uint160 groupID, uint160 identityID, address holder, uint8 score, bytes32[] memory proof) private returns (uint256){
         require(holder == identityHolder[identityID],
             "the holder address doesn't own the user id");
-        require (identityHolder[holder] != EXPLODED,
+        require (identityHolder[identityID] != EXPLODED,
             "This user has already exploded");
-        require (roots[groupID][getRoot(identityID, score, proof)] == true;
-        return baseReward[groupID] * score;
+
+        require (roots[groupID][getRootTemp(identityID, score, proof)] == true);
+        uint256 totalScore = baseReward[groupID] * score;
+        
+        return totalScore;
     }
 
     // Allows any identity to attack any group, run with the money and self-destruct.
@@ -155,9 +170,8 @@ contract Upala is Initializable{
     {
         uint160 bot = identityID;
         address botOwner = msg.sender;
-        verifyUserScore(groupID, identityID, msg.sender, score, proof);
+        uint256 reward = userScore(groupID, identityID, msg.sender, score, proof);
 
-        uint256 reward = baseReward[group] * score;
         IPool(groupPool[groupID]).payBotReward(botOwner, reward); // $$$
 
         // explode
@@ -200,7 +214,7 @@ contract Upala is Initializable{
         // emit Set("NewBotReward", group, botReward);
     }
 
-    function deleteRoot(bytes32 root) {
+    function deleteRoot(bytes32 root) public {
         uint160 group = managerToGroup[msg.sender];
         bytes32 hash = checkHash(keccak256(abi.encodePacked("deleteRoot", group, root)));
         delete commitsTimestamps[hash];

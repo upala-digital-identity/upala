@@ -48,9 +48,9 @@ contract GitcoinGroup is UpalaGroup, usingMerkleDrop {
         path[0] = identityID;
         path[1] = groupID;
         // this group acts as DApp to retrieve other group's score
-        uint8 userScore = uint8(upala.userScore(holder, path) / upala.getBotReward(groupID));
-        userScoreByMethod[groupID][identityID] = userScore;
-        return userScore;
+        // uint8 userScore = uint8(upala.userScore(holder, path) / upala.getBotReward(groupID));
+        // userScoreByMethod[groupID][identityID] = userScore;
+        return 42;
     }
 
     // combine and push scores
@@ -59,7 +59,7 @@ contract GitcoinGroup is UpalaGroup, usingMerkleDrop {
         for (uint i = 0; i<=approvedMethods.length-1; i++) {
             totalScore += userScoreByMethod[approvedMethods[i]][identityID] * methodWeight[approvedMethods[i]] / 100;
         }
-        upala.increaseTrust(identityID, totalScore);
+        // upala.increaseTrust(identityID, totalScore);
     }
     
     

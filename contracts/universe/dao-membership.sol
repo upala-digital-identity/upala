@@ -31,7 +31,7 @@ contract MolochGroup is UpalaGroup {
         require(shares > 0, "Candidate has 0 shares");
 
         // increase score
-        upala.increaseTrust(identityID, molochWeights[moloch]);
+        // upala.increaseTrust(identityID, molochWeights[moloch]);
         claimed[moloch][molMember] == true;
     }
 

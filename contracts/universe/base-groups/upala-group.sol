@@ -45,19 +45,19 @@ contract UpalaGroup is Ownable {
     }
 
     function setBotReward(uint newBotReward) onlyOwner external {
-        upala.setBotReward(newBotReward, "0x0");
+        // upala.setBotReward(newBotReward, "0x0");
     }
 
     function setTrust(uint160 identityID, uint8 trust) onlyOwner external {
-        upala.setTrust(identityID, trust, "0x0");
+        // upala.setTrust(identityID, trust, "0x0");
     }
 
     function increaseReward(uint newBotReward) onlyOwner external {
-        upala.increaseReward(newBotReward);
+        // upala.increaseReward(newBotReward);
     }
 
     function increaseTrust(uint160 member, uint8 newTrust) onlyOwner external {
-        upala.increaseTrust(member, newTrust);
+        // upala.increaseTrust(member, newTrust);
     }
 
     /******

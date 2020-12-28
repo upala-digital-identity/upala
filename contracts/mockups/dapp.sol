@@ -29,7 +29,8 @@ contract usingUpala {
     
     function getScoreByPath(address wallet, uint160[] memory path) internal returns (uint256){
         require (trustedScoreProviders[path[path.length-1]] == true, "score provider is not proved");
-        return upala.userScore(wallet, path);
+        // return upala.userScore(wallet, path);
+        return 42; // moving to Merkle (deprecating)
     }
 
 
