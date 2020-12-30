@@ -29,7 +29,7 @@ async function isThrowing(foo) {
   return error.message.substring(66);
 }
 
-contract('Upala', function(accounts) {
+contract('Upala2', function(accounts) {
   web3.eth.getAccounts((error,result) => {
     admin = result[0];  
     groupManager = result[1]; 
