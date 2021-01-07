@@ -97,9 +97,12 @@ contract Upala is Initializable{
         return (entityCounter, groupPool[entityCounter]);
     }
 
+    // Upala ID can be assigned to an address by a third party
     function newIdentity(address newIdentityHolder) external payable returns (uint160) {
-        require(msg.value == registrationFee, "Incorrect registration fee");  // draft
         entityCounter++;
+
+        require (holderToIdentity[newIdentityHolder] == 0, "Provided address owns an Upala ID already");
+        
         identityHolder[entityCounter] = newIdentityHolder;
         holderToIdentity[newIdentityHolder] = entityCounter;
         return entityCounter;
@@ -155,7 +158,7 @@ contract Upala is Initializable{
             "the holder address doesn't own the user id");
         require (identityHolder[identityID] != EXPLODED,
             "This user has already exploded");
-
+        // pool amount is sufficient for explosion
         require (roots[groupID][getRootTemp(identityID, score, proof)] == true);
         uint256 totalScore = baseReward[groupID] * score;
         
@@ -255,13 +258,14 @@ contract Upala is Initializable{
 
     // returns upala identity id
     function myId() external view returns(uint160) {
-        return holderToIdentity[msg.sender];
+        uint160 identity = holderToIdentity[msg.sender];
+        require (identity > 0, "no id registered for the address");
+        return identity;
     }
 
     function isExploded(uint160 identity) external returns(bool){
         return (identityHolder[identity] == EXPLODED);
     }
-    
 
     function groupIDbyManager(address manager) internal view returns(uint160) {
         return managerToGroup[manager];
