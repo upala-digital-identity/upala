@@ -98,15 +98,27 @@ contract Upala is Initializable{
     }
 
     // Upala ID can be assigned to an address by a third party
-    function newIdentity(address newIdentityHolder) external payable returns (uint160) {
+    function newIdentity(address newIdentityHolder) external returns (uint160) {
         entityCounter++;
-
-        require (holderToIdentity[newIdentityHolder] == 0, "Provided address owns an Upala ID already");
-        
+        require (holderToIdentity[newIdentityHolder] == 0, "Address is already an owner or delegate");
         identityHolder[entityCounter] = newIdentityHolder;
         holderToIdentity[newIdentityHolder] = entityCounter;
         return entityCounter;
     }
+
+    function approveDelegate(address delegate) external {
+        uint160 upalaId = holderToIdentity[msg.sender];
+        require (identityHolder[upalaId] == msg.sender, "Only identity holder can add or remove delegates");
+        holderToIdentity[delegate] = upalaId;
+    }
+
+    function removeDelegate(address delegate) external {
+        uint160 upalaId = holderToIdentity[msg.sender];
+        require (identityHolder[upalaId] == msg.sender, "Only identity holder can add or remove delegates");
+        holderToIdentity[delegate] = upalaId;
+        delete holderToIdentity[delegate];
+    }
+    
 
     // tokens are only stable USDs
     function _newPool(address poolFactory, uint160 poolOwner) private returns (address) {
