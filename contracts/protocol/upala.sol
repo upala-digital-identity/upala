@@ -88,15 +88,6 @@ contract Upala is Initializable{
     REGISTER GROUPS, IDENTITIES AND POOLS
     ************************************/
 
-    function newGroup(address newGroupManager, address poolFactory) external payable returns (uint160, address) {
-        require(msg.value == registrationFee, "Incorrect registration fee");  // draft
-        entityCounter++;
-        groupManager[entityCounter] = newGroupManager;
-        groupPool[entityCounter] = _newPool(poolFactory, entityCounter);
-        managerToGroup[newGroupManager] = entityCounter;
-        return (entityCounter, groupPool[entityCounter]);
-    }
-
     // Upala ID can be assigned to an address by a third party
     function newIdentity(address newIdentityHolder) external returns (uint160) {
         entityCounter++;
@@ -118,7 +109,36 @@ contract Upala is Initializable{
         holderToIdentity[delegate] = upalaId;
         delete holderToIdentity[delegate];
     }
+
+    function setIdentityOwner(address newIdentityOwner) external {
+        uint160 identity = identityByAddress(msg.sender);
+        require (identityHolder[identity] == msg.sender, "Only identity holder can add or remove delegates");
+        require (holderToIdentity[newIdentityOwner] == identity || holderToIdentity[newIdentityOwner] == 0, "Address is already an owner or delegate");
+        address currentHolder = identityHolder[identity];
+        identityHolder[identity] = newIdentityOwner;
+        //delete holderToIdentity[currentHolder];
+        holderToIdentity[newIdentityOwner] = identity;
+    }
+
+    function identityOwner(uint160 upalaId) internal view returns(address owner) {
+        return identityHolder[upalaId];
+    }
+
+    function myIdOwner() external view  returns(address owner) {
+        return identityOwner(identityByAddress(msg.sender));
+    }
     
+    
+    
+    function newGroup(address newGroupManager, address poolFactory) external payable returns (uint160, address) {
+        require(msg.value == registrationFee, "Incorrect registration fee");  // draft
+        entityCounter++;
+        groupManager[entityCounter] = newGroupManager;
+        groupPool[entityCounter] = _newPool(poolFactory, entityCounter);
+        managerToGroup[newGroupManager] = entityCounter;
+        return (entityCounter, groupPool[entityCounter]);
+    }
+
 
     // tokens are only stable USDs
     function _newPool(address poolFactory, uint160 poolOwner) private returns (address) {
@@ -138,14 +158,7 @@ contract Upala is Initializable{
         managerToGroup[newGroupManager] = group;
     }
 
-    // TODO get ID from msg.sender
-    function setIdentityHolder(address newIdentityHolder)  external {
-        uint160 identity = holderToIdentity[msg.sender];
-        address currentHolder = identityHolder[identity];
-        identityHolder[identity] = newIdentityHolder;
-        delete holderToIdentity[currentHolder];
-        holderToIdentity[newIdentityHolder] = identity;
-    }
+
 
 
     /*********************
@@ -268,11 +281,15 @@ contract Upala is Initializable{
         return baseReward[group];
     }
 
-    // returns upala identity id
-    function myId() external view returns(uint160) {
-        uint160 identity = holderToIdentity[msg.sender];
+    function identityByAddress(address ownerOrDelegate) internal view returns(uint160 owner) {
+        uint160 identity = holderToIdentity[ownerOrDelegate];
         require (identity > 0, "no id registered for the address");
         return identity;
+    }
+    
+    // returns upala identity id
+    function myId() external view returns(uint160) {
+        return identityByAddress(msg.sender);
     }
 
     function isExploded(uint160 identity) external returns(bool){
