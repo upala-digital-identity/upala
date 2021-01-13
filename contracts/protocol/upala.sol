@@ -84,9 +84,9 @@ contract Upala is Initializable{
         EXPLODED = address(0x0000000000000000000000006578706c6f646564);  // Hex to ASCII = exploded
     }
 
-    /************************************
-    REGISTER GROUPS, IDENTITIES AND POOLS
-    ************************************/
+    /*************
+    REGISTER USERS
+    **************/
 
     // Upala ID can be assigned to an address by a third party
     function newIdentity(address newIdentityHolder) external returns (uint160) {
@@ -114,29 +114,51 @@ contract Upala is Initializable{
         uint160 identity = identityByAddress(msg.sender);
         require (identityHolder[identity] == msg.sender, "Only identity holder can add or remove delegates");
         require (holderToIdentity[newIdentityOwner] == identity || holderToIdentity[newIdentityOwner] == 0, "Address is already an owner or delegate");
-        address currentHolder = identityHolder[identity];
         identityHolder[identity] = newIdentityOwner;
-        //delete holderToIdentity[currentHolder];
         holderToIdentity[newIdentityOwner] = identity;
+    }
+
+    function myId() external view returns(uint160) {
+        return identityByAddress(msg.sender);
+    }
+
+    function myIdOwner() external view  returns(address owner) {
+        return identityOwner(identityByAddress(msg.sender));
+    }
+
+    function identityByAddress(address ownerOrDelegate) internal view returns(uint160 identity) {
+        uint160 identity = holderToIdentity[ownerOrDelegate];
+        require (identity > 0, "no id registered for the address");
+        return identity;
     }
 
     function identityOwner(uint160 upalaId) internal view returns(address owner) {
         return identityHolder[upalaId];
     }
 
-    function myIdOwner() external view  returns(address owner) {
-        return identityOwner(identityByAddress(msg.sender));
-    }
-    
-    
-    
-    function newGroup(address newGroupManager, address poolFactory) external payable returns (uint160, address) {
-        require(msg.value == registrationFee, "Incorrect registration fee");  // draft
+    /************************
+    REGISTER GROUPS AND POOLS
+    *************************/
+
+    function newGroup(address newGroupManager, address poolFactory) external returns (uint160, address) {
+        require (managerToGroup[newGroupManager] == 0, "Provided address already manages a group");
         entityCounter++;
         groupManager[entityCounter] = newGroupManager;
         groupPool[entityCounter] = _newPool(poolFactory, entityCounter);
         managerToGroup[newGroupManager] = entityCounter;
         return (entityCounter, groupPool[entityCounter]);
+    }
+
+    function getGroupID(address managerAddress) external view returns(uint160 groupID) {
+        uint160 groupID = managerToGroup[managerAddress];
+        require (groupID > 0, "no id registered for the address");
+        return groupID;
+    }
+
+    function getGroupPool(uint160 groupID) external view returns(address poolAddress) {
+        address poolAddress = groupPool[groupID];
+        require (poolAddress != address(0x0), "no pool registered for the group ID");
+        return poolAddress;
     }
 
 
@@ -223,20 +245,20 @@ contract Upala is Initializable{
         commitsTimestamps[hash] = now;
         return 0;
     }
-
+ 
     function checkHash(bytes32 hash) internal view returns(bytes32){
         require (commitsTimestamps[hash] != 0, "No such commitment hash");
-        require (commitsTimestamps[hash] + attackWindow <= now, "Attack window is not closed yet");
-        require (commitsTimestamps[hash] + executionWindow >= now, "Execution window is already closed");
+        //require (commitsTimestamps[hash] + attackWindow <= now, "Attack window is not closed yet");
+        //require (commitsTimestamps[hash] + executionWindow >= now, "Execution window is already closed");
         return hash;
     }
 
     /*Changes that may hurt bots rights*/
 
     // Sets the maximum possible bot reward for the group.
-    function setBaseReward(uint botReward, bytes32 secret) external {
+    function setBaseScore(uint botReward, bytes32 secret) external {
         uint160 group = managerToGroup[msg.sender];
-        bytes32 hash = checkHash(keccak256(abi.encodePacked("setBaseReward", group, botReward)));
+        bytes32 hash = checkHash(keccak256(abi.encodePacked("setBaseScore", botReward, secret)));
         baseReward[group] = botReward;
         delete commitsTimestamps[hash];
         // emit Set("NewBotReward", group, botReward);
@@ -261,9 +283,9 @@ contract Upala is Initializable{
 
     /*Changes that don't hurt bots rights*/
 
-    function increaseReward(uint newBotReward) external {
+    function increaseBaseScore(uint newBotReward) external {
         uint160 group = managerToGroup[msg.sender];
-        require (newBotReward > baseReward[group], "To decrease reward, make a commitment first");
+        require (newBotReward > baseReward[group], "To decrease score, make a commitment first");
         baseReward[group] = newBotReward;
     }
 
@@ -277,27 +299,14 @@ contract Upala is Initializable{
     ***************/
 
     // used by gitcoin group (aggregator) to reverse-engineer member trust within a group
-    function getBotReward(uint160 group) external view returns (uint) {
-        return baseReward[group];
+    function groupBaseScore(uint160 groupID) external view returns (uint) {
+        return baseReward[groupID];
     }
 
-    function identityByAddress(address ownerOrDelegate) internal view returns(uint160 owner) {
-        uint160 identity = holderToIdentity[ownerOrDelegate];
-        require (identity > 0, "no id registered for the address");
-        return identity;
-    }
-    
-    // returns upala identity id
-    function myId() external view returns(uint160) {
-        return identityByAddress(msg.sender);
-    }
+
 
     function isExploded(uint160 identity) external returns(bool){
         return (identityHolder[identity] == EXPLODED);
-    }
-
-    function groupIDbyManager(address manager) internal view returns(uint160) {
-        return managerToGroup[manager];
     }
 
 
