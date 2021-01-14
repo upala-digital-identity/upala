@@ -19,6 +19,7 @@ let wallets;
 let oneETH = BigNumber.from(10).pow(18);
 let fakeUBI = oneETH.mul(100)
 
+function resetProtocol() {}
 before('deploy and setup protocol', async () => {
   wallets = await ethers.getSigners();
   
@@ -244,19 +245,45 @@ describe("GROUPS", function() {
 
   // todo test basicPool in a separate file
 
+});
 
+describe("SCORING", function() {
+   // todo setup protocol
+
+   it("can read own score", async function() {
+    });
+
+   it("Upala ID owner can approve scores to DApps", async function() {
+    });
+
+   it("cannot approve scores from an arbitrary address", async function() {
+    });
+
+   it("An address approved by Upala ID owner can approve scores to DApps", async function() {
+    });
+});
+
+describe("SCORING", function() {
+   // todo setup protocol
+
+   it("cannot explode from an arbitrary address", async function() {
+    });
+
+   it("cannot explode using delegate address", async function() {
+    });
+
+   it("Upala ID owner can explode (check fees and rewards)", async function() {
+    });
+});
+
+describe("PROTOCOL MANAGEMENT", function() {
+   // todo setup protocol
+
+   it("owner can set attack window", async function() {
+    });
+
+   it("owner can set execution window", async function() {
+    });
 
 });
 
-// SCORING
-// Upala ID owner can approve scores to DApps
-// An address approved by Upala ID owner can approve scores to DApps
-// cannot approve scores from an arbitrary address
-
-// EXPLODING
-// cannot explode from an arbitrary address
-// cannot explode using delegate address
-// Upala ID owner can explode (check fees and rewards)
-
-// PROTOCOL MANAGEMENT
-// });
