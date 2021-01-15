@@ -250,6 +250,12 @@ describe("GROUPS", function() {
   // cannot withdraw without commitment
   });
 
+  describe("group details (misc)", function() {
+    it("group manager can publish group meta", async function() {
+      // db_url, description, etc. - from future
+    });
+  });
+
   // todo test basicPool in a separate file
 
 });
@@ -275,6 +281,11 @@ describe("SCORING", function() {
 describe("EXPLOSIONS", function() {
    // todo setup protocol
 
+   it("you can explode, you can explode, you can explode, anyone can exploooooode", async function() {
+    ///function attack(uint160 groupID, uint160 identityID, uint8 score, bytes32[] calldata proof)
+    });
+
+   
    it("cannot explode from an arbitrary address", async function() {
     });
 

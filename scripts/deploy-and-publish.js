@@ -76,86 +76,36 @@ async function main() {
 
 
 
-
-
-
   console.log(chalk.green("\nDEPLOYING GROUPS \n"));
   /////////////////////////////////////////////////
 
   const defaultBotReward = ethers.utils.parseEther("3");
   const poolDonation = ethers.utils.parseEther("1000");
-  var groupsAddresses = []
 
-  async function deployGroup(groupName, groupContractName, details, multiplier) {
-    console.log("deployContract", groupContractName, upala.address, basicPoolFactory.address);
-    newGroup = await deployContract(groupContractName, upala.address, basicPoolFactory.address); // {from: groupManager}
-    
+  async function deployGroup(groupName, manager, multiplier) {
+
+    await upala.newGroup(manager.getAddress(), basicPoolFactory.address);
+    groupID = await upala.getGroupID(manager.getAddress())
+    groupPool = await upala.getGroupPool(groupID)
+
     finalGroups[groupName] = {
-      address: newGroup.address,
-      abi: newGroup.interface.abi,
+      address: groupID,
+      pool: groupPool,
     };
 
-    groupsAddresses.push(newGroup.address);
-    console.log(chalk.blue("newGroup.address:"), newGroup.address)
-    let newGroupID = await newGroup.getUpalaGroupID();
-    let newGroupPoolAddress = await newGroup.getGroupPoolAddress();
-    await fakeDai.freeDaiToTheWorld(newGroupPoolAddress, poolDonation.mul(multiplier));
-    await newGroup.announceAndSetBotReward(defaultBotReward.mul(multiplier));
-    await newGroup.setDetails(details);
+    await fakeDai.freeDaiToTheWorld(groupPool, poolDonation.mul(multiplier));
+
     console.log(
-      chalk.blue("Upala ID:"), newGroupID.toNumber(), 
-      chalk.blue("Pool:"), newGroupPoolAddress,
-      chalk.blue("Bal:"), ethers.utils.formatEther(await fakeDai.balanceOf(newGroupPoolAddress)),
-      chalk.blue("Reward:"), ethers.utils.formatEther(await upala.getBotReward(newGroupID)));
-      // "Group details", "Score provider details"
-    // For Score providers load the last group in the attack/scoring path
-    console.log(chalk.blue("Details: "), (await newGroup.getGroupDetails()).slice(0, 40));
-    // console.log(chalk.blue("Deposit: "), (ethers.utils.formatEther(await newGroup.getGroupDepositAmount.call()), " FakeDAI"));
-    
-    return [newGroup, newGroupID];
+      chalk.blue("Upala ID:"), groupID.toNumber(),
+      chalk.blue("Pool:"), groupPool,
+      chalk.blue("Bal:"), ethers.utils.formatEther(await fakeDai.balanceOf(groupPool)));
+
+    return [groupID, groupID];
   }
 
-  /* {
-    "version": "0.1",
-    "title": "Base group",
-    "description": "Autoassigns FakeDAI score to anyone who joins",
-    "join-terms": "No deposit required (ignore the ammount you see and join)",
-    "leave-terms": "No deposit - no refund"} */
-  group1Details = {
-    "title": "MetaCartel",
-    "description": "Currently autoassigns FakeDAI score to anyone who joins",
-    "short_description": "MetaCartel members only"
-    }
-  group2Details = {
-    "title": "MolochDAO",
-    "description": "Currently autoassigns FakeDAI score to anyone who joins",
-    "short_description": "MolochDAO members only"
-    }
-  group3Details = {
-    "title": "MetaGame",
-    "description": "Currently autoassigns FakeDAI score to anyone who joins",
-    "short_description": "MetaGamers only"
-    }
-    ///home/petr/Projects/2019-10-10-Upala/contracts/universe/bladerunner
-  console.log("deploy");
-  const [group1, group1ID] = await deployGroup(group1Details.title, "ProtoGroup", JSON.stringify(group1Details), 1);
-  const [group2, group2ID] = await deployGroup(group2Details.title, "ProtoGroup", JSON.stringify(group2Details), 2);
-  const [group3, group3ID] = await deployGroup(group3Details.title, "ProtoGroup", JSON.stringify(group3Details), 3);
-
-
-
-
-
-  console.log(chalk.green("\nDEPLOYING BLADERUNNER \n"));
-  ///////////////////////////////////////////////////////
-
-
-  bladerunnerDetails = {
-    "title": "BladerunnerDAO",
-    "description": "Users cannot join this group directly - only its subgroups (entry-tests). Members of BladerunnerDAO decide which entry-tests to approve.",
-    "short_description": "Bladerunner Score provider"
-    }
-  const [bladerunner, bladerunnerID] = await deployGroup(bladerunnerDetails.title, "BladerunnerDAO", JSON.stringify(bladerunnerDetails), 5);
+  const [group1, group1ID] = await deployGroup("DemocracyEarth", m1, 1);
+  const [group2, group2ID] = await deployGroup("BrightID", m2, 2);
+  const [bladerunner, bladerunnerID] = await deployGroup("BladerunnerDAO", m3, 5);
 
 
 
@@ -163,10 +113,7 @@ async function main() {
   console.log(chalk.green("\nTESTING GROUPS\n"));
   ///////////////////////////////////////////////
 
-  
-
   // Upala prototype UX
-  // "Create ID" button
   await upala.connect(u1).newIdentity(u1.getAddress()).then((tx) => tx.wait());
   await upala.connect(u2).newIdentity(u2.getAddress()).then((tx) => tx.wait());
 
@@ -180,83 +127,8 @@ async function main() {
   console.log(chalk.blue("User1 ID: "), user1ID.toNumber());
   console.log(chalk.blue("User2 ID: "), user2ID.toNumber());
 
-  // "Groups list"
-  // No on-chain data for the list - fetch from 3Box (private Spaces and 3Box.js)
-  // https://docs.3box.io/network/architecture https://docs.3box.io/build/web-apps/storage 
-  // 3Box threads for future https://medium.com/3box/confidential-threads-api-17df60b34431 
-  
-  // Membership status (user not a member of a group)
-  // A user is a member if a group assigns any score
-  const membershipCheckPath = [user1ID, group1ID];
-  // const error = await isThrowing(upala.memberScore.call(membershipCheckPath, {from: user_1}));
-  // console.log(error);
-  // TODO probably better return 0 from Upala...
 
-
-
-  // "Deposit and join" button
-  await group1.connect(u1).join(user1ID).then((tx) => tx.wait());
-  await group1.connect(u2).join(user2ID).then((tx) => tx.wait());
-
-  // Membership status (user is a member of a group)
-  // A user is a member if a group assignes any score
-  //const membershipCheckPath = [user1ID, group1ID];
-  const userScoreIn = await upala.connect(u1).myScore(membershipCheckPath);
-  console.log("User is member of Group1:", userScoreIn.gt(0));  // true if user score greater than 0.
-
-  // "waiting for confirmation" message 
-  // join is requested, but not a confirmed member yet
-  // check user score (check each group in the list for botNetLimit)
-
-  // "Leave group" button
-  // Protogroup has no leaving terms. The action is just "forget" group - same as "Forget path"
-  // Removes group from 3Box
-
-  // Score providers list
-  // 3Box Private spaces as DB + hardcoded score providers (BladerunnerDAO, etc.)
-
-  // "Forget path" button 
-  // Nothings happens onchain
-  // Removes path from 3Box
-
-  // "Your score"
-  const path1 = [user1ID, group1ID];
-  console.log(
-    "User score in ProtoGroup:", 
-    ethers.utils.formatEther(await upala.connect(u1).myScore(path1)), 
-    "FakeDAI"
-  );
-
-
-  console.log(chalk.green("\nTESTING BLADERUNNER SCORE\n"));
-  ///////////////////////////////////////////////
-  
-  // approve all 3 groups in BladeRunner by setting very high bot net limits
-  await bladerunner.connect(u1).announceAndSetTrust(group1ID, 100);
-  await bladerunner.connect(u1).announceAndSetTrust(group2ID, 100);
-  await bladerunner.connect(u1).announceAndSetTrust(group3ID, 100);
-  const pathToBladerunner = [user1ID, group1ID, bladerunnerID];
-  console.log(
-    "User score in Bladerunner:", 
-    ethers.utils.formatEther(await upala.connect(u1).myScore(pathToBladerunner)), 
-    "FakeDAI"
-  );
-
-
-
-
-  // // "Explode"
-  // const user1_balance_before_attack = await fakeDai.connect(u1).balanceOf(u1.getAddress());
-  // tx = await upala.connect(u1).attack(path1);
-  // const user1_balance_after_attack = await fakeDai.connect(u1).balanceOf(u1.getAddress());
-  // console.log("isBN", defaultBotReward.eq(user1_balance_after_attack.sub(user1_balance_before_attack)));
-  // assert.equal(
-  //   defaultBotReward.eq(user1_balance_after_attack.sub(user1_balance_before_attack)), 
-  //   true,
-  //   "Owner of Ads wasn't set right!");
-
-
-
+/*
   console.log(chalk.green("\nTESTING DAPP\n"));
   ///////////////////////////////////////////////
 
@@ -275,14 +147,7 @@ async function main() {
   // console.log("User 1 UBI balance: ", await sampleDapp.connect(u1).myUBIBalance());
   console.log("User 1 UBI balance: ", ethers.utils.formatEther(await sampleDapp.connect(u1).myUBIBalance()));
 
-
-
-
-
-
-
-
-
+*/
 
   // console.log(finalContracts);
   //   deployer.deploy(BasicPoolFactory, FakeDai.address).then(() => {

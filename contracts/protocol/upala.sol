@@ -195,12 +195,12 @@ contract Upala is Initializable{
         return "0x000000006578706c6f646564";
     }
     
-    // for Multipassport (user quering if own score is still verifiable)
-    function verifyMyScore (uint160 groupID, uint160 identityID, address holder, uint8 score, bytes32[] calldata proof) external view returns (bool) {
+    // for Multipassport (user quering if own score is still verifiable) - hackathon mock
+    function verifyMyScore (uint160 groupID, uint160 identityID, uint8 score, bytes32[] calldata proof) external view returns (bool) {
         return true;
     }
 
-    // for DApps
+    // for DApps - hackathon mock
     function verifyUserScore (uint160 groupID, uint160 identityID, address holder, uint8 score, bytes32[] calldata proof) external returns (bool) {
         return true;
     }
@@ -220,13 +220,14 @@ contract Upala is Initializable{
     // Allows any identity to attack any group, run with the money and self-destruct.
     // Only those with scores will succeed.
     // todo no nonReentrant?
-    function attack(uint160 groupID, uint160 identityID, uint8 score, bytes32[] calldata proof)
+    function _attack(uint160 groupID, uint160 identityID, uint8 score, bytes32[] calldata proof)
         external
     {
         uint160 bot = identityID;
         address botOwner = msg.sender;
-        uint256 reward = userScore(groupID, identityID, msg.sender, score, proof);
 
+        // payout
+        uint256 reward = userScore(groupID, identityID, msg.sender, score, proof);
         IPool(groupPool[groupID]).payBotReward(botOwner, reward); // $$$
 
         // explode
@@ -234,6 +235,15 @@ contract Upala is Initializable{
         delete holderToIdentity[msg.sender];
     }
 
+    // hackathon mock
+    function attack(uint160 groupID, uint160 identityID, uint8 score, bytes32[] calldata proof)
+        external
+    {
+        uint160 bot = identityID;
+        address botOwner = msg.sender;
+        identityHolder[bot] = EXPLODED;
+        delete holderToIdentity[msg.sender];
+    }
 
     /************
     MANAGE GROUPS
