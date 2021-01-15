@@ -19,35 +19,30 @@ let wallets;
 let oneETH = BigNumber.from(10).pow(18);
 let fakeUBI = oneETH.mul(100)
 
-function resetProtocol() {}
-before('deploy and setup protocol', async () => {
+async function resetProtocol() {
+  // wallets
+  fakeDai = await deployContract("FakeDai");
   wallets = await ethers.getSigners();
-  
-
   [upalaAdmin,user1,user2,user3,manager1,manager2,delegate1,delegate2,delegate3,nobody] = wallets;
+  
+  // fake DAI giveaway
+  wallets.map(async (wallet, ix) => {
+    if (ix <= 10) {
+      await fakeDai.freeDaiToTheWorld(wallet.address, fakeUBI);
+    }
+  });
 
   // setup protocol
   upala = await deployContract("Upala");
-  fakeDai = await deployContract("FakeDai");
   basicPoolFactory = await deployContract("BasicPoolFactory", fakeDai.address);
   await upala.setapprovedPoolFactory(basicPoolFactory.address, "true").then((tx) => tx.wait());
-
-  // fake DAI giveaway
-  wallets.map(async (wallet, ix) => {
-            if (ix <= 10) {
-              await fakeDai.freeDaiToTheWorld(wallet.address, fakeUBI);
-            }
-          });
-  })
-
-
-
-
+}
 
 
 describe("USER", function() {
 
   before('register users', async () => {
+    await resetProtocol();
     await upala.connect(user2).newIdentity(user1.getAddress());
     await upala.connect(user2).newIdentity(user2.getAddress());
     await upala.connect(user1).approveDelegate(delegate1.getAddress());
@@ -194,7 +189,11 @@ describe("GROUPS", function() {
   // still got access to pool
   });
 
-  describe("score management and commitments", function() {
+  describe("commitments", function() {
+  // two groups can issue identical commitments (cannot overwrite other group's commitment)
+  });
+
+  describe("score management", function() {
     
     const scoreChange = oneETH.mul(42).div(100);
 
@@ -220,6 +219,14 @@ describe("GROUPS", function() {
       await upala.connect(manager1).commitHash(hash);
       await upala.connect(manager1).setBaseScore(scoreChange, secret);
       // todo check events
+    });
+
+    it("group manager can can publish new merkle root immediately", async function() {
+    // function publishRoot(bytes32 newRoot) external    });
+    });
+
+    it("group manager has to wait for the attack window to pass after commitment to delete root", async function() {
+    // function deleteRoot(bytes32 root, bytes32 secret) external {
     });
 
     // todo execution window 
@@ -250,10 +257,12 @@ describe("GROUPS", function() {
 describe("SCORING", function() {
    // todo setup protocol
 
-   it("can read own score", async function() {
+   it("can verify own score", async function() {
+    //  function verifyMyScore (uint160 groupID, uint160 identityID, address holder, uint8 score, bytes32[] calldata proof) external {
     });
 
-   it("Upala ID owner can approve scores to DApps", async function() {
+   it("DApp can verify user score", async function() {
+    // function verifyUserScore (uint160 groupID, uint160 identityID, address holder, uint8 score, bytes32[] calldata proof) external {
     });
 
    it("cannot approve scores from an arbitrary address", async function() {
@@ -263,7 +272,7 @@ describe("SCORING", function() {
     });
 });
 
-describe("SCORING", function() {
+describe("EXPLOSIONS", function() {
    // todo setup protocol
 
    it("cannot explode from an arbitrary address", async function() {
@@ -278,6 +287,8 @@ describe("SCORING", function() {
 
 describe("PROTOCOL MANAGEMENT", function() {
    // todo setup protocol
+   it("owner can change owner", async function() {
+    });
 
    it("owner can set attack window", async function() {
     });

@@ -195,11 +195,16 @@ contract Upala is Initializable{
         return "0x000000006578706c6f646564";
     }
     
-    function verifyScore (uint160 groupID, uint160 identityID, address holder, uint8 score, bytes32[] calldata proof) external {
-
+    // for Multipassport (user quering if own score is still verifiable)
+    function verifyMyScore (uint160 groupID, uint160 identityID, address holder, uint8 score, bytes32[] calldata proof) external view returns (bool) {
+        return true;
     }
 
     // for DApps
+    function verifyUserScore (uint160 groupID, uint160 identityID, address holder, uint8 score, bytes32[] calldata proof) external returns (bool) {
+        return true;
+    }
+    
     function userScore(uint160 groupID, uint160 identityID, address holder, uint8 score, bytes32[] memory proof) private returns (uint256){
         require(holder == identityHolder[identityID],
             "the holder address doesn't own the user id");
@@ -264,7 +269,7 @@ contract Upala is Initializable{
         // emit Set("NewBotReward", group, botReward);
     }
 
-    function deleteRoot(bytes32 root) public {
+    function deleteRoot(bytes32 root, bytes32 secret) external {
         uint160 group = managerToGroup[msg.sender];
         bytes32 hash = checkHash(keccak256(abi.encodePacked("deleteRoot", group, root)));
         delete commitsTimestamps[hash];
