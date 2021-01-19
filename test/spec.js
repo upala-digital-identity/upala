@@ -5,19 +5,19 @@ const Upala = artifacts.require("Upala");
 const FakeDai = artifacts.require("FakeDai");
 const BasicPoolFactory = artifacts.require("BasicPoolFactory");
 
-async function deployContract(contractName, ...args) {
-  const contractFactory = await ethers.getContractFactory(contractName);
-  const contractInstance = await contractFactory.deploy(...args);
-  await contractInstance.deployed();
-  return contractInstance;
-}
-
 let upala;
 let fakeDai;
 let basicPoolFactory;
 let wallets;
 let oneETH = BigNumber.from(10).pow(18);
 let fakeUBI = oneETH.mul(100)
+
+async function deployContract(contractName, ...args) {
+  const contractFactory = await ethers.getContractFactory(contractName);
+  const contractInstance = await contractFactory.deploy(...args);
+  await contractInstance.deployed();
+  return contractInstance;
+}
 
 async function resetProtocol() {
   // wallets
@@ -162,9 +162,11 @@ describe("GROUPS", function() {
   
   let manager1Group
   let manager1Pool
+  let manager2Group
+  let manager2Pool
 
   describe("registration", function() {
-    it("anyone can register a group", async function() {
+    it("anyone can register a group - todo check group id", async function() {
       const groupIDtoBeAssigned = 3
       await upala.connect(nobody).newGroup(manager1.getAddress(), basicPoolFactory.address);
       manager1Group = await upala.getGroupID(manager1.getAddress())
@@ -172,6 +174,11 @@ describe("GROUPS", function() {
       // expect(await upala.connect(nobody).getGroupID(manager1.getAddress())).to.eq(groupIDtoBeAssigned)
       // todo check return (entityCounter, groupPool[entityCounter]);
       // todo check events
+
+      // register second group
+      await upala.connect(nobody).newGroup(manager2.getAddress(), basicPoolFactory.address);
+      manager2Group = await upala.getGroupID(manager2.getAddress())
+      manager2Pool = await upala.getGroupPool(manager2Group)
     });
 
     it("cannot register to an existing manager", async function() {
@@ -182,15 +189,15 @@ describe("GROUPS", function() {
 
   });
 
-  describe("ownership", function() {
-  // can setGroupManager
-  // only owner can setGroupManager
-  // old manager can now manage new group
-  // still got access to pool
-  });
-
   describe("commitments", function() {
-  // two groups can issue identical commitments (cannot overwrite other group's commitment)
+    it("two groups can issue identical commitments (cannot overwrite other group's commitment)", async function() {
+      const someHash = utils.formatBytes32String("Vive la Sybil-resistance!");      
+      await upala.connect(manager1).commitHash(someHash);
+      // todo fast-forward 1 minute
+      await upala.connect(manager2).commitHash(someHash);
+      // todo check that timestamps are different
+      console.log(await upala.commitsTimestamps(someHash));
+    });
   });
 
   describe("score management", function() {
@@ -249,6 +256,15 @@ describe("GROUPS", function() {
 
   // cannot withdraw without commitment
   });
+
+  describe("ownership", function() {
+  // can setGroupManager
+  // only owner can setGroupManager
+  // old manager can now manage new group
+  // still got access to pool
+  });
+
+
 
   describe("group details (misc)", function() {
     it("group manager can publish group meta", async function() {

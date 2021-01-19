@@ -70,7 +70,7 @@ contract Upala is Initializable{
     *************/
 
     // Any changes that can hurt bot rights must wait for an attackWindow to expire
-    mapping(bytes32 => uint) commitsTimestamps;
+    mapping(bytes32 => uint) public commitsTimestamps;
 
     /**********
     CONSTRUCTOR
@@ -253,12 +253,11 @@ contract Upala is Initializable{
     // Announcements prevents front-running bot-exposions. Groups must announce
     // in advance any changes that may hurt bots rights
 
-    // hash = keccak256(groupID, action-type, [parameters], ..secret, ..nonce)
-    // secret allows to store commitments independently from groups.
-    // nonce may be required for withdrawals or other logic
-    function commitHash(bytes32 hash) external returns(uint256 nonce) {
-        commitsTimestamps[hash] = now;
-        return 0;
+    // hash = keccak256(action-type, [parameters], secret)
+    function commitHash(bytes32 hash) external returns(uint256 timestamp) {
+        uint256 timestamp = now;
+        commitsTimestamps[hash] = timestamp;
+        return timestamp;
     }
  
     function checkHash(bytes32 hash) internal view returns(bytes32){
