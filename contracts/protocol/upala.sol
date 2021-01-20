@@ -70,7 +70,7 @@ contract Upala is Initializable{
     *************/
 
     // Any changes that can hurt bot rights must wait for an attackWindow to expire
-    mapping(bytes32 => uint) public commitsTimestamps;
+    mapping(uint160 => mapping(bytes32 => uint)) public commitsTimestamps;
 
     /**********
     CONSTRUCTOR
@@ -255,16 +255,17 @@ contract Upala is Initializable{
 
     // hash = keccak256(action-type, [parameters], secret)
     function commitHash(bytes32 hash) external returns(uint256 timestamp) {
+        uint160 group = managerToGroup[msg.sender];
         uint256 timestamp = now;
-        commitsTimestamps[hash] = timestamp;
+        commitsTimestamps[group][hash] = timestamp;
         return timestamp;
     }
  
-    function checkHash(bytes32 hash) internal view returns(bytes32){
-        require (commitsTimestamps[hash] != 0, "No such commitment hash");
+    function checkHash(uint160 group, bytes32 hash) internal view returns(bool){
+        require (commitsTimestamps[group][hash] != 0, "No such commitment hash");
         //require (commitsTimestamps[hash] + attackWindow <= now, "Attack window is not closed yet");
         //require (commitsTimestamps[hash] + executionWindow >= now, "Execution window is already closed");
-        return hash;
+        return true;
     }
 
     /*Changes that may hurt bots rights*/
@@ -272,25 +273,28 @@ contract Upala is Initializable{
     // Sets the maximum possible bot reward for the group.
     function setBaseScore(uint botReward, bytes32 secret) external {
         uint160 group = managerToGroup[msg.sender];
-        bytes32 hash = checkHash(keccak256(abi.encodePacked("setBaseScore", botReward, secret)));
+        bytes32 hash = keccak256(abi.encodePacked("setBaseScore", botReward, secret));
+        checkHash(group, hash);
         baseReward[group] = botReward;
-        delete commitsTimestamps[hash];
+        delete commitsTimestamps[group][hash];
         // emit Set("NewBotReward", group, botReward);
     }
 
     function deleteRoot(bytes32 root, bytes32 secret) external {
         uint160 group = managerToGroup[msg.sender];
-        bytes32 hash = checkHash(keccak256(abi.encodePacked("deleteRoot", group, root)));
-        delete commitsTimestamps[hash];
+        bytes32 hash = keccak256(abi.encodePacked("deleteRoot", group, root));
+        checkHash(group, hash);
+        delete commitsTimestamps[group][hash];
         delete roots[group][root];
     }
 
     // tries to withdraw as much as possible (bots could have attacked after an announcement) 
     function withdrawFromPool(address recipient, uint amount, bytes32 secret) external returns (uint256){ // $$$
         uint160 group = managerToGroup[msg.sender];
-        bytes32 hash = checkHash(keccak256(abi.encodePacked("withdrawFromPool", group, recipient, amount)));
+        bytes32 hash = keccak256(abi.encodePacked("withdrawFromPool", group, recipient, amount));
+        checkHash(group, hash);
         uint256 withdrawnAmount = IPool(groupPool[group]).withdrawAvailable(recipient, amount);
-        delete commitsTimestamps[hash];
+        delete commitsTimestamps[group][hash];
         // emit Set("withdrawFromPool", withdrawed);
         return withdrawnAmount;
     }

@@ -1,5 +1,6 @@
 const { expect } = require("chai");
 const { BigNumber, utils } = require("ethers");
+const { time } = require('@openzeppelin/test-helpers');
 
 const Upala = artifacts.require("Upala");
 const FakeDai = artifacts.require("FakeDai");
@@ -43,6 +44,7 @@ describe("USER", function() {
 
   before('register users', async () => {
     await resetProtocol();
+
     await upala.connect(user2).newIdentity(user1.getAddress());
     await upala.connect(user2).newIdentity(user2.getAddress());
     await upala.connect(user1).approveDelegate(delegate1.getAddress());
@@ -190,13 +192,28 @@ describe("GROUPS", function() {
   });
 
   describe("commitments", function() {
-    it("two groups can issue identical commitments (cannot overwrite other group's commitment)", async function() {
-      const someHash = utils.formatBytes32String("Vive la Sybil-resistance!");      
+
+    it("a group can issue a commitment", async function() {
+      const someHash = utils.formatBytes32String("First commitment!");
       await upala.connect(manager1).commitHash(someHash);
-      // todo fast-forward 1 minute
+      const now = await time.latest();
+      console.log(manager1Group)
+      expect(await upala.commitsTimestamps(manager1Group, someHash)).to.eq(now.toString());
+      // fast-forward
+      await time.increase(1000);
+      const otherHash = utils.formatBytes32String("Second commitment!");
+      await upala.connect(manager1).commitHash(otherHash);
+      const then = await time.latest();
+      expect(await upala.commitsTimestamps(manager1Group, otherHash)).to.eq(then.toString());
+    });
+
+    it("two groups can issue identical commitments (cannot overwrite other group's commitment)", async function() {
+      const someHash = utils.formatBytes32String("We have identical commitments!");      
+      await upala.connect(manager1).commitHash(someHash);
       await upala.connect(manager2).commitHash(someHash);
-      // todo check that timestamps are different
-      console.log(await upala.commitsTimestamps(someHash));
+      const timestamp1 = await upala.commitsTimestamps(manager1Group, someHash);
+      const timestamp2 = await upala.commitsTimestamps(manager2Group, someHash);
+      expect(timestamp2.sub(timestamp1)).to.eq(1);
     });
   });
 
