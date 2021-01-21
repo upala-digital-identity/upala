@@ -1,7 +1,6 @@
 const { expect } = require("chai");
 const { BigNumber, utils } = require("ethers");
 const { time } = require('@openzeppelin/test-helpers');
-
 const Upala = artifacts.require("Upala");
 const FakeDai = artifacts.require("FakeDai");
 const BasicPoolFactory = artifacts.require("BasicPoolFactory");
@@ -34,11 +33,47 @@ async function resetProtocol() {
   });
 
   // setup protocol
-  upala = await deployContract("Upala");
+  const Upala = await ethers.getContractFactory("Upala");
+  upala = await upgrades.deployProxy(Upala);
+  await upala.deployed();
+
   basicPoolFactory = await deployContract("BasicPoolFactory", fakeDai.address);
   await upala.setapprovedPoolFactory(basicPoolFactory.address, "true").then((tx) => tx.wait());
 }
 
+describe("PROTOCOL MANAGEMENT", function() {
+  before('set protocol', async () => {
+    await resetProtocol();
+    })
+
+  it("owner can set attack window", async function() {
+    const oldAttackWindow = await upala.attackWindow();
+    const newAttackWindow = oldAttackWindow + 1000;
+    await expect(upala.connect(nobody).setAttackWindow(newAttackWindow)).to.be.revertedWith(
+      'Ownable: caller is not the owner'
+    );
+    await upala.connect(upalaAdmin).setAttackWindow(newAttackWindow);
+    expect(await upala.attackWindow()).to.be.eq(newAttackWindow);
+   });
+
+  it("owner can set execution window", async function() {
+    const oldExecutionWindow = await upala.executionWindow();
+    const newExecutionWindow = oldExecutionWindow + 1000;
+    await expect(upala.connect(nobody).setExecutionWindow(newExecutionWindow)).to.be.revertedWith(
+      'Ownable: caller is not the owner'
+    );
+    await upala.connect(upalaAdmin).setExecutionWindow(newExecutionWindow);
+    expect(await upala.executionWindow()).to.be.eq(newExecutionWindow);
+   });
+  
+   it("owner can change owner", async function() {
+    await expect(upala.connect(nobody).transferOwnership(nobody.getAddress())).to.be.revertedWith(
+      'Ownable: caller is not the owner'
+    );
+    await upala.connect(upalaAdmin).transferOwnership(nobody.getAddress());
+    expect(await upala.owner()).to.be.eq(await nobody.getAddress());
+   });
+});
 
 describe("USER", function() {
 
@@ -197,7 +232,6 @@ describe("GROUPS", function() {
       const someHash = utils.formatBytes32String("First commitment!");
       await upala.connect(manager1).commitHash(someHash);
       const now = await time.latest();
-      console.log(manager1Group)
       expect(await upala.commitsTimestamps(manager1Group, someHash)).to.eq(now.toString());
       // fast-forward
       await time.increase(1000);
@@ -329,16 +363,5 @@ describe("EXPLOSIONS", function() {
     });
 });
 
-describe("PROTOCOL MANAGEMENT", function() {
-   // todo setup protocol
-   it("owner can change owner", async function() {
-    });
 
-   it("owner can set attack window", async function() {
-    });
-
-   it("owner can set execution window", async function() {
-    });
-
-});
 

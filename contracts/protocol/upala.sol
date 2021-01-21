@@ -2,14 +2,14 @@ pragma solidity ^0.6.0;
 
 // import "./i-upala.sol";
 import "../libraries/openzeppelin-contracts/contracts/math/SafeMath.sol";
-import "@openzeppelin/upgrades/contracts/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "../pools/i-pool-factory.sol";
 import "../pools/i-pool.sol";
 import "hardhat/console.sol";
 
 
 // The Upala ledger (protocol)
-contract Upala is Initializable{
+contract Upala is OwnableUpgradeable{
     using SafeMath for uint256;
 
     IPoolFactory pFactory;
@@ -24,8 +24,8 @@ contract Upala is Initializable{
 
     // any changes that hurt bots rights must be announced an hour in advance
     // changes must be executed within execution window
-    uint256 attackWindow;  // 0 - for tests // TODO set to 1 hour at production
-    uint256 executionWindow; // 1000 - for tests
+    uint256 public attackWindow;  // 0 - for tests // TODO set to 1 hour at production
+    uint256 public executionWindow; // 1000 - for tests
     address EXPLODED; // assigned as identity holder after ID explosion
 
     /***************************
@@ -77,10 +77,14 @@ contract Upala is Initializable{
     ***********/
 
     function initialize () external {
+        // todo (is this a good production practice?) 
+        // https://forum.openzeppelin.com/t/how-to-use-ownable-with-upgradeable-contract/3336/4
+        __Context_init_unchained();
+        __Ownable_init_unchained();
+        // defaults
         registrationFee = 0 wei;
-        // maxPathLength = 10;
-        attackWindow = 0 hours;
-        executionWindow = 1000 hours;
+        attackWindow = 30 minutes;
+        executionWindow = 1 hours;
         EXPLODED = address(0x0000000000000000000000006578706c6f646564);  // Hex to ASCII = exploded
     }
 
@@ -335,6 +339,14 @@ contract Upala is Initializable{
     // TODO only admin
     function setapprovedPoolFactory(address poolFactory, bool isApproved) external {
         approvedPoolFactories[poolFactory] = isApproved;
+    }
+
+    function setAttackWindow(uint256 newWindow) onlyOwner external {
+        attackWindow = newWindow;
+    }
+
+    function setExecutionWindow(uint256 newWindow) onlyOwner external {
+        executionWindow = newWindow;
     }
     // registrationFee
     // maxPathLength
