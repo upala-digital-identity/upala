@@ -49,7 +49,7 @@ contract Upala is OwnableUpgradeable{
     // The most important obligation of a group is to pay bot rewards.
     // A group can set its own maximum bot reward
     mapping(uint160 => uint256) baseReward;  // baseReward
-    mapping(uint160 => mapping (bytes32 => bool)) roots;  
+    mapping(uint160 => mapping (bytes32 => uint256)) public roots;  
     
 
     // Identities
@@ -215,7 +215,7 @@ contract Upala is OwnableUpgradeable{
         require (identityHolder[identityID] != EXPLODED,
             "This user has already exploded");
         // pool amount is sufficient for explosion
-        require (roots[groupID][getRootTemp(identityID, score, proof)] == true);
+        require (roots[groupID][getRootTemp(identityID, score, proof)] > 0);
         uint256 totalScore = baseReward[groupID] * score;
         
         return totalScore;
@@ -267,8 +267,9 @@ contract Upala is OwnableUpgradeable{
  
     function checkHash(uint160 group, bytes32 hash) internal view returns(bool){
         require (commitsTimestamps[group][hash] != 0, "No such commitment hash");
-        //require (commitsTimestamps[hash] + attackWindow <= now, "Attack window is not closed yet");
-        //require (commitsTimestamps[hash] + executionWindow >= now, "Execution window is already closed");
+        require (commitsTimestamps[group][hash] + attackWindow <= now, "Attack window is not closed yet");
+        require (commitsTimestamps[group][hash] + attackWindow + executionWindow >= now, "Execution window is already closed");
+        // todo is it possible to create lock for active commits when changing windows?
         return true;
     }
 
@@ -286,8 +287,9 @@ contract Upala is OwnableUpgradeable{
 
     function deleteRoot(bytes32 root, bytes32 secret) external {
         uint160 group = managerToGroup[msg.sender];
-        bytes32 hash = keccak256(abi.encodePacked("deleteRoot", group, root));
+        bytes32 hash = keccak256(abi.encodePacked("deleteRoot", root, secret));
         checkHash(group, hash);
+        require(commitsTimestamps[group][hash] > roots[group][root], "Commit is submitted before root");
         delete commitsTimestamps[group][hash];
         delete roots[group][root];
     }
@@ -313,7 +315,7 @@ contract Upala is OwnableUpgradeable{
 
     function publishRoot(bytes32 newRoot) external {
         uint160 group = managerToGroup[msg.sender];
-        roots[group][newRoot] = true;
+        roots[group][newRoot] = now;
     }
 
     /**************

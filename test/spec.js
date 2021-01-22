@@ -1,6 +1,7 @@
 const { expect } = require("chai");
 const { BigNumber, utils } = require("ethers");
 const { time } = require('@openzeppelin/test-helpers');
+const { upgrades } = require("hardhat");
 const Upala = artifacts.require("Upala");
 const FakeDai = artifacts.require("FakeDai");
 const BasicPoolFactory = artifacts.require("BasicPoolFactory");
@@ -20,7 +21,7 @@ async function deployContract(contractName, ...args) {
 }
 
 async function resetProtocol() {
-  // wallets
+  // wallets and DAI mock
   fakeDai = await deployContract("FakeDai");
   wallets = await ethers.getSigners();
   [upalaAdmin,user1,user2,user3,manager1,manager2,delegate1,delegate2,delegate3,nobody] = wallets;
@@ -32,7 +33,7 @@ async function resetProtocol() {
     }
   });
 
-  // setup protocol
+  // deploy upgradable upala
   const Upala = await ethers.getContractFactory("Upala");
   upala = await upgrades.deployProxy(Upala);
   await upala.deployed();
@@ -202,6 +203,10 @@ describe("GROUPS", function() {
   let manager2Group
   let manager2Pool
 
+  before('register users', async () => {
+    await resetProtocol();
+    })
+
   describe("registration", function() {
     it("anyone can register a group - todo check group id", async function() {
       const groupIDtoBeAssigned = 3
@@ -252,47 +257,133 @@ describe("GROUPS", function() {
   });
 
   describe("score management", function() {
-    
+    let attackWindow
+    let executionWindow
+    let hash
     const scoreChange = oneETH.mul(42).div(100);
+    const secret = utils.formatBytes32String("Zuckerberg is a human")
+    const wrongSecret = utils.formatBytes32String("dfg")
 
-    it("Group manager can increase base score immediately", async function() {
-      const scoreBefore = await upala.connect(manager1).groupBaseScore(manager1Group)
-      await upala.connect(manager1).increaseBaseScore(scoreBefore.add(scoreChange));
-      const scoreAfter = await upala.connect(manager1).groupBaseScore(manager1Group)
-      expect(scoreAfter.sub(scoreBefore)).to.eq(scoreChange)
+    before('register users', async () => {
+      attackWindow = await upala.attackWindow();
+      executionWindow = await upala.executionWindow();
+      if (attackWindow.toNumber() < 600  || executionWindow  < 600) {
+        throw 'attackWindow or executionWindow are too short for the tests!';
+      }
+    })
+
+    describe("increase base score", function() {
+
+      it("Group manager can increase base score immediately", async function() {
+        const scoreBefore = await upala.connect(manager1).groupBaseScore(manager1Group)
+        await upala.connect(manager1).increaseBaseScore(scoreBefore.add(scoreChange));
+        const scoreAfter = await upala.connect(manager1).groupBaseScore(manager1Group)
+        expect(scoreAfter.sub(scoreBefore)).to.eq(scoreChange)
+      });
+
+      it("cannot decrease base score immediately", async function() {
+        await expect(upala.connect(manager1).increaseBaseScore(scoreChange)).to.be.revertedWith(
+          'To decrease score, make a commitment first'
+        )
+      });
+
+      // only group manager todo 
     });
 
-    it("cannot decrease base score immediately", async function() {
-      await expect(upala.connect(manager1).increaseBaseScore(scoreChange)).to.be.revertedWith(
-        'To decrease score, make a commitment first'
-      )
+    describe("decrease base score", function() {
+      
+      let newScore
+      before('Commit hash', async () => {
+        // scoreBefore = 
+        newScore = (await upala.connect(manager1).groupBaseScore(manager1Group)).sub(1);
+        hash = utils.solidityKeccak256([ 'string', 'uint256', 'bytes32' ], [ "setBaseScore", newScore, secret ]);
+        await upala.connect(manager1).commitHash(hash);
+      })
+
+      it("cannot decrease score immediately after commitment", async function() {
+        await expect(upala.connect(manager1).setBaseScore(newScore, secret)).to.be.revertedWith(
+          'Attack window is not closed yet'
+        )
+      });
+
+      it("cannot decrease score after execution window", async function() {
+        await time.increase((executionWindow).add(attackWindow).toNumber());
+        await expect(upala.connect(manager1).setBaseScore(newScore, secret)).to.be.revertedWith(
+          'Execution window is already closed'
+        )
+      });
+
+      it("cannot decrease score with wrong secret", async function() {
+        await upala.connect(manager1).commitHash(hash);
+        await time.increase(attackWindow.toNumber());
+        await expect(upala.connect(manager1).setBaseScore(newScore, wrongSecret)).to.be.revertedWith(
+          'No such commitment hash'
+        )
+      });
+
+      it("can decrease score after attack window and before execution window", async function() {
+        await expect(upala.connect(nobody).setBaseScore(newScore, secret)).to.be.revertedWith(
+          'No such commitment hash'
+        )
+        await upala.connect(manager1).setBaseScore(newScore, secret);
+        const scoreAfter = await upala.connect(manager1).groupBaseScore(manager1Group)
+        expect(scoreAfter).to.eq(newScore)
+      });
     });
 
-    // todo cannot decrease score immediately after commitment 
+    describe("publish/delete merkle roots", function() {
 
-    it("can decrease score after commitment and attack window (todo - enable attack window)", async function() {
-      const secret = utils.formatBytes32String("Zuckerberg is a human")
-      const method = "setBaseScore"
-      const hash = utils.solidityKeccak256([ 'string', 'uint256', 'bytes32' ], [ method, scoreChange, secret ]);
-      await upala.connect(manager1).commitHash(hash);
-      await upala.connect(manager1).setBaseScore(scoreChange, secret);
-      // todo check events
+      let someRoot
+      let delRootCommitHash
+      before('Commit hash', async () => {
+        someRoot = utils.formatBytes32String("Decentralize the IDs");
+        delRootCommitHash = utils.solidityKeccak256([ 'string', 'uint256', 'bytes32' ], [ "deleteRoot", someRoot, secret ]);
+      })
+
+      it("group manager can publish new merkle root immediately", async function() {
+        await upala.connect(manager1).publishRoot(someRoot);
+        expect(await upala.roots(manager1Group, someRoot)).to.eq((await time.latest()).toString());
+      });
+
+      it("cannot delete during attack window", async function() {
+        await upala.connect(manager1).commitHash(delRootCommitHash); // +1 second to "mine" transaction 
+        await time.increase((attackWindow).sub(2).toNumber())  // +1s if next transaction is mined
+        await expect(upala.connect(manager1).deleteRoot(someRoot, secret)).to.be.revertedWith(
+          'Attack window is not closed yet'
+        );
+      });
+
+      it("cannot delete after execution window", async function() {
+        await time.increase((executionWindow).add(2).toNumber());
+        await expect(upala.connect(manager1).deleteRoot(someRoot, secret)).to.be.revertedWith(
+          'Execution window is already closed'
+        )
+      });
+
+      it("cannot publish commit before root", async function() {
+        await upala.connect(manager1).commitHash(delRootCommitHash);
+        await upala.connect(manager1).publishRoot(someRoot);
+        await time.increase((attackWindow).toNumber())
+        await expect(upala.connect(manager1).deleteRoot(someRoot, secret)).to.be.revertedWith(
+          'Commit is submitted before root'
+        )
+      });
+
+      it("cannot delete with wrong secret", async function() {
+        await upala.connect(manager1).publishRoot(someRoot);
+        await upala.connect(manager1).commitHash(delRootCommitHash);
+        await time.increase((attackWindow).toNumber());
+        await expect(upala.connect(manager1).deleteRoot(someRoot, wrongSecret)).to.be.revertedWith(
+          'No such commitment hash'
+        )
+      });
+
+      it("can delete after attack window and before execution window", async function() {
+        await upala.connect(manager1).deleteRoot(someRoot, secret);
+        expect(await upala.commitsTimestamps(manager1Group, delRootCommitHash)).to.eq(0);
+        expect(await upala.roots(manager1Group, someRoot)).to.eq(0);
+      });
     });
-
-    it("group manager can can publish new merkle root immediately", async function() {
-    // function publishRoot(bytes32 newRoot) external    });
-    });
-
-    it("group manager has to wait for the attack window to pass after commitment to delete root", async function() {
-    // function deleteRoot(bytes32 root, bytes32 secret) external {
-    });
-
-    // todo execution window 
-    // todo attack window
-    // todo hash exists
-
-    
-  // cannot commit hash for another group 
   });
 
   describe("basic pool", function() {
