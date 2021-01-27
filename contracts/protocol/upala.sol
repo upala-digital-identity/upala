@@ -165,6 +165,30 @@ contract Upala is OwnableUpgradeable{
         return poolAddress;
     }
 
+    // TODO get group from msg.sender
+    function setGroupManager(address newGroupManager) external {
+        uint160 group = managerToGroup[msg.sender];
+        address currentManager = groupManager[group];
+        groupManager[group] = newGroupManager;
+        delete managerToGroup[currentManager];
+        managerToGroup[newGroupManager] = group;
+    }
+
+    function upgradePool(address poolFactory, bytes32 secret) external returns (address, uint256) {
+        // check committment
+        uint160 group = managerToGroup[msg.sender];
+        bytes32 hash = keccak256(abi.encodePacked("withdrawFromPool", secret));
+        checkHash(group, hash);
+        // transfer funds (max available)
+        address oldPool = groupPool[group];
+        address newPool = _newPool(poolFactory, group);
+        uint256 MAX_INT = 2**256 - 1;
+        uint256 withdrawnAmount = IPool(oldPool).withdrawAvailable(newPool, MAX_INT);
+        // atatch new pool to group
+        groupPool[group] = newPool;
+        delete commitsTimestamps[group][hash];
+        return (newPool, withdrawnAmount);
+    }
 
     // tokens are only stable USDs
     function _newPool(address poolFactory, uint160 poolOwner) private returns (address) {
@@ -175,21 +199,16 @@ contract Upala is OwnableUpgradeable{
         return newPoolAddress;
     }
 
-    // TODO get group from msg.sender
-    function setGroupManager(address newGroupManager) external {
-        uint160 group = managerToGroup[msg.sender];
-        address currentManager = groupManager[group];
-        groupManager[group] = newGroupManager;
-        delete managerToGroup[currentManager];
-        managerToGroup[newGroupManager] = group;
-    }
-
 
 
 
     /*********************
     SCORING AND BOT ATTACK
     **********************/
+
+    function isExploded(uint160 identity) external returns(bool){
+        return (identityHolder[identity] == EXPLODED);
+    }
 
     function verifyTemp() public returns(bool res) { // a mock function before real Merkle is implemented
         return true;
@@ -297,7 +316,7 @@ contract Upala is OwnableUpgradeable{
     // tries to withdraw as much as possible (bots could have attacked after an announcement) 
     function withdrawFromPool(address recipient, uint amount, bytes32 secret) external returns (uint256){ // $$$
         uint160 group = managerToGroup[msg.sender];
-        bytes32 hash = keccak256(abi.encodePacked("withdrawFromPool", group, recipient, amount));
+        bytes32 hash = keccak256(abi.encodePacked("withdrawFromPool", secret));
         checkHash(group, hash);
         uint256 withdrawnAmount = IPool(groupPool[group]).withdrawAvailable(recipient, amount);
         delete commitsTimestamps[group][hash];
@@ -322,16 +341,11 @@ contract Upala is OwnableUpgradeable{
     GETTER FUNCTIONS
     ***************/
 
-    // used by gitcoin group (aggregator) to reverse-engineer member trust within a group
     function groupBaseScore(uint160 groupID) external view returns (uint) {
         return baseReward[groupID];
     }
 
 
-
-    function isExploded(uint160 identity) external returns(bool){
-        return (identityHolder[identity] == EXPLODED);
-    }
 
 
     /************************
@@ -351,15 +365,5 @@ contract Upala is OwnableUpgradeable{
         executionWindow = newWindow;
     }
     // registrationFee
-    // maxPathLength
-    // attackWindow
-    // executionWindow
     // approvedPoolFactories
 }
-
-
-/* todo consider:
-
-- loops in social graphs. is nonReentrant enough?
-
-*/
