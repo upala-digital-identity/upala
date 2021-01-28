@@ -3,14 +3,13 @@
 // When running the script with `buidler run <script>` you'll find the Buidler
 // Runtime Environment's members available in the global scope.
 // const bre = require("@nomiclabs/buidler");
+
 const bre = require("hardhat");
 const { ethers, upgrades } = require("hardhat");
 const fs = require('fs');
 const chalk = require('chalk');
-
 const exampleDappDir = "../example-app/packages/contracts/";
 const newPublishDir = "../scaffold-eth/rad-new-dapp/packages/contracts/"
-
 
 
 
@@ -39,7 +38,12 @@ async function main() {
     "\nu3", chalk.blue(await u3.getAddress()), ethers.utils.formatEther(await u3.getBalance())
     );
   
-
+  if (networkName == "localhost") {
+    owner.sendTransaction({
+      to: "0xb4124cEB3451635DAcedd11767f004d8a28c6eE7",
+      value: ethers.utils.parseEther("1.0")
+    });
+  }
   console.log(chalk.green("\n📡 DEPLOYING (", networkName, ")\n"));
   /////////////////////////////////////////////////
 
@@ -52,7 +56,7 @@ async function main() {
     console.log(chalk.cyan(contractName),"deployed to:", chalk.magenta(contractInstance.address));
     finalContracts[contractName] = {
       address: contractInstance.address,
-      abi: contractInstance.interface.abi, // TODO will it work as ABI in Front-end
+      abi: contractInstance.interface.format("json"), // TODO will it work as ABI in Front-end
     };
 
     return contractInstance;
@@ -65,6 +69,10 @@ async function main() {
   const Upala = await ethers.getContractFactory("Upala");
   const upala = await upgrades.deployProxy(Upala);
   await upala.deployed();
+  finalContracts["Upala"] = {
+    address: upala.address,
+    abi: upala.interface.format("json"), // TODO will it work as ABI in Front-end
+  };
   console.log(chalk.cyan("Upala"), "deployed to:", chalk.magenta(upala.address));
 
   // Testing environment
@@ -92,7 +100,7 @@ async function main() {
     
     finalGroups[groupName] = {
       address: newGroup.address,
-      abi: newGroup.interface.abi,
+      abi: newGroup.interface.format(),
     };
 
     groupsAddresses.push(newGroup.address);
