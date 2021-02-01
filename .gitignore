@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 secrets.js
 contracts/oz/*
 .openzeppelin/*
@@ -7,3 +8,8 @@ package-lock.json
 node_modules
 artifacts
 cache
+=======
+node_modules/
+build/
+wrangler.toml
+>>>>>>> uni-merkle/master
