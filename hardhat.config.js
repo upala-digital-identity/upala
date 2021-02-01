@@ -26,9 +26,6 @@ module.exports = {
     localhost: {
       //url: 'https://rinkeby.infura.io/v3/2717afb6bf164045b5d5468031b93f87',
       url: 'http://localhost:8545',
-      /*accounts: {
-        mnemonic: "**SOME MNEMONIC**"
-      },*/
     },
     kovan: {
       url: 'https://kovan.infura.io/v3/3b076e7d293041b684349d436904ccdb',//+infura_project_id,
