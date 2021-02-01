@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity =0.6.11;
+pragma solidity ^0.6.0;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/cryptography/MerkleProof.sol";
-import "./interfaces/IMerkleDistributor.sol";
+import "../libraries/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import "../libraries/openzeppelin-contracts/contracts/cryptography/MerkleProof.sol";
 
-contract MerkleDistributor is IMerkleDistributor {
-    address public immutable override token;
-    bytes32 public immutable override merkleRoot;
+contract MerkleDistributor {
+    address public immutable token;
+    bytes32 public immutable merkleRoot;
 
     // This is a packed array of booleans.
     mapping(uint256 => uint256) private claimedBitMap;
@@ -17,7 +16,7 @@ contract MerkleDistributor is IMerkleDistributor {
         merkleRoot = merkleRoot_;
     }
 
-    function isClaimed(uint256 index) public view override returns (bool) {
+    function isClaimed(uint256 index) public view  returns (bool) {
         uint256 claimedWordIndex = index / 256;
         uint256 claimedBitIndex = index % 256;
         uint256 claimedWord = claimedBitMap[claimedWordIndex];
@@ -31,7 +30,7 @@ contract MerkleDistributor is IMerkleDistributor {
         claimedBitMap[claimedWordIndex] = claimedBitMap[claimedWordIndex] | (1 << claimedBitIndex);
     }
 
-    function claim(uint256 index, address account, uint256 amount, bytes32[] calldata merkleProof) external override {
+    function claim(uint256 index, address account, uint256 amount, bytes32[] calldata merkleProof) external {
         require(!isClaimed(index), 'MerkleDistributor: Drop already claimed.');
 
         // Verify the merkle proof.
@@ -42,6 +41,6 @@ contract MerkleDistributor is IMerkleDistributor {
         _setClaimed(index);
         require(IERC20(token).transfer(account, amount), 'MerkleDistributor: Transfer failed.');
 
-        emit Claimed(index, account, amount);
+        // emit Claimed(index, account, amount);
     }
 }

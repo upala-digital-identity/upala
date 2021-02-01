@@ -1,10 +1,10 @@
-// SPDX-License-Identifier: UNLICENSED
-pragma solidity =0.6.11;
+// This is by uniswap folks
+pragma solidity ^0.6.0;
 
-import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
+import "../libraries/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 
 contract TestERC20 is ERC20 {
-    constructor (string memory name_, string memory symbol_, uint amountToMint) ERC20(name_, symbol_) public {
+    constructor (string memory name_, string memory symbol_, uint amountToMint) public {
         setBalance(msg.sender, amountToMint);
     }
 
