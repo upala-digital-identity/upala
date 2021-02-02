@@ -11,6 +11,12 @@ contract MerkleDistributor {
     // This is a packed array of booleans.
     mapping(uint256 => uint256) private claimedBitMap;
 
+    event Claimed(
+        uint256 _index,
+        address _account,
+        uint256 _amount
+    );
+
     constructor(address token_, bytes32 merkleRoot_) public {
         token = token_;
         merkleRoot = merkleRoot_;
@@ -41,6 +47,6 @@ contract MerkleDistributor {
         _setClaimed(index);
         require(IERC20(token).transfer(account, amount), 'MerkleDistributor: Transfer failed.');
 
-        // emit Claimed(index, account, amount);
+        emit Claimed(index, account, amount);
     }
 }

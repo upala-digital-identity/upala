@@ -3,8 +3,8 @@ import { solidity, MockProvider, deployContract } from 'ethereum-waffle'
 import { Contract, BigNumber, constants } from 'ethers'
 import BalanceTree from '../src/balance-tree'
 
-import Distributor from '../build/MerkleDistributor.json'
-import TestERC20 from '../build/TestERC20.json'
+import Distributor from '../artifacts/contracts/protocol/MerkleDistributor.sol/MerkleDistributor.json'
+import TestERC20 from '../artifacts/contracts/mockups/TestERC20.sol/TestERC20.json'
 import { parseBalanceMap } from '../src/parse-balance-map'
 
 chai.use(solidity)

@@ -1,12 +1,14 @@
-require("@nomiclabs/hardhat-waffle");
-require("@nomiclabs/hardhat-truffle5");
-require('@openzeppelin/hardhat-upgrades');
-require("@nomiclabs/hardhat-web3");
+import { task } from "hardhat/config";
+import "@nomiclabs/hardhat-waffle";
+// require("@nomiclabs/hardhat-waffle");
+import "@nomiclabs/hardhat-truffle5";
+import '@openzeppelin/hardhat-upgrades';
+import "@nomiclabs/hardhat-web3";
 
 // This is a sample Buidler task. To learn how to create your own go to
 // https://buidler.dev/guides/create-task.html
-task("accounts", "Prints the list of accounts", async () => {
-  const accounts = await ethers.getSigners();
+task("accounts", "Prints the list of accounts", async (args, hre) => {
+  const accounts = await hre.ethers.getSigners();
 
   for (const account of accounts) {
     console.log(await account.getAddress());
@@ -20,7 +22,7 @@ task("accounts", "Prints the list of accounts", async () => {
 const secrets = require("./secrets.js");
 
 
-module.exports = {
+export default {
   defaultNetwork: 'localhost',
   networks: {
     localhost: {
