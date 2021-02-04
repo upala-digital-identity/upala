@@ -56,8 +56,8 @@ contract Upala is OwnableUpgradeable{
     // Ensures that identities and groups are different entities
     // Ensures that an exploded bot will never be able to get a score or explode again
     // Human, Individual, Identity
-    mapping(uint160 => address) identityHolder;
-    mapping(address => uint160) holderToIdentity;
+    mapping(address => address) identityHolder;
+    mapping(address => address) holderToIdentity;
 
     // Pools
     // Pool Factories approved by Upala admin
@@ -93,36 +93,37 @@ contract Upala is OwnableUpgradeable{
     **************/
 
     // Upala ID can be assigned to an address by a third party
-    function newIdentity(address newIdentityHolder) external returns (uint160) {
-        entityCounter++;
-        require (holderToIdentity[newIdentityHolder] == 0, "Address is already an owner or delegate");
-        identityHolder[entityCounter] = newIdentityHolder;
-        holderToIdentity[newIdentityHolder] = entityCounter;
-        return entityCounter;
+    function newIdentity(address newIdentityHolder) external returns (address) {
+        // newId++;
+        address newId = address(uint(keccak256(abi.encodePacked(msg.sender, now))));
+        require (holderToIdentity[newIdentityHolder] == address(0x0), "Address is already an owner or delegate");
+        identityHolder[newId] = newIdentityHolder;
+        holderToIdentity[newIdentityHolder] = newId;
+        return newId;
     }
 
     function approveDelegate(address delegate) external {
-        uint160 upalaId = holderToIdentity[msg.sender];
+        address upalaId = holderToIdentity[msg.sender];
         require (identityHolder[upalaId] == msg.sender, "Only identity holder can add or remove delegates");
         holderToIdentity[delegate] = upalaId;
     }
 
     function removeDelegate(address delegate) external {
-        uint160 upalaId = holderToIdentity[msg.sender];
+        address upalaId = holderToIdentity[msg.sender];
         require (identityHolder[upalaId] == msg.sender, "Only identity holder can add or remove delegates");
         holderToIdentity[delegate] = upalaId;
         delete holderToIdentity[delegate];
     }
 
     function setIdentityOwner(address newIdentityOwner) external {
-        uint160 identity = identityByAddress(msg.sender);
+        address identity = identityByAddress(msg.sender);
         require (identityHolder[identity] == msg.sender, "Only identity holder can add or remove delegates");
-        require (holderToIdentity[newIdentityOwner] == identity || holderToIdentity[newIdentityOwner] == 0, "Address is already an owner or delegate");
+        require (holderToIdentity[newIdentityOwner] == identity || holderToIdentity[newIdentityOwner] == address(0x0), "Address is already an owner or delegate");
         identityHolder[identity] = newIdentityOwner;
         holderToIdentity[newIdentityOwner] = identity;
     }
 
-    function myId() external view returns(uint160) {
+    function myId() external view returns(address) {
         return identityByAddress(msg.sender);
     }
 
@@ -130,13 +131,13 @@ contract Upala is OwnableUpgradeable{
         return identityOwner(identityByAddress(msg.sender));
     }
 
-    function identityByAddress(address ownerOrDelegate) internal view returns(uint160 identity) {
-        uint160 identity = holderToIdentity[ownerOrDelegate];
-        require (identity > 0, "no id registered for the address");
+    function identityByAddress(address ownerOrDelegate) internal view returns(address identity) {
+        address identity = holderToIdentity[ownerOrDelegate];
+        require (identity != address(0x0), "no id registered for the address");
         return identity;
     }
 
-    function identityOwner(uint160 upalaId) internal view returns(address owner) {
+    function identityOwner(address upalaId) internal view returns(address owner) {
         return identityHolder[upalaId];
     }
 
@@ -206,7 +207,7 @@ contract Upala is OwnableUpgradeable{
     SCORING AND BOT ATTACK
     **********************/
 
-    function isExploded(uint160 identity) external returns(bool){
+    function isExploded(address identity) external returns(bool){
         return (identityHolder[identity] == EXPLODED);
     }
 
@@ -214,21 +215,21 @@ contract Upala is OwnableUpgradeable{
         return true;
     }
 
-    function getRootTemp(uint160 identityID, uint8 score, bytes32[] memory proof) public returns(bytes32 res) {
+    function getRootTemp(address identityID, uint8 score, bytes32[] memory proof) public returns(bytes32 res) {
         return "0x000000006578706c6f646564";
     }
     
     // for Multipassport (user quering if own score is still verifiable) - hackathon mock
-    function verifyMyScore (uint160 groupID, uint160 identityID, uint8 score, bytes32[] calldata proof) external view returns (bool) {
+    function verifyMyScore (uint160 groupID, address identityID, uint8 score, bytes32[] calldata proof) external view returns (bool) {
         return true;
     }
 
     // for DApps - hackathon mock
-    function verifyUserScore (uint160 groupID, uint160 identityID, address holder, uint8 score, bytes32[] calldata proof) external returns (bool) {
+    function verifyUserScore (uint160 groupID, address identityID, address holder, uint8 score, bytes32[] calldata proof) external returns (bool) {
         return true;
     }
     
-    function userScore(uint160 groupID, uint160 identityID, address holder, uint8 score, bytes32[] memory proof) private returns (uint256){
+    function userScore(uint160 groupID, address identityID, address holder, uint8 score, bytes32[] memory proof) private returns (uint256){
         require(holder == identityHolder[identityID],
             "the holder address doesn't own the user id");
         require (identityHolder[identityID] != EXPLODED,
@@ -243,10 +244,10 @@ contract Upala is OwnableUpgradeable{
     // Allows any identity to attack any group, run with the money and self-destruct.
     // Only those with scores will succeed.
     // todo no nonReentrant?
-    function _attack(uint160 groupID, uint160 identityID, uint8 score, bytes32[] calldata proof)
+    function _attack(uint160 groupID, address identityID, uint8 score, bytes32[] calldata proof)
         external
     {
-        uint160 bot = identityID;
+        address bot = identityID;
         address botOwner = msg.sender;
 
         // payout
@@ -259,10 +260,10 @@ contract Upala is OwnableUpgradeable{
     }
 
     // hackathon mock
-    function attack(uint160 groupID, uint160 identityID, uint8 score, bytes32[] calldata proof)
+    function attack(uint160 groupID, address identityID, uint8 score, bytes32[] calldata proof)
         external
     {
-        uint160 bot = identityID;
+        address bot = identityID;
         address botOwner = msg.sender;
         identityHolder[bot] = EXPLODED;
         delete holderToIdentity[msg.sender];

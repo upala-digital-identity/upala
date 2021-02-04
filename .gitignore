@@ -1,3 +1,4 @@
+.vscode/settings.json
 secrets.js
 contracts/oz/*
 .openzeppelin/*
