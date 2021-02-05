@@ -20,7 +20,7 @@ contract BasicPoolFactory is IPoolFactory {
         approvedToken = approvedTokenAddress;
     }
 
-    function createPool(uint160 poolManager) external override (IPoolFactory) returns (address) {
+    function createPool(address poolManager) external override (IPoolFactory) returns (address) {
         poolManager;  // just silencing warnings // basic pool doesn't have a pool Manager
         return address(new BasicPool(msg.sender, approvedToken));
    }

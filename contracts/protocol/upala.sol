@@ -40,16 +40,16 @@ contract Upala is OwnableUpgradeable{
     // A group id within Upala is permanent. 
     // Ownership provides group upgradability
     // Group manager - is any entity in control of a group.
-    mapping(uint160 => address) groupManager;
-    mapping(address => uint160) managerToGroup;
+    mapping(address => address) groupManager;
+    mapping(address => address) managerToGroup;
     // Pools are created by Upala-approved pool factories
     // Each group may manage their own pool in their own way.
     // But they are all deliberately vulnerable to bot attacks
-    mapping(uint160 => address) groupPool;
+    mapping(address => address) groupPool;
     // The most important obligation of a group is to pay bot rewards.
     // A group can set its own maximum bot reward
-    mapping(uint160 => uint256) baseReward;  // baseReward
-    mapping(uint160 => mapping (bytes32 => uint256)) public roots;  
+    mapping(address => uint256) baseReward;  // baseReward
+    mapping(address => mapping (bytes32 => uint256)) public roots;  
     
 
     // Identities
@@ -63,14 +63,14 @@ contract Upala is OwnableUpgradeable{
     // Pool Factories approved by Upala admin
     mapping(address => bool) approvedPoolFactories;
     // Pools owners by Upala group ID - will allow to switch pools and add other logic.
-    mapping(address => uint160) poolsOwners;  
+    mapping(address => address) poolsOwners;  
 
     /************
     ANNOUNCEMENTS
     *************/
 
     // Any changes that can hurt bot rights must wait for an attackWindow to expire
-    mapping(uint160 => mapping(bytes32 => uint)) public commitsTimestamps;
+    mapping(address => mapping(bytes32 => uint)) public commitsTimestamps;
 
     /**********
     CONSTRUCTOR
@@ -145,22 +145,23 @@ contract Upala is OwnableUpgradeable{
     REGISTER GROUPS AND POOLS
     *************************/
 
-    function newGroup(address newGroupManager, address poolFactory) external returns (uint160, address) {
-        require (managerToGroup[newGroupManager] == 0, "Provided address already manages a group");
-        entityCounter++;
-        groupManager[entityCounter] = newGroupManager;
-        groupPool[entityCounter] = _newPool(poolFactory, entityCounter);
-        managerToGroup[newGroupManager] = entityCounter;
-        return (entityCounter, groupPool[entityCounter]);
+    function newGroup(address newGroupManager, address poolFactory) external returns (address, address) {
+        require (managerToGroup[newGroupManager] == address(0x0), "Provided address already manages a group");
+        // entityCounter++;
+        address newGroupId = address(uint(keccak256(abi.encodePacked(msg.sender, now))));
+        groupManager[newGroupId] = newGroupManager;
+        groupPool[newGroupId] = _newPool(poolFactory, newGroupId);
+        managerToGroup[newGroupManager] = newGroupId;
+        return (newGroupId, groupPool[newGroupId]);
     }
 
-    function getGroupID(address managerAddress) external view returns(uint160 groupID) {
-        uint160 groupID = managerToGroup[managerAddress];
-        require (groupID > 0, "no id registered for the address");
+    function getGroupID(address managerAddress) external view returns(address groupID) {
+        address groupID = managerToGroup[managerAddress];
+        require (groupID != address(0x0), "no id registered for the address");
         return groupID;
     }
 
-    function getGroupPool(uint160 groupID) external view returns(address poolAddress) {
+    function getGroupPool(address groupID) external view returns(address poolAddress) {
         address poolAddress = groupPool[groupID];
         require (poolAddress != address(0x0), "no pool registered for the group ID");
         return poolAddress;
@@ -168,7 +169,7 @@ contract Upala is OwnableUpgradeable{
 
     // TODO get group from msg.sender
     function setGroupManager(address newGroupManager) external {
-        uint160 group = managerToGroup[msg.sender];
+        address group = managerToGroup[msg.sender];
         address currentManager = groupManager[group];
         groupManager[group] = newGroupManager;
         delete managerToGroup[currentManager];
@@ -177,7 +178,7 @@ contract Upala is OwnableUpgradeable{
 
     function upgradePool(address poolFactory, bytes32 secret) external returns (address, uint256) {
         // check committment
-        uint160 group = managerToGroup[msg.sender];
+        address group = managerToGroup[msg.sender];
         bytes32 hash = keccak256(abi.encodePacked("withdrawFromPool", secret));
         checkHash(group, hash);
         // transfer funds (max available)
@@ -192,7 +193,7 @@ contract Upala is OwnableUpgradeable{
     }
 
     // tokens are only stable USDs
-    function _newPool(address poolFactory, uint160 poolOwner) private returns (address) {
+    function _newPool(address poolFactory, address poolOwner) private returns (address) {
         require(approvedPoolFactories[poolFactory] == true, "Pool factory is not approved");
         // require PoolOwner exists // todo?
         address newPoolAddress = IPoolFactory(poolFactory).createPool(poolOwner);
@@ -220,16 +221,16 @@ contract Upala is OwnableUpgradeable{
     }
     
     // for Multipassport (user quering if own score is still verifiable) - hackathon mock
-    function verifyMyScore (uint160 groupID, address identityID, uint8 score, bytes32[] calldata proof) external view returns (bool) {
+    function verifyMyScore (address groupID, address identityID, uint8 score, bytes32[] calldata proof) external view returns (bool) {
         return true;
     }
 
     // for DApps - hackathon mock
-    function verifyUserScore (uint160 groupID, address identityID, address holder, uint8 score, bytes32[] calldata proof) external returns (bool) {
+    function verifyUserScore (address groupID, address identityID, address holder, uint8 score, bytes32[] calldata proof) external returns (bool) {
         return true;
     }
     
-    function userScore(uint160 groupID, address identityID, address holder, uint8 score, bytes32[] memory proof) private returns (uint256){
+    function userScore(address groupID, address identityID, address holder, uint8 score, bytes32[] memory proof) private returns (uint256){
         require(holder == identityHolder[identityID],
             "the holder address doesn't own the user id");
         require (identityHolder[identityID] != EXPLODED,
@@ -244,7 +245,7 @@ contract Upala is OwnableUpgradeable{
     // Allows any identity to attack any group, run with the money and self-destruct.
     // Only those with scores will succeed.
     // todo no nonReentrant?
-    function _attack(uint160 groupID, address identityID, uint8 score, bytes32[] calldata proof)
+    function _attack(address groupID, address identityID, uint8 score, bytes32[] calldata proof)
         external
     {
         address bot = identityID;
@@ -260,7 +261,7 @@ contract Upala is OwnableUpgradeable{
     }
 
     // hackathon mock
-    function attack(uint160 groupID, address identityID, uint8 score, bytes32[] calldata proof)
+    function attack(address groupID, address identityID, uint8 score, bytes32[] calldata proof)
         external
     {
         address bot = identityID;
@@ -279,13 +280,13 @@ contract Upala is OwnableUpgradeable{
 
     // hash = keccak256(action-type, [parameters], secret)
     function commitHash(bytes32 hash) external returns(uint256 timestamp) {
-        uint160 group = managerToGroup[msg.sender];
+        address group = managerToGroup[msg.sender];
         uint256 timestamp = now;
         commitsTimestamps[group][hash] = timestamp;
         return timestamp;
     }
  
-    function checkHash(uint160 group, bytes32 hash) internal view returns(bool){
+    function checkHash(address group, bytes32 hash) internal view returns(bool){
         require (commitsTimestamps[group][hash] != 0, "No such commitment hash");
         require (commitsTimestamps[group][hash] + attackWindow <= now, "Attack window is not closed yet");
         require (commitsTimestamps[group][hash] + attackWindow + executionWindow >= now, "Execution window is already closed");
@@ -297,7 +298,7 @@ contract Upala is OwnableUpgradeable{
 
     // Sets the maximum possible bot reward for the group.
     function setBaseScore(uint botReward, bytes32 secret) external {
-        uint160 group = managerToGroup[msg.sender];
+        address group = managerToGroup[msg.sender];
         bytes32 hash = keccak256(abi.encodePacked("setBaseScore", botReward, secret));
         checkHash(group, hash);
         baseReward[group] = botReward;
@@ -306,7 +307,7 @@ contract Upala is OwnableUpgradeable{
     }
 
     function deleteRoot(bytes32 root, bytes32 secret) external {
-        uint160 group = managerToGroup[msg.sender];
+        address group = managerToGroup[msg.sender];
         bytes32 hash = keccak256(abi.encodePacked("deleteRoot", root, secret));
         checkHash(group, hash);
         require(commitsTimestamps[group][hash] > roots[group][root], "Commit is submitted before root");
@@ -316,7 +317,7 @@ contract Upala is OwnableUpgradeable{
 
     // tries to withdraw as much as possible (bots could have attacked after an announcement) 
     function withdrawFromPool(address recipient, uint amount, bytes32 secret) external returns (uint256){ // $$$
-        uint160 group = managerToGroup[msg.sender];
+        address group = managerToGroup[msg.sender];
         bytes32 hash = keccak256(abi.encodePacked("withdrawFromPool", secret));
         checkHash(group, hash);
         uint256 withdrawnAmount = IPool(groupPool[group]).withdrawAvailable(recipient, amount);
@@ -328,13 +329,13 @@ contract Upala is OwnableUpgradeable{
     /*Changes that don't hurt bots rights*/
 
     function increaseBaseScore(uint newBotReward) external {
-        uint160 group = managerToGroup[msg.sender];
+        address group = managerToGroup[msg.sender];
         require (newBotReward > baseReward[group], "To decrease score, make a commitment first");
         baseReward[group] = newBotReward;
     }
 
     function publishRoot(bytes32 newRoot) external {
-        uint160 group = managerToGroup[msg.sender];
+        address group = managerToGroup[msg.sender];
         roots[group][newRoot] = now;
     }
 
@@ -342,7 +343,7 @@ contract Upala is OwnableUpgradeable{
     GETTER FUNCTIONS
     ***************/
 
-    function groupBaseScore(uint160 groupID) external view returns (uint) {
+    function groupBaseScore(address groupID) external view returns (uint) {
         return baseReward[groupID];
     }
 

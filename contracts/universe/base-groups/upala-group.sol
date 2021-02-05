@@ -14,7 +14,7 @@ contract UpalaGroup is Ownable {
     Upala upala;
     bool public isUpalaGroup = true;
 
-    uint160 public groupID;
+    address public groupID;
     address groupPool;
 
     string public details;  // json with ^details^ // or link/hash
@@ -70,7 +70,7 @@ contract UpalaGroup is Ownable {
         return details;
     }
 
-    function getUpalaGroupID() external view returns (uint160) {
+    function getUpalaGroupID() external view returns (address) {
         return groupID;
     }
 
