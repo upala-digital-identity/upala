@@ -40,12 +40,10 @@ export function parseBalanceMap(balances: OldFormat | NewFormat[]): MerkleDistri
   const dataByAddress = balancesInNewFormat.reduce<{
     [address: string]: { amount: BigNumber; flags?: { [flag: string]: boolean } }
   }>((memo, { address: account, earnings, reasons }) => {
-    // removing address validity check as Upala operates with uint160 for IDs
-    // if (!isAddress(account)) {
-    //   throw new Error(`Found invalid address: ${account}`)
-    // }
-    // const parsed = getAddress(account)
-    const parsed = account
+    if (!isAddress(account)) {
+      throw new Error(`Found invalid address: ${account}`)
+    }
+    const parsed = getAddress(account)
     if (memo[parsed]) throw new Error(`Duplicate address: ${parsed}`)
     const parsedNum = BigNumber.from(earnings)
     if (parsedNum.lte(0)) throw new Error(`Invalid amount for account: ${account}`)

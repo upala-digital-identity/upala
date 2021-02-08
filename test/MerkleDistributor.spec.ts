@@ -26,8 +26,6 @@ describe('MerkleDistributor', () => {
 
   const wallets = provider.getWallets()
   const [wallet0, wallet1] = wallets
-  const upalaId0:string = "0x01"
-  const upalaId1:string = "0x02"
 
   let token: Contract
   beforeEach('deploy token', async () => {
@@ -68,41 +66,41 @@ describe('MerkleDistributor', () => {
       let tree: BalanceTree
       beforeEach('deploy', async () => {
         tree = new BalanceTree([
-          { account: upalaId0, amount: BigNumber.from(100) },
-          { account: upalaId1, amount: BigNumber.from(101) },
+          { account: wallet0.address, amount: BigNumber.from(100) },
+          { account: wallet1.address, amount: BigNumber.from(101) },
         ])
         distributor = await deployContract(wallet0, Distributor, [token.address, tree.getHexRoot()], overrides)
         await token.setBalance(distributor.address, 201)
       })
 
       it('successful claim', async () => {
-        const proof0 = tree.getProof(0, upalaId0, BigNumber.from(100))
-        await expect(distributor.claim(0, upalaId0, 100, proof0, overrides))
+        const proof0 = tree.getProof(0, wallet0.address, BigNumber.from(100))
+        await expect(distributor.claim(0, wallet0.address, 100, proof0, overrides))
           .to.emit(distributor, 'Claimed')
-          .withArgs(0, upalaId0, 100)
-        const proof1 = tree.getProof(1, upalaId1, BigNumber.from(101))
-        await expect(distributor.claim(1, upalaId1, 101, proof1, overrides))
+          .withArgs(0, wallet0.address, 100)
+        const proof1 = tree.getProof(1, wallet1.address, BigNumber.from(101))
+        await expect(distributor.claim(1, wallet1.address, 101, proof1, overrides))
           .to.emit(distributor, 'Claimed')
-          .withArgs(1, upalaId1, 101)
+          .withArgs(1, wallet1.address, 101)
       })
 
       it('cannot claim for address other than proof', async () => {
-        const proof0 = tree.getProof(0, upalaId0, BigNumber.from(100))
-        await expect(distributor.claim(1, upalaId1, 101, proof0, overrides)).to.be.revertedWith(
+        const proof0 = tree.getProof(0, wallet0.address, BigNumber.from(100))
+        await expect(distributor.claim(1, wallet1.address, 101, proof0, overrides)).to.be.revertedWith(
           'MerkleDistributor: Invalid proof.'
         )
       })
 
       it('cannot claim more than proof', async () => {
-        const proof0 = tree.getProof(0, upalaId0, BigNumber.from(100))
-        await expect(distributor.claim(0, upalaId0, 101, proof0, overrides)).to.be.revertedWith(
+        const proof0 = tree.getProof(0, wallet0.address, BigNumber.from(100))
+        await expect(distributor.claim(0, wallet0.address, 101, proof0, overrides)).to.be.revertedWith(
           'MerkleDistributor: Invalid proof.'
         )
       })
 
       // it('gas', async () => {
-      //   const proof = tree.getProof(0, upalaId0, BigNumber.from(100))
-      //   const tx = await distributor.claim(0, upalaId0, 100, proof, overrides)
+      //   const proof = tree.getProof(0, wallet0.address, BigNumber.from(100))
+      //   const tx = await distributor.claim(0, wallet0.address, 100, proof, overrides)
       //   const receipt = await tx.wait()
       //   expect(receipt.gasUsed).to.eq(78466)
       // })
