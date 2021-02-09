@@ -2,32 +2,61 @@
 pragma solidity ^0.6.0;
 
 import "../libraries/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
-import "../libraries/openzeppelin-contracts/contracts/cryptography/MerkleProof.sol";
+// import "../libraries/openzeppelin-contracts/contracts/cryptography/MerkleProof.sol";
 
 contract MerkleDistributor {
-    address public immutable token;
-    bytes32 public immutable merkleRoot;
+    bytes32 public merkleRoot;
 
     event Claimed(
         uint256 _index,
-        address _account,
-        uint256 _amount
+        address _identityID,
+        uint256 _score
     );
 
-    constructor(address token_, bytes32 merkleRoot_) public {
-        token = token_;
-        merkleRoot = merkleRoot_;
+    // constructor() public {
+    // }
+
+    function publishRoot(bytes32 newMerkleRoot) external {
+        merkleRoot = newMerkleRoot;
     }
 
-    function claim(uint256 index, address account, uint256 amount, bytes32[] calldata merkleProof) external {
+    function verifyMyScore(address groupID, address identityID, address holder, uint8 score, bytes32[] memory proof) private returns (uint256){
+        
+    }
+
+    function claim(uint256 index, address identityID, uint256 score, bytes32[] calldata merkleProof) external {
+        // require(holder == identityHolder[identityID],
+        //     "the holder address doesn't own the user id");
+        // require (identityHolder[identityID] != EXPLODED,
+        //     "This user has already exploded");
+        // pool score is sufficient for explosion
         // Verify the merkle proof.
-        bytes32 node = keccak256(abi.encodePacked(index, account, amount));
-        require(MerkleProof.verify(merkleProof, merkleRoot, node), 'MerkleDistributor: Invalid proof.');
 
-        // require(IERC20(token).transfer(account, amount), 'MerkleDistributor: Transfer failed.');
-
-        emit Claimed(index, account, amount);
+        bytes32 node = keccak256(abi.encodePacked(index, identityID, score));
+        // require (roots[groupID][computeRoot(merkleProof, node)] > 0, 'MerkleDistributor: Invalid proof.');
+        require (computeRoot(merkleProof, node) == merkleRoot, 'MerkleDistributor: Invalid proof.');
+        // require(MerkleProof.verify(merkleProof, node), 'MerkleDistributor: Invalid proof.');
+        emit Claimed(index, identityID, score);
+        // uint256 totalScore = baseReward[groupID] * score;
+        // return totalScore;
     }
 
 
+    function computeRoot(bytes32[] memory proof, bytes32 leaf) internal pure returns (bytes32) {
+        bytes32 computedHash = leaf;
+
+        for (uint256 i = 0; i < proof.length; i++) {
+            bytes32 proofElement = proof[i];
+
+            if (computedHash <= proofElement) {
+                // Hash(current computed hash + current element of the proof)
+                computedHash = keccak256(abi.encodePacked(computedHash, proofElement));
+            } else {
+                // Hash(current element of the proof + current computed hash)
+                computedHash = keccak256(abi.encodePacked(proofElement, computedHash));
+            }
+        }
+
+        return computedHash;
+    }
 }
