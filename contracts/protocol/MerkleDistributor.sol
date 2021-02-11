@@ -13,9 +13,6 @@ contract MerkleDistributor {
         uint256 _score
     );
 
-    // constructor() public {
-    // }
-
     function publishRoot(bytes32 newMerkleRoot) external {
         merkleRoot = newMerkleRoot;
     }

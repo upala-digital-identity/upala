@@ -19,6 +19,7 @@
     "chain": "cd packages/buidler && npx buidler node",
     "node": "cd packages/buidler && npx buidler node",
     "test": "cd packages/buidler && npx buidler test",
+    "test-merkle": "TS_NODE_TRANSPILE_ONLY=1 npx hardhat test test/MerkleDistributor.spec.ts",
     "start": "yarn workspace @uniswap-v1-app/react-app start",
     "compile": "cd packages/buidler && npx buidler compile",
     "deploy": "npx buidler run scripts/deploy.js && npx buidler run scripts/publish.js",

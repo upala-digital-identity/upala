@@ -1,11 +1,19 @@
 import chai, { expect } from 'chai'
+import { ethers } from "hardhat"
+import { time } from '@openzeppelin/test-helpers'
 import { solidity, MockProvider, deployContract } from 'ethereum-waffle'
 import { Contract, BigNumber, constants } from 'ethers'
 import BalanceTree from '../src/balance-tree'
 
 import Distributor from '../artifacts/contracts/protocol/MerkleDistributor.sol/MerkleDistributor.json'
 import TestERC20 from '../artifacts/contracts/mockups/TestERC20.sol/TestERC20.json'
+import Upala from '../artifacts/contracts/protocol/upala.sol/Upala.json'
+import FakeDai from '../artifacts/contracts/mockups/fake-dai-mock.sol/FakeDai.json'
+import BasicPoolFactory from '../artifacts/contracts/pools/basic-pool.sol/BasicPoolFactory.json'
 import { parseBalanceMap } from '../src/parse-balance-map'
+
+
+const { upgrades } = require("hardhat");
 
 chai.use(solidity)
 
@@ -25,11 +33,13 @@ describe('MerkleDistributor', () => {
   })
 
   const wallets = provider.getWallets()
-  const [wallet0, wallet1] = wallets
-
+  const [upalaAdmin, wallet0, wallet1, user0, user1, user2] = wallets
+  
   let token: Contract
+  let fakeDai: Contract
   beforeEach('deploy token', async () => {
     token = await deployContract(wallet0, TestERC20, ['Token', 'TKN', 0], overrides)
+    fakeDai = await deployContract(wallet0, FakeDai);
   })
 
   // describe('#token', () => {
@@ -42,9 +52,17 @@ describe('MerkleDistributor', () => {
 
   describe('#merkleRoot', () => {
     it('returns the zero merkle root', async () => {
-      const distributor = await deployContract(wallet0, Distributor, [], overrides)
-      await distributor.publishRoot(ZERO_BYTES32)
-      expect(await distributor.merkleRoot()).to.eq(ZERO_BYTES32)
+      const upala = await deployContract(wallet0, Upala);
+      await upala.deployed();
+      const basicPoolFactory = await deployContract(wallet0, BasicPoolFactory, [fakeDai.address], overrides)
+      await upala.setapprovedPoolFactory(basicPoolFactory.address, "true")
+      await upala.newGroup(wallet0.address, basicPoolFactory.address)
+      const wallet0Group = await upala.managerToGroup(wallet0.address)
+
+      await upala.connect(wallet0).publishRoot(ZERO_BYTES32)
+      const now = (await time.latest()).toNumber()
+      const timestamp = await upala.roots(wallet0Group, ZERO_BYTES32)
+      expect(timestamp - now).to.below(1000)  // timing is hard in blockchains 
     })
   })
 

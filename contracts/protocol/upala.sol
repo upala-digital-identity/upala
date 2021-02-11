@@ -41,7 +41,7 @@ contract Upala is OwnableUpgradeable{
     // Ownership provides group upgradability
     // Group manager - is any entity in control of a group.
     mapping(address => address) groupManager;
-    mapping(address => address) managerToGroup;
+    mapping(address => address) public managerToGroup;
     // Pools are created by Upala-approved pool factories
     // Each group may manage their own pool in their own way.
     // But they are all deliberately vulnerable to bot attacks
@@ -71,6 +71,16 @@ contract Upala is OwnableUpgradeable{
 
     // Any changes that can hurt bot rights must wait for an attackWindow to expire
     mapping(address => mapping(bytes32 => uint)) public commitsTimestamps;
+
+    /*****
+    EVENTS
+    *****/
+
+    event Claimed(
+        uint256 _index,
+        address _identityID,
+        uint256 _score
+    );
 
     /**********
     CONSTRUCTOR
@@ -157,7 +167,7 @@ contract Upala is OwnableUpgradeable{
 
     function getGroupID(address managerAddress) external view returns(address groupID) {
         address groupID = managerToGroup[managerAddress];
-        require (groupID != address(0x0), "no id registered for the address");
+        require (groupID != address(0x0), "no group registered for the address");  // TODO why this doesn't work?!
         return groupID;
     }
 
@@ -219,10 +229,20 @@ contract Upala is OwnableUpgradeable{
     function getRootTemp(address identityID, uint8 score, bytes32[] memory proof) public returns(bytes32 res) {
         return "0x000000006578706c6f646564";
     }
-    
-    // for Multipassport (user quering if own score is still verifiable) - hackathon mock
-    function verifyMyScore (address groupID, address identityID, uint8 score, bytes32[] calldata proof) external view returns (bool) {
-        return true;
+
+    function myScore(uint256 index, address groupID, address identityID, uint256 score, bytes32[] calldata merkleProof) external {
+        require(msg.sender == identityHolder[identityID],
+            "the holder address doesn't own the user id");
+        require (identityHolder[identityID] != EXPLODED,
+            "This user has already exploded");
+        // TODO pool score is sufficient for explosion
+
+        // Verify the merkle proof.
+        bytes32 node = keccak256(abi.encodePacked(index, identityID, score));
+        require (roots[groupID][_computeRoot(merkleProof, node)] > 0, 'MerkleDistributor: Invalid proof.');
+        emit Claimed(index, identityID, score);
+        // uint256 totalScore = baseReward[groupID] * score;
+        // return totalScore;
     }
 
     // for DApps - hackathon mock
@@ -268,6 +288,24 @@ contract Upala is OwnableUpgradeable{
         address botOwner = msg.sender;
         identityHolder[bot] = EXPLODED;
         delete holderToIdentity[msg.sender];
+    }
+
+    function _computeRoot(bytes32[] memory proof, bytes32 leaf) internal pure returns (bytes32) {
+        bytes32 computedHash = leaf;
+
+        for (uint256 i = 0; i < proof.length; i++) {
+            bytes32 proofElement = proof[i];
+
+            if (computedHash <= proofElement) {
+                // Hash(current computed hash + current element of the proof)
+                computedHash = keccak256(abi.encodePacked(computedHash, proofElement));
+            } else {
+                // Hash(current element of the proof + current computed hash)
+                computedHash = keccak256(abi.encodePacked(proofElement, computedHash));
+            }
+        }
+
+        return computedHash;
     }
 
     /************
@@ -336,6 +374,7 @@ contract Upala is OwnableUpgradeable{
 
     function publishRoot(bytes32 newRoot) external {
         address group = managerToGroup[msg.sender];
+        require(group != address(0x0), "No group associated with the manager");
         roots[group][newRoot] = now;
     }
 
