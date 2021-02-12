@@ -220,12 +220,14 @@ async function main() {
       addressesDir + "localhost.js",
       addressesDir + "goerli.js",
       addressesDir + "mumbai.js",
+      addressesDir + "bnbtest.js",
 
       groupsDir + "main.js",
       groupsDir + "rinkeby.js",
       groupsDir + "localhost.js",
       groupsDir + "goerli.js",
       groupsDir + "mumbai.js",
+      groupsDir + "bnbtest.js",
       ];
     addressesFiles.forEach(path => {
         if (!fs.existsSync(path)){

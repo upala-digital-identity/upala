@@ -43,6 +43,14 @@ export default {
       },
       timeout: 60000,
     },
+    bnbTestnet: {
+      url: "https://data-seed-prebsc-1-s1.binance.org:8545",
+      chainId: 97,
+      gasPrice: 20000000000,
+      accounts: {
+        mnemonic: secrets.mnemonic
+      }
+    },
     mumbai: {
       //provider: () => new HDWalletProvider(mnemonic, `https://rpc-mumbai.matic.today`),
       network_id: 80001,

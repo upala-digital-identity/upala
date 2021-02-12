@@ -2,12 +2,14 @@ import addressesLocalhost from "./addresses/localhost.js";
 import addressesMain from "./addresses/main.js";
 import addressesRinkeby from "./addresses/rinkeby.js";
 import addressesGoerli from "./addresses/goerli.js";
+import addressesBnbTest from "./addresses/bnbTest.js";
 import addressesMumbai from "./addresses/mumbai.js";
 
 import groupsLocalhost from "./groups/localhost.js";
 import groupsMain from "./groups/main.js";
 import groupsRinkeby from "./groups/rinkeby.js";
 import groupsGoerli from "./groups/goerli.js";
+import groupsBnbTest from "./groups/bnbTest.js";
 import groupsMumbai from "./groups/mumbai.js";
 
 const addresses = {
@@ -15,6 +17,7 @@ const addresses = {
     1: addressesMain,
     4: addressesRinkeby,
     5: addressesGoerli,
+    97: addressesBnbTest,
     80001: addressesMumbai,
 }
 
@@ -23,6 +26,7 @@ const groups = {
     1: groupsMain,
     4: groupsRinkeby,
     5: groupsGoerli,
+    97: groupsBnbTest,
     80001: groupsMumbai,
 }
 
