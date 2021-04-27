@@ -90,11 +90,11 @@ async function main() {
   console.log(chalk.green("\nDEPLOYING GROUPS \n"));
   /////////////////////////////////////////////////
 
-  const defaultBotReward = ethers.utils.parseEther("3");
+  const defaultBotReward = ethers.utils.parseEther("20");
   const poolDonation = ethers.utils.parseEther("1000");
   var groupsAddresses = []
 
-  async function deployGroup(groupName, groupContractName, details, multiplier) {
+  async function deployGroup(groupName, groupContractName, details, botReward) {
     console.log("deployContract", groupContractName, upala.address, basicPoolFactory.address);
     newGroup = await deployContract(groupContractName, upala.address, basicPoolFactory.address); // {from: groupManager}
     
@@ -107,8 +107,8 @@ async function main() {
     console.log(chalk.blue("newGroup.address:"), newGroup.address)
     let newGroupID = await newGroup.getUpalaGroupID();
     let newGroupPoolAddress = await newGroup.getGroupPoolAddress();
-    await fakeDai.freeDaiToTheWorld(newGroupPoolAddress, poolDonation.mul(multiplier));
-    await newGroup.announceAndSetBotReward(defaultBotReward.mul(multiplier));
+    await fakeDai.freeDaiToTheWorld(newGroupPoolAddress, poolDonation);
+    await newGroup.announceAndSetBotReward(botReward);
     await newGroup.setDetails(details);
     console.log(
       chalk.blue("Upala ID:"), newGroupID.toNumber(), 
@@ -131,24 +131,24 @@ async function main() {
     "leave-terms": "No deposit - no refund"} */
   group1Details = {
     "title": "MetaCartel",
-    "description": "Currently autoassigns FakeDAI score to anyone who joins",
+    "description": "Autoassigns scores to MetaCartel members",
     "short_description": "MetaCartel members only"
     }
   group2Details = {
-    "title": "MolochDAO",
-    "description": "Currently autoassigns FakeDAI score to anyone who joins",
-    "short_description": "MolochDAO members only"
+    "title": "Githubers",
+    "description": "Autoassigns scores to users with old and active github acounts",
+    "short_description": "Github denizens only"
     }
   group3Details = {
-    "title": "MetaGame",
-    "description": "Currently autoassigns FakeDAI score to anyone who joins",
-    "short_description": "MetaGamers only"
+    "title": "BNB_Holders",
+    "description": "Autoassigns scores based on BNB holdings",
+    "short_description": "BNB holders welcome"
     }
     ///home/petr/Projects/2019-10-10-Upala/contracts/universe/bladerunner
   console.log("deploy");
-  const [group1, group1ID] = await deployGroup(group1Details.title, "ProtoGroup", JSON.stringify(group1Details), 1);
-  const [group2, group2ID] = await deployGroup(group2Details.title, "ProtoGroup", JSON.stringify(group2Details), 2);
-  const [group3, group3ID] = await deployGroup(group3Details.title, "ProtoGroup", JSON.stringify(group3Details), 3);
+  const [group1, group1ID] = await deployGroup(group1Details.title, "ProtoGroup", JSON.stringify(group1Details), defaultBotReward);
+  const [group2, group2ID] = await deployGroup(group2Details.title, "ProtoGroup", JSON.stringify(group2Details), defaultBotReward);
+  const [group3, group3ID] = await deployGroup(group3Details.title, "ProtoGroup", JSON.stringify(group3Details), defaultBotReward);
 
 
 
@@ -163,7 +163,11 @@ async function main() {
     "description": "Users cannot join this group directly - only its subgroups (entry-tests). Members of BladerunnerDAO decide which entry-tests to approve.",
     "short_description": "Bladerunner Score provider"
     }
-  const [bladerunner, bladerunnerID] = await deployGroup(bladerunnerDetails.title, "BladerunnerDAO", JSON.stringify(bladerunnerDetails), 5);
+  const [bladerunner, bladerunnerID] = await deployGroup(
+    bladerunnerDetails.title, 
+    "BladerunnerDAO", 
+    JSON.stringify(bladerunnerDetails), defaultBotReward.div(1000000000000000)
+    );
 
 
 
