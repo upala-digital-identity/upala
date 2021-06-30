@@ -11,34 +11,25 @@ import "hardhat/console.sol";
 // The Upala ledger (protocol)
 contract Upala is OwnableUpgradeable{
     using SafeMath for uint256;
-
-    IPoolFactory pFactory;
-    IPool p;
+    address EXPLODED; // assigned as identity holder after ID explosion
 
     /*******
     SETTINGS
     ********/
-
-    uint256 registrationFee;   // spam protection + susteinability
-
-
     // any changes that hurt bots rights must be announced an hour in advance
-    // changes must be executed within execution window
     uint256 public attackWindow;  // 0 - for tests // TODO set to 1 hour at production
+    // changes must be executed within execution window
     uint256 public executionWindow; // 1000 - for tests
-    address EXPLODED; // assigned as identity holder after ID explosion
+
 
     /***************************
     GROUPS, IDENTITIES AND POOLS
     ***************************/
 
-    // keep track of new groups, identities and pools
-    uint160 entityCounter;
-
     // Groups 
-    // Groups are outside contracts with arbitary logic
+    // Groups can be managed by outside contracts (or simple address) with arbitary logic
     // A group id within Upala is permanent. 
-    // Ownership provides group upgradability
+    // Ownership provides group upgradability.
     // Group manager - is any entity in control of a group.
     mapping(address => address) groupManager;
     mapping(address => address) public managerToGroup;
@@ -49,15 +40,16 @@ contract Upala is OwnableUpgradeable{
     // The most important obligation of a group is to pay bot rewards.
     // A group can set its own maximum bot reward
     mapping(address => uint256) baseReward;  // baseReward
-    mapping(address => mapping (bytes32 => uint256)) public roots;  
+    // merkle roots of trees storing scores
+    mapping(address => mapping (bytes32 => uint256)) public roots;
     
 
     // Identities
-    // Ensures that identities and groups are different entities
-    // Ensures that an exploded bot will never be able to get a score or explode again
-    // Human, Individual, Identity
-    mapping(address => address) identityHolder;
-    mapping(address => address) holderToIdentity;
+    // Identity owner. Can change owner, can assign delegates
+    mapping(address => address) identityOwner; // idOwner
+    // Addresses that can use the associated id (delegates and oner).
+    // Also used to retrieve id by address
+    mapping(address => address) delegateToIdentity;
 
     // Pools
     // Pool Factories approved by Upala admin
@@ -92,7 +84,6 @@ contract Upala is OwnableUpgradeable{
         __Context_init_unchained();
         __Ownable_init_unchained();
         // defaults
-        registrationFee = 0 wei;
         attackWindow = 30 minutes;
         executionWindow = 1 hours;
         EXPLODED = address(0x0000000000000000000000006578706c6f646564);  // Hex to ASCII = exploded
@@ -103,52 +94,55 @@ contract Upala is OwnableUpgradeable{
     **************/
 
     // Upala ID can be assigned to an address by a third party
-    function newIdentity(address newIdentityHolder) external returns (address) {
-        // newId++;
+    function newIdentity(address newidentityOwner) external returns (address) {
         address newId = address(uint(keccak256(abi.encodePacked(msg.sender, now))));
-        require (holderToIdentity[newIdentityHolder] == address(0x0), "Address is already an owner or delegate");
-        identityHolder[newId] = newIdentityHolder;
-        holderToIdentity[newIdentityHolder] = newId;
+        require (delegateToIdentity[newidentityOwner] == address(0x0), "Address is already an owner or delegate");
+        identityOwner[newId] = newidentityOwner;
+        delegateToIdentity[newidentityOwner] = newId;
         return newId;
     }
 
     function approveDelegate(address delegate) external {
-        address upalaId = holderToIdentity[msg.sender];
-        require (identityHolder[upalaId] == msg.sender, "Only identity holder can add or remove delegates");
-        holderToIdentity[delegate] = upalaId;
+        address upalaId = delegateToIdentity[msg.sender];
+        require (identityOwner[upalaId] == msg.sender, "Only identity holder can add or remove delegates");
+        delegateToIdentity[delegate] = upalaId;
     }
 
     function removeDelegate(address delegate) external {
-        address upalaId = holderToIdentity[msg.sender];
-        require (identityHolder[upalaId] == msg.sender, "Only identity holder can add or remove delegates");
-        holderToIdentity[delegate] = upalaId;
-        delete holderToIdentity[delegate];
+        require(delegate != msg.sender, "Cannot remove oneself");
+        address upalaId = delegateToIdentity[msg.sender];
+        require (identityOwner[upalaId] == msg.sender, "Only identity holder can add or remove delegates");
+        // delegateToIdentity[delegate] = upalaId; // todo what is this line?
+        // todo check if deleting the only delegate
+        delete delegateToIdentity[delegate];
     }
 
     function setIdentityOwner(address newIdentityOwner) external {
-        address identity = identityByAddress(msg.sender);
-        require (identityHolder[identity] == msg.sender, "Only identity holder can add or remove delegates");
-        require (holderToIdentity[newIdentityOwner] == identity || holderToIdentity[newIdentityOwner] == address(0x0), "Address is already an owner or delegate");
-        identityHolder[identity] = newIdentityOwner;
-        holderToIdentity[newIdentityOwner] = identity;
+        address identity = _identityByAddress(msg.sender);
+        require (identityOwner[identity] == msg.sender, "Only identity holder can add or remove delegates");
+        require (delegateToIdentity[newIdentityOwner] == identity || delegateToIdentity[newIdentityOwner] == address(0x0), "Address is already an owner or delegate");
+        identityOwner[identity] = newIdentityOwner;
+        delegateToIdentity[newIdentityOwner] = identity;
     }
 
+    // can be called by any delegate address to get id
     function myId() external view returns(address) {
-        return identityByAddress(msg.sender);
+        return _identityByAddress(msg.sender);
     }
 
+    // can be called by any delegate address to get id owner
     function myIdOwner() external view  returns(address owner) {
-        return identityOwner(identityByAddress(msg.sender));
+        return _identityOwner(_identityByAddress(msg.sender));
     }
 
-    function identityByAddress(address ownerOrDelegate) internal view returns(address identity) {
-        address identity = holderToIdentity[ownerOrDelegate];
+    function _identityByAddress(address ownerOrDelegate) internal view returns(address identity) {
+        address identity = delegateToIdentity[ownerOrDelegate];
         require (identity != address(0x0), "no id registered for the address");
         return identity;
     }
 
-    function identityOwner(address upalaId) internal view returns(address owner) {
-        return identityHolder[upalaId];
+    function _identityOwner(address upalaId) internal view returns(address owner) {
+        return identityOwner[upalaId];
     }
 
     /************************
@@ -157,7 +151,7 @@ contract Upala is OwnableUpgradeable{
 
     function newGroup(address newGroupManager, address poolFactory) external returns (address, address) {
         require (managerToGroup[newGroupManager] == address(0x0), "Provided address already manages a group");
-        // entityCounter++;
+
         address newGroupId = address(uint(keccak256(abi.encodePacked(msg.sender, now))));
         groupManager[newGroupId] = newGroupManager;
         groupPool[newGroupId] = _newPool(poolFactory, newGroupId);
@@ -218,22 +212,36 @@ contract Upala is OwnableUpgradeable{
     SCORING AND BOT ATTACK
     **********************/
 
-    function isExploded(address identity) external returns(bool){
-        return (identityHolder[identity] == EXPLODED);
-    }
+    // ####### Hackathon mocks begin ##########
 
-    function verifyTemp() public returns(bool res) { // a mock function before real Merkle is implemented
+    // a mock function before real Merkle is implemented
+    function verifyHack() public returns(bool res) { 
         return true;
     }
 
-    function getRootTemp(address identityID, uint8 score, bytes32[] memory proof) public returns(bytes32 res) {
+    // a mock function before real Merkle is implemented
+    function getRootHack(address identityID, uint8 score, bytes32[] memory proof) public returns(bytes32 res) {
         return "0x000000006578706c6f646564";
     }
 
+    // for DApps - hackathon mock
+    function verifyUserScoreHack (address groupID, address identityID, address holder, uint8 score, bytes32[] calldata proof) external returns (bool) {
+        return true;
+    }
+
+    // ####### Hackathon mocks end ##########
+
+
+
+    // checks if the identity is already exploded
+    function isExploded(address identity) external returns(bool){
+        return (identityOwner[identity] == EXPLODED);
+    }
+
     function myScore(uint256 index, address groupID, address identityID, uint256 score, bytes32[] calldata merkleProof) external {
-        require(msg.sender == identityHolder[identityID],
+        require(msg.sender == identityOwner[identityID],
             "the holder address doesn't own the user id");
-        require (identityHolder[identityID] != EXPLODED,
+        require (identityOwner[identityID] != EXPLODED,
             "This user has already exploded");
         // TODO pool score is sufficient for explosion
 
@@ -245,49 +253,34 @@ contract Upala is OwnableUpgradeable{
         // return totalScore;
     }
 
-    // for DApps - hackathon mock
-    function verifyUserScore (address groupID, address identityID, address holder, uint8 score, bytes32[] calldata proof) external returns (bool) {
-        return true;
-    }
-    
-    function userScore(address groupID, address identityID, address holder, uint8 score, bytes32[] memory proof) private returns (uint256){
-        require(holder == identityHolder[identityID],
-            "the holder address doesn't own the user id");
-        require (identityHolder[identityID] != EXPLODED,
-            "This user has already exploded");
-        // pool amount is sufficient for explosion
-        require (roots[groupID][getRootTemp(identityID, score, proof)] > 0);
-        uint256 totalScore = baseReward[groupID] * score;
-        
-        return totalScore;
-    }
-
     // Allows any identity to attack any group, run with the money and self-destruct.
     // Only those with scores will succeed.
     // todo no nonReentrant?
-    function _attack(address groupID, address identityID, uint8 score, bytes32[] calldata proof)
+    function attack(address groupID, address identityID, uint8 score, bytes32[] calldata proof)
         external
     {
         address bot = identityID;
         address botOwner = msg.sender;
 
         // payout
-        uint256 reward = userScore(groupID, identityID, msg.sender, score, proof);
+        uint256 reward = _userScore(groupID, identityID, msg.sender, score, proof);
         IPool(groupPool[groupID]).payBotReward(botOwner, reward); // $$$
 
         // explode
-        identityHolder[bot] = EXPLODED;  // to tell exploded IDs apart from non existent (UIP-12)
-        delete holderToIdentity[msg.sender];
+        identityOwner[bot] = EXPLODED;  // to tell exploded IDs apart from non existent (UIP-12)
+        delete delegateToIdentity[msg.sender];
     }
 
-    // hackathon mock
-    function attack(address groupID, address identityID, uint8 score, bytes32[] calldata proof)
-        external
-    {
-        address bot = identityID;
-        address botOwner = msg.sender;
-        identityHolder[bot] = EXPLODED;
-        delete holderToIdentity[msg.sender];
+    function _userScore(address groupID, address identityID, address holder, uint8 score, bytes32[] memory proof) private returns (uint256){
+        require(holder == identityOwner[identityID],
+            "the holder address doesn't own the user id");
+        require (identityOwner[identityID] != EXPLODED,
+            "This user has already exploded");
+        // pool amount is sufficient for explosion
+        require (roots[groupID][getRootHack(identityID, score, proof)] > 0);
+        uint256 totalScore = baseReward[groupID] * score;
+        
+        return totalScore;
     }
 
     function _computeRoot(bytes32[] memory proof, bytes32 leaf) internal pure returns (bytes32) {
@@ -405,6 +398,5 @@ contract Upala is OwnableUpgradeable{
     function setExecutionWindow(uint256 newWindow) onlyOwner external {
         executionWindow = newWindow;
     }
-    // registrationFee
     // approvedPoolFactories
 }

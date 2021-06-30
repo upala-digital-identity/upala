@@ -83,11 +83,12 @@ describe("USER", function() {
 
     await upala.connect(user2).newIdentity(user1.getAddress());
     await upala.connect(user2).newIdentity(user2.getAddress());
-    await upala.connect(user1).approveDelegate(delegate1.getAddress());
+    // await upala.connect(user1).approveDelegate(delegate1.getAddress());
     })
 
   describe("registration", function() {
 
+    // the only delegate situation (ccheck that it works)
     // it("registers Upala ID", async function() {
     //   expect(await upala.connect(user1).myId()).to.eq(1)
     // });
@@ -108,13 +109,23 @@ describe("USER", function() {
     // todo can register from another address
     // todo can remove id (just explode with 0 reward)
     // todo only delegates or owner can get identity owner
-    // todo check return entityCounter;
 
   });
   
   describe("delegation", function() {
 
+    // before('create delegate', async () => {
+    //   await upala.connect(user1).approveDelegate(delegate1.getAddress());
+    //   })
+
+    it("cannot remove the only delegate", async function() {
+      await expect(upala.connect(user1).removeDelegate(user1.getAddress())).to.be.revertedWith(
+        'Cannot remove oneself'
+      )
+    });
+
     it("can query Upala ID from an approved address", async function() {
+      await upala.connect(user1).approveDelegate(delegate1.getAddress());
       expect(await upala.connect(delegate1).myId()).to.eq(await upala.connect(user1).myId())
     });
 
@@ -393,7 +404,7 @@ describe("GROUPS", function() {
       const balBefore = await fakeDai.balanceOf(manager1Pool)
       await fakeDai.connect(nobody).transfer(manager1Pool, transferAmount)
       const balAfter = await fakeDai.balanceOf(manager1Pool)
-      expect(balAfter.sub(balBefore)).to.eq(transferAmount)
+        
     });
 
   // cannot withdraw without commitment
@@ -410,6 +421,7 @@ describe("GROUPS", function() {
 
   describe("group details (misc)", function() {
     it("group manager can publish group meta", async function() {
+      assert.fail("actual", "expected", "Error message");
       // db_url, description, etc. - from future
     });
   });
