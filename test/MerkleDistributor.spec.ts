@@ -1,5 +1,5 @@
 import chai, { expect } from 'chai'
-import { ethers } from "hardhat"
+import { ethers } from 'hardhat'
 import { time } from '@openzeppelin/test-helpers'
 import { solidity, MockProvider, deployContract } from 'ethereum-waffle'
 import { Contract, BigNumber, constants } from 'ethers'
@@ -12,8 +12,7 @@ import FakeDai from '../artifacts/contracts/mockups/fake-dai-mock.sol/FakeDai.js
 import BasicPoolFactory from '../artifacts/contracts/pools/basic-pool.sol/BasicPoolFactory.json'
 import { parseBalanceMap } from '../src/parse-balance-map'
 
-
-const { upgrades } = require("hardhat");
+const { upgrades } = require('hardhat')
 
 chai.use(solidity)
 
@@ -34,12 +33,12 @@ describe('MerkleDistributor', () => {
 
   const wallets = provider.getWallets()
   const [upalaAdmin, wallet0, wallet1, user0, user1, user2] = wallets
-  
+
   let token: Contract
   let fakeDai: Contract
   beforeEach('deploy token', async () => {
     token = await deployContract(wallet0, TestERC20, ['Token', 'TKN', 0], overrides)
-    fakeDai = await deployContract(wallet0, FakeDai);
+    fakeDai = await deployContract(wallet0, FakeDai)
   })
 
   // describe('#token', () => {
@@ -52,17 +51,17 @@ describe('MerkleDistributor', () => {
 
   describe('#merkleRoot', () => {
     it('returns the zero merkle root', async () => {
-      const upala = await deployContract(wallet0, Upala);
-      await upala.deployed();
+      const upala = await deployContract(wallet0, Upala)
+      await upala.deployed()
       const basicPoolFactory = await deployContract(wallet0, BasicPoolFactory, [fakeDai.address], overrides)
-      await upala.setapprovedPoolFactory(basicPoolFactory.address, "true")
+      await upala.setapprovedPoolFactory(basicPoolFactory.address, 'true')
       await upala.newGroup(wallet0.address, basicPoolFactory.address)
       const wallet0Group = await upala.managerToGroup(wallet0.address)
 
       await upala.connect(wallet0).publishRoot(ZERO_BYTES32)
       const now = (await time.latest()).toNumber()
       const timestamp = await upala.roots(wallet0Group, ZERO_BYTES32)
-      expect(timestamp - now).to.below(1000)  // timing is hard in blockchains 
+      expect(timestamp - now).to.below(1000) // timing is hard in blockchains
     })
   })
 
@@ -265,7 +264,11 @@ describe('MerkleDistributor', () => {
       }
     }
     beforeEach('deploy', async () => {
-      const { claims: innerClaims, merkleRoot, tokenTotal } = parseBalanceMap({
+      const {
+        claims: innerClaims,
+        merkleRoot,
+        tokenTotal,
+      } = parseBalanceMap({
         [wallet0.address]: 200,
         [wallet1.address]: 300,
         [wallets[2].address]: 250,

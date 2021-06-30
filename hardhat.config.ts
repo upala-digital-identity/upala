@@ -1,26 +1,25 @@
-import { task } from "hardhat/config";
-import "@nomiclabs/hardhat-waffle";
+import { task } from 'hardhat/config'
+import '@nomiclabs/hardhat-waffle'
 // require("@nomiclabs/hardhat-waffle");
-import "@nomiclabs/hardhat-truffle5";
-import '@openzeppelin/hardhat-upgrades';
-import "@nomiclabs/hardhat-web3";
+import '@nomiclabs/hardhat-truffle5'
+import '@openzeppelin/hardhat-upgrades'
+import '@nomiclabs/hardhat-web3'
 
 // This is a sample Buidler task. To learn how to create your own go to
 // https://buidler.dev/guides/create-task.html
-task("accounts", "Prints the list of accounts", async (args, hre) => {
-  const accounts = await hre.ethers.getSigners();
+task('accounts', 'Prints the list of accounts', async (args, hre) => {
+  const accounts = await hre.ethers.getSigners()
 
   for (const account of accounts) {
-    console.log(await account.getAddress());
+    console.log(await account.getAddress())
   }
-});
+})
 
 // You have to export an object to set up your config
 // This object can have the following optional entries:
 // defaultNetwork, networks, solc, and paths.
 // Go to https://buidler.dev/config/ to learn more
-const secrets = require("./secrets.js");
-
+const secrets = require('./secrets.js')
 
 export default {
   defaultNetwork: 'localhost',
@@ -30,26 +29,26 @@ export default {
       url: 'http://localhost:8545',
     },
     kovan: {
-      url: 'https://kovan.infura.io/v3/3b076e7d293041b684349d436904ccdb',//+infura_project_id,
+      url: 'https://kovan.infura.io/v3/3b076e7d293041b684349d436904ccdb', //+infura_project_id,
       accounts: {
-        mnemonic: secrets.mnemonic
+        mnemonic: secrets.mnemonic,
       },
       timeout: 60000,
     },
     rinkeby: {
-      url: 'https://rinkeby.infura.io/v3/3b076e7d293041b684349d436904ccdb',//+infura_project_id,
+      url: 'https://rinkeby.infura.io/v3/3b076e7d293041b684349d436904ccdb', //+infura_project_id,
       accounts: {
-        mnemonic: secrets.mnemonic
+        mnemonic: secrets.mnemonic,
       },
       timeout: 60000,
     },
     bnbTestnet: {
-      url: "https://data-seed-prebsc-1-s1.binance.org:8545",
+      url: 'https://data-seed-prebsc-1-s1.binance.org:8545',
       chainId: 97,
       gasPrice: 20000000000,
       accounts: {
-        mnemonic: secrets.mnemonic
-      }
+        mnemonic: secrets.mnemonic,
+      },
     },
     mumbai: {
       //provider: () => new HDWalletProvider(mnemonic, `https://rpc-mumbai.matic.today`),
@@ -59,16 +58,16 @@ export default {
       timeoutBlocks: 200,
       skipDryRun: true,
       accounts: {
-        mnemonic: secrets.mnemonic
+        mnemonic: secrets.mnemonic,
       },
     },
   },
   solidity: {
-    version: "0.6.6",
+    version: '0.6.6',
     settings: {
       optimizer: {
-        enabled: true
-      }
-    }
-  }
-};
+        enabled: true,
+      },
+    },
+  },
+}
