@@ -22,7 +22,7 @@ contract UpalaGroup is Ownable {
 
     function createGroup(address upalaProtocolAddress, address poolFactory) internal {
         upala = Upala(upalaProtocolAddress);
-        (groupID, groupPool) = upala.newGroup(address(this), poolFactory);
+        // (groupID, groupPool) = upala.newGroup(address(this), poolFactory);
     }
 
     function connectGroup(address upalaProtocolAddress, uint160 groupID, address poolFactory) onlyOwner external { 
@@ -41,7 +41,7 @@ contract UpalaGroup is Ownable {
     // Interface to Upala functions
 
     function commitHash(bytes32 hash) onlyOwner external {
-        upala.commitHash(hash);
+        // upala.commitHash(hash);
     }
 
     function setBotReward(uint newBotReward) onlyOwner external {
