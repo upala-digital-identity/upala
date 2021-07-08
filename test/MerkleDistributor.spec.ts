@@ -1,5 +1,5 @@
 import chai, { expect } from 'chai'
-import { ethers } from "hardhat"
+import { ethers } from 'hardhat'
 import { time } from '@openzeppelin/test-helpers'
 import { solidity, MockProvider, deployContract } from 'ethereum-waffle'
 import { Contract, BigNumber, constants } from 'ethers'
@@ -13,8 +13,7 @@ import BasicPoolFactory from '../artifacts/contracts/pools/basic-pool.sol/BasicP
 import { parseBalanceMap } from '../src/parse-balance-map'
 import { Address } from 'cluster'
 
-
-const { upgrades } = require("hardhat");
+const { upgrades } = require('hardhat')
 
 chai.use(solidity)
 
@@ -67,7 +66,7 @@ describe('MerkleDistributor', () => {
       await upala.connect(wallet0).publishRoot(ZERO_BYTES32)
       const now = (await time.latest()).toNumber()
       const timestamp = await upala.roots(wallet0Group, ZERO_BYTES32)
-      expect(timestamp - now).to.below(1000)  // timing is hard in blockchains 
+      expect(timestamp - now).to.below(1000) // timing is hard in blockchains
     })
   })
 
@@ -276,7 +275,11 @@ describe('MerkleDistributor', () => {
       }
     }
     beforeEach('deploy', async () => {
-      const { claims: innerClaims, merkleRoot, tokenTotal } = parseBalanceMap({
+      const {
+        claims: innerClaims,
+        merkleRoot,
+        tokenTotal,
+      } = parseBalanceMap({
         [wallet0.address]: 200,
         [wallet1.address]: 300,
         [wallets[2].address]: 250,
