@@ -39,16 +39,14 @@ describe('MerkleDistributor', () => {
 
   const wallets = provider.getWallets()
   const [upalaAdmin, wallet0, wallet1, user0, user1, user2] = wallets
-  
-
 
   beforeEach('deploy token', async () => {
     token = await deployContract(wallet0, TestERC20, ['Token', 'TKN', 0], overrides)
-    fakeDai = await deployContract(wallet0, FakeDai);
-    upala = await deployContract(wallet0, Upala);
-    await upala.deployed();
+    fakeDai = await deployContract(wallet0, FakeDai)
+    upala = await deployContract(wallet0, Upala)
+    await upala.deployed()
     const basicPoolFactory = await deployContract(wallet0, BasicPoolFactory, [fakeDai.address], overrides)
-    await upala.setapprovedPoolFactory(basicPoolFactory.address, "true")
+    await upala.setapprovedPoolFactory(basicPoolFactory.address, 'true')
     await upala.newGroup(wallet0.address, basicPoolFactory.address)
     wallet0Group = await upala.managerToGroup(wallet0.address)
   })
@@ -82,7 +80,7 @@ describe('MerkleDistributor', () => {
 
       // await expect(distributor.claim(0, wallet0.address, 10, [])).to.be.revertedWith(
       //   'MerkleDistributor: Invalid proof.'
-      // ) 
+      // )
     })
 
     it('fails for invalid index', async () => {
