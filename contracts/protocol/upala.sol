@@ -125,12 +125,12 @@ contract Upala is OwnableUpgradeable{
         delegateToIdentity[newIdentityOwner] = identity;
     }
 
-    // can be called by any delegate address to get id
+    // can be called by any delegate address to get id (used for tests)
     function myId() external view returns(address) {
         return _identityByAddress(msg.sender);
     }
 
-    // can be called by any delegate address to get id owner
+    // can be called by any delegate address to get id owner (used for tests)
     function myIdOwner() external view  returns(address owner) {
         return _identityOwner(_identityByAddress(msg.sender));
     }
@@ -243,18 +243,18 @@ contract Upala is OwnableUpgradeable{
             "the holder address doesn't own the user id");
         require (identityOwner[identityID] != EXPLODED,
             "This user has already exploded");
-        // TODO pool score is sufficient for explosion
+        // TODO check that pool balance is sufficient for explosion
 
         // Verify the merkle proof.
-        bytes32 node = keccak256(abi.encodePacked(index, identityID, score));
-        require (roots[groupID][_computeRoot(merkleProof, node)] > 0, 'MerkleDistributor: Invalid proof.');
+        bytes32 leaf = keccak256(abi.encodePacked(index, identityID, score));
+        require (roots[groupID][_computeRoot(merkleProof, leaf)] > 0, 'MerkleDistributor: Invalid proof.');
+        
         emit Claimed(index, identityID, score);
         // uint256 totalScore = baseReward[groupID] * score;
         // return totalScore;
     }
 
     // Allows any identity to attack any group, run with the money and self-destruct.
-    // Only those with scores will succeed.
     // todo no nonReentrant?
     function attack(address groupID, address identityID, uint8 score, bytes32[] calldata proof)
         external
@@ -331,6 +331,7 @@ contract Upala is OwnableUpgradeable{
     function setBaseScore(uint botReward, bytes32 secret) external {
         address group = managerToGroup[msg.sender];
         bytes32 hash = keccak256(abi.encodePacked("setBaseScore", botReward, secret));
+        // todo not checknig hash timestamp
         checkHash(group, hash);
         baseReward[group] = botReward;
         delete commitsTimestamps[group][hash];
