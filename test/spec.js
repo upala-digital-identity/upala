@@ -5,6 +5,7 @@ const { upgrades } = require('hardhat')
 const Upala = artifacts.require('Upala')
 const FakeDai = artifacts.require('FakeDai')
 const BasicPoolFactory = artifacts.require('BasicPoolFactory')
+const BasicPool = artifacts.require('BasicPool')
 
 let upala
 let fakeDai
@@ -38,8 +39,18 @@ async function resetProtocol() {
   upala = await upgrades.deployProxy(Upala)
   await upala.deployed()
 
-  basicPoolFactory = await deployContract('BasicPoolFactory', fakeDai.address)
-  await upala.setapprovedPoolFactory(basicPoolFactory.address, 'true').then((tx) => tx.wait())
+  basicPoolFactory = await deployContract('BasicPoolFactory', upala.address, fakeDai.address)
+  basicPoolFactory2 = await deployContract('BasicPoolFactory', upala.address, fakeDai.address)
+  
+}
+
+async function newPool(poolFactory, managerAddress) {
+  await upala.setApprovedPoolFactory(basicPoolFactory.address, 'true').then((tx) => tx.wait())
+  const receipt = await poolFactory.connect(managerAddress).createPool().then((tx) => tx.wait());
+  const newPoolEvent = receipt.events.filter((x) => {return x.event == "NewPool"});
+  const newPoolAddress = newPoolEvent[0].args.newPoolAddress;
+  const PoolContract = await ethers.getContractFactory("BasicPool");
+  return PoolContract.attach(newPoolAddress);
 }
 
 describe('PROTOCOL MANAGEMENT', function () {
@@ -195,6 +206,12 @@ describe('USER', function () {
   })
 })
 
+
+/************************
+          GROUPS
+*************************/
+
+
 describe('GROUPS', function () {
   let manager1Group
   let manager1Pool
@@ -206,28 +223,39 @@ describe('GROUPS', function () {
   })
 
   describe('registration', function () {
-    it('anyone can register a group - todo check group id', async function () {
-      const groupIDtoBeAssigned = 3
-      await upala.connect(nobody).newGroup(manager1.getAddress(), basicPoolFactory.address)
-      manager1Group = await upala.getGroupID(manager1.getAddress())
-      manager1Pool = await upala.getGroupPool(manager1Group)
-      // expect(await upala.connect(nobody).getGroupID(manager1.getAddress())).to.eq(groupIDtoBeAssigned)
-      // todo check return (entityCounter, groupPool[entityCounter]);
-      // todo check events
 
-      // register second group
-      await upala.connect(nobody).newGroup(manager2.getAddress(), basicPoolFactory.address)
-      manager2Group = await upala.getGroupID(manager2.getAddress())
-      manager2Pool = await upala.getGroupPool(manager2Group)
-    })
+    it('can only register an approved pool', async function () {
+      // approve pool factory
+      await upala.setApprovedPoolFactory(basicPoolFactory.address, 'true').then((tx) => tx.wait());
+      expect(await upala.approvedPoolFactories(basicPoolFactory.address)).to.eq(true);
 
-    it('cannot register to an existing manager', async function () {
-      await expect(upala.connect(nobody).newGroup(manager1.getAddress(), basicPoolFactory.address)).to.be.revertedWith(
-        'Provided address already manages a group'
+      // spawn a new pool by the factory
+      const tx = await basicPoolFactory.connect(manager1).createPool();
+      const receipt = await tx.wait(1);
+      const newPoolEvent = receipt.events.filter((x) => {return x.event == "NewPool"});
+      const newPoolAddress = newPoolEvent[0].args.newPoolAddress;
+      const PoolContract = await ethers.getContractFactory("BasicPool");
+      PoolContract.attach(newPoolAddress);
+      expect(await upala.approvedPools(newPoolAddress)).to.eq(basicPoolFactory.address);
+
+      // try to spawn a pool from a not approved factory
+      await expect(basicPoolFactory2.connect(manager1).createPool()).to.be.revertedWith(
+        'Pool factory is not approved'
       )
     })
-  })
 
+    // it('only owner can increase score', async function () {
+    //   const basicPool = await newPool(basicPoolFactory, manager1);
+
+    //   await basicPool.connect(manager1).increaseBaseScore(1);
+    //   await expect(basicPool.connect(manager2).increaseBaseScore(2)).to.be.revertedWith(
+    //     'Ownable: caller is not the owner'
+    //   )
+    // })
+
+
+  })
+/*
   describe('commitments', function () {
     it('a group can issue a commitment', async function () {
       const someHash = utils.formatBytes32String('First commitment!')
@@ -433,4 +461,5 @@ describe('EXPLOSIONS', function () {
   it('cannot explode using delegate address', async function () {})
 
   it('Upala ID owner can explode (check fees and rewards)', async function () {})
+  */
 })

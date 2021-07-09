@@ -16,17 +16,25 @@ Or even to share one pool among several groups.
 
 
 contract BasicPoolFactory {
+    
+    Upala public upala;
 
     address public upalaAddress;
     address public approvedTokenAddress;
 
+    event NewPool(address newPoolAddress);
+
     constructor (address _upalaAddress, address _approvedTokenAddress) public {
         upalaAddress = _upalaAddress;
+        upala = Upala(_upalaAddress);
         approvedTokenAddress = _approvedTokenAddress;
     }
 
     function createPool() external returns (address) {
-        return address(new BasicPool(upalaAddress, approvedTokenAddress, msg.sender));
+        address newPoolAddress = address(new BasicPool(upalaAddress, approvedTokenAddress, msg.sender));
+        require(upala.approvePool(newPoolAddress) == true, "Cannot approve new pool on Upala");
+        NewPool(newPoolAddress);
+        return newPoolAddress;
    }
 }
 
@@ -43,7 +51,7 @@ contract BasicPool is Ownable {
 
     // base reward get multiplied by individual scores to get total score for each user
     // with base reward we can tweak all users scores simultaneously
-    uint256 baseReward;
+    uint256 baseScore;
     // merkle roots of trees storing scores
     mapping (bytes32 => uint256) public roots;
 
@@ -69,7 +77,7 @@ contract BasicPool is Ownable {
         upala = Upala(upalaAddress);
         approvedToken = IERC20(approvedTokenAddress);
         transferOwnership(poolManager);
-        require(upala.approvePool(address(this)) == true, "Cannot approve new pool on Upala");
+        
     }
 
     /*********************
@@ -135,7 +143,7 @@ contract BasicPool is Ownable {
         bytes32 leaf = keccak256(abi.encodePacked(index, identityID, score));
         require (roots[_computeRoot(proof, leaf)] > 0, 'MerkleDistributor: Invalid proof.');
         
-        uint256 totalScore = baseReward * score;
+        uint256 totalScore = baseScore * score;
         
         return totalScore;
     }
@@ -189,7 +197,7 @@ contract BasicPool is Ownable {
         bytes32 hash = keccak256(abi.encodePacked("setBaseScore", botReward, secret));
         // todo not checknig hash timestamp
         checkHash(hash);
-        baseReward = botReward;
+        baseScore = botReward;
         delete commitsTimestamps[hash];
         // emit Set("NewBotReward", group, botReward);
     }
@@ -215,8 +223,8 @@ contract BasicPool is Ownable {
     /*Changes that don't hurt bots rights*/
 
     function increaseBaseScore(uint newBotReward) external onlyOwner {
-        require (newBotReward > baseReward, "To decrease score, make a commitment first");
-        baseReward = newBotReward;
+        require (newBotReward > baseScore, "To decrease score, make a commitment first");
+        baseScore = newBotReward;
     }
 
     function publishRoot(bytes32 newRoot) external onlyOwner {
@@ -262,6 +270,6 @@ contract BasicPool is Ownable {
     ***************/
 
     function groupBaseScore() external view returns (uint) {
-        return baseReward;
+        return baseScore;
     }
 }

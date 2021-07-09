@@ -40,9 +40,9 @@ contract Upala is OwnableUpgradeable{
     *****/
 
     // Pool Factories approved by Upala admin
-    mapping(address => bool) approvedPoolFactories;
+    mapping(address => bool) public approvedPoolFactories;
     // Pools created by approved pool factories
-    mapping(address => address) approvedPools;
+    mapping(address => address) public approvedPools;
 
 
 
@@ -154,13 +154,15 @@ contract Upala is OwnableUpgradeable{
     *****/
 
     modifier onlyApprovedPoolFactory() {
-        require(approvedPoolFactories[msg.sender] == true);
+        require(approvedPoolFactories[msg.sender] == true, "Pool factory is not approved");
         _;
     }
 
     // pool factories approve all pool they generate
+    // todo onlyApprovedPoolFactory
     function approvePool(address newPool) external onlyApprovedPoolFactory returns(bool) {
         approvedPools[newPool] = msg.sender;
+        
         return true;
     }
 
