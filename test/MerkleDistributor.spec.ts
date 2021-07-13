@@ -13,7 +13,6 @@ import FakeDai from '../artifacts/contracts/mockups/fake-dai-mock.sol/FakeDai.js
 import { parseBalanceMap } from '../src/parse-balance-map'
 import { Address } from 'cluster'
 
-
 const { upgrades, artifacts } = require('hardhat')
 const BasicPool = artifacts.require('BasicPool')
 const BasicPoolFactory = artifacts.require('BasicPoolFactory')
@@ -51,15 +50,17 @@ describe('MerkleDistributor', () => {
     await upala.deployed()
     const basicPoolFactory = await deployContract(wallet0, BasicPoolFactory, [upala.address, fakeDai.address])
     // const basicPoolFactory = await deployContract(wallet0, BasicPoolFactory, [fakeDai.address], overrides)
-    await upala.setApprovedPoolFactory(basicPoolFactory.address, 'true').then((tx) => tx.wait());
+    await upala.setApprovedPoolFactory(basicPoolFactory.address, 'true').then((tx) => tx.wait())
 
     // spawn a new pool by the factory
-    const tx = await basicPoolFactory.connect(wallet0).createPool();
-    const receipt = await tx.wait(1);
-    const newPoolEvent = receipt.events.filter((x) => {return x.event == "NewPool"});
-    const newPoolAddress = newPoolEvent[0].args.newPoolAddress;
-    const PoolContract = await ethers.getContractFactory("BasicPool");
-    basicPool = PoolContract.attach(newPoolAddress);
+    const tx = await basicPoolFactory.connect(wallet0).createPool()
+    const receipt = await tx.wait(1)
+    const newPoolEvent = receipt.events.filter((x) => {
+      return x.event == 'NewPool'
+    })
+    const newPoolAddress = newPoolEvent[0].args.newPoolAddress
+    const PoolContract = await ethers.getContractFactory('BasicPool')
+    basicPool = PoolContract.attach(newPoolAddress)
 
     wallet0Group = newPoolAddress
   })
@@ -74,18 +75,16 @@ describe('MerkleDistributor', () => {
 
   describe('#merkleRoot', () => {
     it('stores and returns the zero merkle root', async () => {
-      
       const tx = await basicPool.connect(wallet0).publishRoot(ZERO_BYTES32)
       const block = await provider.getBlock((await tx.wait(1)).blockNumber)
-      const now = (await block).timestamp;
+      const now = (await block).timestamp
 
-      const timestamp = await basicPool.connect(wallet0).roots(ZERO_BYTES32);
+      const timestamp = await basicPool.connect(wallet0).roots(ZERO_BYTES32)
 
       expect(timestamp - now).to.eq(0)
     })
-    
   })
-/*
+  /*
   describe('#claim', () => {
     it('fails for empty proof', async () => {
       // const distributor = await deployContract(wallet0, Distributor, [], overrides)
