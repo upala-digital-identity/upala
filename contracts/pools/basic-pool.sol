@@ -51,7 +51,7 @@ contract BasicPool is Ownable {
 
     // base reward get multiplied by individual scores to get total score for each user
     // with base reward we can tweak all users scores simultaneously
-    uint256 baseScore;
+    uint256 public baseScore;
     // merkle roots of trees storing scores
     mapping (bytes32 => uint256) public roots;
 
@@ -61,7 +61,6 @@ contract BasicPool is Ownable {
 
     // Any changes that can hurt bot rights must wait for an attackWindow to expire
     mapping(bytes32 => uint) public commitsTimestamps;
-    
 
     /*****
     EVENTS
@@ -92,8 +91,8 @@ contract BasicPool is Ownable {
     }
 
     // a mock function before real Merkle is implemented
-    function getRootHack(address identityID, uint8 score, bytes32[] memory proof) public returns(bytes32 res) {
-        return "0x000000006578706c6f646564";
+    function getRootHack(bytes32 sfsdf) public returns(uint res) {
+        return 1;
     }
 
     // for DApps - hackathon mock
@@ -227,7 +226,8 @@ contract BasicPool is Ownable {
         baseScore = newBotReward;
     }
 
-    function publishRoot(bytes32 newRoot) external onlyOwner {
+    // todo onlyOwner
+    function publishRoot(bytes32 newRoot) external  {
         roots[newRoot] = now;
     }
 
@@ -268,6 +268,10 @@ contract BasicPool is Ownable {
     /**************
     GETTER FUNCTIONS
     ***************/
+
+    function getRootTimestamp(bytes32 root) external returns (uint256) {
+        return roots[root];
+    }
 
     function groupBaseScore() external view returns (uint) {
         return baseScore;
