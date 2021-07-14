@@ -24,13 +24,25 @@ const overrides = {
   gasLimit: 9999999,
 }
 
-let token: Contract
-let fakeDai: Contract
-let upala: Contract
-let basicPool: Contract
-let wallet0Group: Address
+const ZERO_BYTES32 = '0x0000000000000000000000000000000000000000000000000000000000000000'
 
-const ZERO_BYTES32 = '0x0000000000000000000000000000000000000000000000000000000000000001'
+async function resetProtocol(admin, groupOwner) {
+  const fakeDai: Contract = await deployContract(admin, FakeDai)
+  const upala: Contract = await deployContract(admin, Upala)
+  await upala.deployed()
+  const basicPoolFactory = await deployContract(admin, BasicPoolFactory, [upala.address, fakeDai.address])
+  await upala.setApprovedPoolFactory(basicPoolFactory.address, 'true').then((tx) => tx.wait());
+
+  // spawn a new pool by the factory
+  const tx = await basicPoolFactory.connect(groupOwner).createPool();
+  const receipt = await tx.wait(1);
+  const newPoolEvent = receipt.events.filter((x) => {return x.event == "NewPool"});
+  const newPoolAddress = newPoolEvent[0].args.newPoolAddress;
+  const PoolContract = await ethers.getContractFactory("BasicPool");
+  const basicPool: Contract = PoolContract.attach(newPoolAddress);
+
+  return [fakeDai, upala, basicPool]
+}
 
 describe('MerkleDistributor', () => {
   const provider = new MockProvider({
@@ -42,31 +54,11 @@ describe('MerkleDistributor', () => {
   })
 
   const wallets = provider.getWallets()
-  const [upalaAdmin, wallet0, wallet1, user0, user1, user2, manager1] = wallets
-
-  beforeEach('reset protocol', async () => {
-    token = await deployContract(wallet0, TestERC20, ['Token', 'TKN', 0], overrides)
-    fakeDai = await deployContract(wallet0, FakeDai)
-    upala = await deployContract(wallet0, Upala)
-    await upala.deployed()
-    const basicPoolFactory = await deployContract(wallet0, BasicPoolFactory, [upala.address, fakeDai.address])
-    // const basicPoolFactory = await deployContract(wallet0, BasicPoolFactory, [fakeDai.address], overrides)
-    await upala.setApprovedPoolFactory(basicPoolFactory.address, 'true').then((tx) => tx.wait());
-
-    // spawn a new pool by the factory
-    const tx = await basicPoolFactory.connect(wallet0).createPool();
-    const receipt = await tx.wait(1);
-    const newPoolEvent = receipt.events.filter((x) => {return x.event == "NewPool"});
-    const newPoolAddress = newPoolEvent[0].args.newPoolAddress;
-    const PoolContract = await ethers.getContractFactory("BasicPool");
-    basicPool = PoolContract.attach(newPoolAddress);
-
-    wallet0Group = newPoolAddress
-  })
+  const [upalaAdmin, groupOwner0, wallet1, user0, user1, user2, manager1] = wallets
 
   // describe('#token', () => {
   //   it('returns the token address', async () => {
-  //     const distributor = await deployContract(wallet0, Distributor, [], overrides)
+  //     const distributor = await deployContract(groupOwner0, Distributor, [], overrides)
   //     await distributor.publishRoot(ZERO_BYTES32)
   //     expect(await distributor.token()).to.eq(token.address)
   //   })
@@ -74,66 +66,93 @@ describe('MerkleDistributor', () => {
 
   describe('#merkleRoot', () => {
     it('stores and returns the zero merkle root', async () => {
-      
-      const tx = await basicPool.connect(wallet0).publishRoot(ZERO_BYTES32)
+      const [fakeDai, upala, basicPool] = await resetProtocol(upalaAdmin, groupOwner0)
+
+      const tx = await basicPool.connect(groupOwner0).publishRoot(ZERO_BYTES32)
       const block = await provider.getBlock((await tx.wait(1)).blockNumber)
       const now = (await block).timestamp;
 
-      const timestamp = await basicPool.connect(wallet0).roots(ZERO_BYTES32);
+      const timestamp = await basicPool.connect(groupOwner0).roots(ZERO_BYTES32);
 
       expect(timestamp - now).to.eq(0)
     })
-    
-  })
-/*
+  })  
+
   describe('#claim', () => {
     it('fails for empty proof', async () => {
-      // const distributor = await deployContract(wallet0, Distributor, [], overrides)
-      // await distributor.publishRoot(ZERO_BYTES32)
-      // await expect(distributor.claim(0, wallet0.address, 10, [])).to.be.revertedWith(
-      //   'MerkleDistributor: Invalid proof.'
-      // )
-      const ZERO_BYTES32_2 = '0x0000000000000000000000000000000000000000000000000000000000000002'
-      await basicPool.connect(wallet0).publishRoot(ZERO_BYTES32_2)
-      // todo replace distributor with Upala
+      const [fakeDai, upala, basicPool] = await resetProtocol(upalaAdmin, groupOwner0)
+      const tx = await basicPool.connect(groupOwner0).publishRoot(ZERO_BYTES32)
+      await upala.connect(user0).newIdentity(user0.address)
 
-      // await expect(distributor.claim(0, wallet0.address, 10, [])).to.be.revertedWith(
-      //   'MerkleDistributor: Invalid proof.'
-      // )
-    })
+      const user0id = await upala.connect(user0).myId()
+      const index = 0; 
+      const score = 0; 
+      const proof = [];
 
-    it('fails for invalid index', async () => {
-      const distributor = await deployContract(wallet0, Distributor, [], overrides)
-      await distributor.publishRoot(ZERO_BYTES32)
-      await expect(distributor.claim(0, wallet0.address, 10, [])).to.be.revertedWith(
+      await expect(basicPool.connect(user0).attack(user0id, index, score, proof)).to.be.revertedWith(
         'MerkleDistributor: Invalid proof.'
       )
     })
+  })
+
+    //todo: was wrong in Uniswap merkle distibutor, do it right!
+    // it('fails for invalid index', async () => {
+    //   const distributor = await deployContract(groupOwner0, Distributor, [], overrides)
+    //   await distributor.publishRoot(ZERO_BYTES32)
+    //   await expect(distributor.claim(0, groupOwner0.address, 10, [])).to.be.revertedWith(
+    //     'MerkleDistributor: Invalid proof.'
+    //   )
+    // })
 
     describe('two account tree', () => {
-      let distributor: Contract
+      let basicPool: Contract
+      let fakeDai: Contract
+      let upala: Contract
       let tree: BalanceTree
+      let user0id: string
+      let user1id: string
+      let baseScore: BigNumber
       beforeEach('deploy', async () => {
+        [fakeDai, upala, basicPool] = await resetProtocol(upalaAdmin, groupOwner0)
+        await upala.connect(user0).newIdentity(user0.address)
+        await upala.connect(user1).newIdentity(user1.address)
+        user0id = await upala.connect(user0).myId()
+        user1id = await upala.connect(user1).myId()
+
         tree = new BalanceTree([
-          { account: wallet0.address, amount: BigNumber.from(100) },
-          { account: wallet1.address, amount: BigNumber.from(101) },
+          { account: user0id, amount: BigNumber.from(100) },
+          { account: user1id, amount: BigNumber.from(101) },
         ])
-        distributor = await deployContract(wallet0, Distributor, [], overrides)
-        await distributor.publishRoot(tree.getHexRoot())
-        await token.setBalance(distributor.address, 201)
+        const root = tree.getHexRoot()
+        console.log("Root", root)
+        await basicPool.connect(groupOwner0).publishRoot(root).then((tx) => tx.wait())
+        // await token.setBalance(basicPool.address, 201)
       })
 
-      it('successful claim', async () => {
-        const proof0 = tree.getProof(0, wallet0.address, BigNumber.from(100))
-        await expect(distributor.claim(0, wallet0.address, 100, proof0, overrides))
-          .to.emit(distributor, 'Claimed')
-          .withArgs(0, wallet0.address, 100)
-        const proof1 = tree.getProof(1, wallet1.address, BigNumber.from(101))
-        await expect(distributor.claim(1, wallet1.address, 101, proof1, overrides))
-          .to.emit(distributor, 'Claimed')
-          .withArgs(1, wallet1.address, 101)
+      it('successful verification', async () => {
+        const proof0 = tree.getProof(0, user0id, BigNumber.from(100))
+        const proof1 = tree.getProof(1, user1id, BigNumber.from(101))
+        console.log("proof0", proof0)
+        console.log("proof1", proof1)
+        // todo const totalScore1
+        expect(await basicPool.connect(user0).myScore(0, user0id, 100, proof0, overrides)).to.be.eq(100)
+        
+        // const proof1 = tree.getProof(1, user1id, BigNumber.from(101))
+        // expect(await basicPool.connect(user1).myScore(1, user1id, 101, proof1, overrides)).to.be.eq(101)
       })
 
+      // it('successful attack', async () => {
+      //   const proof0 = tree.getProof(0, user0id, BigNumber.from(100))
+      //   await expect(basicPool.myScore(0, user0id, 100, proof0, overrides))
+      //     .to.emit(basicPool, 'myScoreed')
+      //     .withArgs(0, user0id, 100)
+      //   const proof1 = tree.getProof(1, user1id, BigNumber.from(101))
+      //   await expect(basicPool.myScore(1, user1id, 101, proof1, overrides))
+      //     .to.emit(basicPool, 'myScoreed')
+      //     .withArgs(1, user1id, 101)
+      // })
+    })
+  /*
       it('cannot claim for address other than proof', async () => {
         const proof0 = tree.getProof(0, wallet0.address, BigNumber.from(100))
         await expect(distributor.claim(1, wallet1.address, 101, proof0, overrides)).to.be.revertedWith(

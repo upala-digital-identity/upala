@@ -44,7 +44,7 @@
     "chai": "^4.2.0",
     "ethereum-waffle": "^3.2.1",
     "ethers": "^5.0.22",
-    "hardhat": "^2.0.3",
+    "hardhat": "^2.4.3",
     "ts-node": "^9.1.1",
     "typescript": "^4.1.3",
     "web3": "^1.3.1"

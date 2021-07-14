@@ -7,7 +7,7 @@ import "../libraries/openzeppelin-contracts/contracts/access/Ownable.sol";
 import "./i-pool-factory.sol";
 import "./i-pool.sol";
 import "../protocol/upala.sol";
-
+import "hardhat/console.sol";
 /*
 
 Every group to manages its poool in it's own way.
@@ -73,6 +73,7 @@ contract BasicPool is Ownable {
     );
 
     constructor(address upalaAddress, address approvedTokenAddress, address poolManager) public {
+        baseScore = 1;
         upala = Upala(upalaAddress);
         approvedToken = IERC20(approvedTokenAddress);
         transferOwnership(poolManager);
@@ -111,7 +112,7 @@ contract BasicPool is Ownable {
     }
 
     // multipass 
-    function myScore(address identityID, uint256 index, uint8 score, bytes32[] calldata proof) external view returns (uint256) {
+    function myScore(uint256 index, address identityID, uint8 score, bytes32[] calldata proof) external view returns (uint256) {
         
         // calculate score (and check validity)
         uint256 totalScore = _userScore(identityID, msg.sender, index, score, proof);
@@ -123,10 +124,11 @@ contract BasicPool is Ownable {
     // todo no nonReentrant?
     function attack(address identityID, uint256 index, uint8 score, bytes32[] calldata proof)
         external
-    {
+    {   
+        console.log("hey");
         // calculate reward (and validity)
         uint256 reward = _userScore(identityID, msg.sender, index, score, proof);
-        
+        console.log(reward);
         // explode (delete id forever)
         upala.deleteID(identityID);
 
@@ -136,11 +138,15 @@ contract BasicPool is Ownable {
 
     function _userScore(address identityID, address ownerOrDelegate, uint256 index, uint8 score, bytes32[] memory proof) private view returns (uint256){
         // check identity validity
+        console.log("_userScore");
         require(upala.isOwnerOrDelegate(ownerOrDelegate, identityID), "Address doesn't own an ID or is exploded");
         // TODO check that pool balance is sufficient for explosion
         // check Merkle proof
         bytes32 leaf = keccak256(abi.encodePacked(index, identityID, score));
-        require (roots[_computeRoot(proof, leaf)] > 0, 'MerkleDistributor: Invalid proof.');
+        console.logBytes32(leaf);
+        bytes32 computedRoot = _computeRoot(proof, leaf);
+        console.logBytes32(computedRoot);
+        require (roots[computedRoot] > 0, 'MerkleDistributor: Invalid proof.');
         
         uint256 totalScore = baseScore * score;
         
@@ -149,7 +155,7 @@ contract BasicPool is Ownable {
 
     function _computeRoot(bytes32[] memory proof, bytes32 leaf) internal pure returns (bytes32) {
         bytes32 computedHash = leaf;
-
+        
         for (uint256 i = 0; i < proof.length; i++) {
             bytes32 proofElement = proof[i];
 
@@ -228,6 +234,7 @@ contract BasicPool is Ownable {
 
     // todo onlyOwner
     function publishRoot(bytes32 newRoot) external  {
+        console.log("publishRoot");
         roots[newRoot] = now;
     }
 

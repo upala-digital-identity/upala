@@ -178,6 +178,7 @@ contract Upala is OwnableUpgradeable{
     *************************/
 
     function setAttackWindow(uint256 newWindow) onlyOwner external {
+        console.log("setAttackWindow");
         attackWindow = newWindow;
     }
 
