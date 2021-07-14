@@ -41,16 +41,20 @@ async function resetProtocol() {
 
   basicPoolFactory = await deployContract('BasicPoolFactory', upala.address, fakeDai.address)
   basicPoolFactory2 = await deployContract('BasicPoolFactory', upala.address, fakeDai.address)
-  
 }
 
 async function newPool(poolFactory, managerAddress) {
   await upala.setApprovedPoolFactory(basicPoolFactory.address, 'true').then((tx) => tx.wait())
-  const receipt = await poolFactory.connect(managerAddress).createPool().then((tx) => tx.wait());
-  const newPoolEvent = receipt.events.filter((x) => {return x.event == "NewPool"});
-  const newPoolAddress = newPoolEvent[0].args.newPoolAddress;
-  const PoolContract = await ethers.getContractFactory("BasicPool");
-  return PoolContract.attach(newPoolAddress);
+  const receipt = await poolFactory
+    .connect(managerAddress)
+    .createPool()
+    .then((tx) => tx.wait())
+  const newPoolEvent = receipt.events.filter((x) => {
+    return x.event == 'NewPool'
+  })
+  const newPoolAddress = newPoolEvent[0].args.newPoolAddress
+  const PoolContract = await ethers.getContractFactory('BasicPool')
+  return PoolContract.attach(newPoolAddress)
 }
 
 describe('PROTOCOL MANAGEMENT', function () {
@@ -206,11 +210,9 @@ describe('USER', function () {
   })
 })
 
-
 /************************
           GROUPS
 *************************/
-
 
 describe('GROUPS', function () {
   let manager1Group
@@ -223,25 +225,24 @@ describe('GROUPS', function () {
   })
 
   describe('registration', function () {
-
     it('can only register an approved pool', async function () {
       // approve pool factory
-      await upala.setApprovedPoolFactory(basicPoolFactory.address, 'true').then((tx) => tx.wait());
-      expect(await upala.approvedPoolFactories(basicPoolFactory.address)).to.eq(true);
+      await upala.setApprovedPoolFactory(basicPoolFactory.address, 'true').then((tx) => tx.wait())
+      expect(await upala.approvedPoolFactories(basicPoolFactory.address)).to.eq(true)
 
       // spawn a new pool by the factory
-      const tx = await basicPoolFactory.connect(manager1).createPool();
-      const receipt = await tx.wait(1);
-      const newPoolEvent = receipt.events.filter((x) => {return x.event == "NewPool"});
-      const newPoolAddress = newPoolEvent[0].args.newPoolAddress;
-      const PoolContract = await ethers.getContractFactory("BasicPool");
-      PoolContract.attach(newPoolAddress);
-      expect(await upala.approvedPools(newPoolAddress)).to.eq(basicPoolFactory.address);
+      const tx = await basicPoolFactory.connect(manager1).createPool()
+      const receipt = await tx.wait(1)
+      const newPoolEvent = receipt.events.filter((x) => {
+        return x.event == 'NewPool'
+      })
+      const newPoolAddress = newPoolEvent[0].args.newPoolAddress
+      const PoolContract = await ethers.getContractFactory('BasicPool')
+      PoolContract.attach(newPoolAddress)
+      expect(await upala.approvedPools(newPoolAddress)).to.eq(basicPoolFactory.address)
 
       // try to spawn a pool from a not approved factory
-      await expect(basicPoolFactory2.connect(manager1).createPool()).to.be.revertedWith(
-        'Pool factory is not approved'
-      )
+      await expect(basicPoolFactory2.connect(manager1).createPool()).to.be.revertedWith('Pool factory is not approved')
     })
 
     // it('only owner can increase score', async function () {
@@ -252,10 +253,8 @@ describe('GROUPS', function () {
     //     'Ownable: caller is not the owner'
     //   )
     // })
-
-
   })
-/*
+  /*
   describe('commitments', function () {
     it('a group can issue a commitment', async function () {
       const someHash = utils.formatBytes32String('First commitment!')

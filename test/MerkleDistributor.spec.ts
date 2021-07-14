@@ -13,7 +13,6 @@ import FakeDai from '../artifacts/contracts/mockups/fake-dai-mock.sol/FakeDai.js
 import { parseBalanceMap } from '../src/parse-balance-map'
 import { Address } from 'cluster'
 
-
 const { upgrades, artifacts } = require('hardhat')
 const BasicPool = artifacts.require('BasicPool')
 const BasicPoolFactory = artifacts.require('BasicPoolFactory')
@@ -70,7 +69,7 @@ describe('MerkleDistributor', () => {
 
       const tx = await basicPool.connect(groupOwner0).publishRoot(ZERO_BYTES32)
       const block = await provider.getBlock((await tx.wait(1)).blockNumber)
-      const now = (await block).timestamp;
+      const now = (await block).timestamp
 
       const timestamp = await basicPool.connect(groupOwner0).roots(ZERO_BYTES32);
 
