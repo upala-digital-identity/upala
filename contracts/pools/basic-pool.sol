@@ -120,6 +120,8 @@ contract BasicPool is Ownable {
         return totalScore;
     }
 
+
+
     // Allows any identity to attack any group, run with the money and self-destruct.
     // todo no nonReentrant?
     function attack(address identityID, uint256 index, uint8 score, bytes32[] calldata proof)
@@ -134,6 +136,15 @@ contract BasicPool is Ownable {
 
         // payout 💸
         _payBotReward(msg.sender, reward);
+    }
+
+    function hack_computeRoot(uint256 index, address identityID, uint256 score, bytes32[] calldata proof) external view returns (bytes32) {
+        bytes32 leaf = keccak256(abi.encodePacked(index, identityID, score));
+        return _computeRoot(proof, leaf);
+    }
+
+    function hack_leaf(uint256 index, address identityID, uint256 score, bytes32[] calldata proof) external view returns (bytes32) {
+        return  keccak256(abi.encodePacked(index, identityID, score));
     }
 
     function _userScore(address identityID, address ownerOrDelegate, uint256 index, uint8 score, bytes32[] memory proof) private view returns (uint256){

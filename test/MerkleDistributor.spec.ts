@@ -117,22 +117,31 @@ describe('MerkleDistributor', () => {
         await upala.connect(user1).newIdentity(user1.address)
         user0id = await upala.connect(user0).myId()
         user1id = await upala.connect(user1).myId()
-
         tree = new BalanceTree([
           { account: user0id, amount: BigNumber.from(100) },
           { account: user1id, amount: BigNumber.from(101) },
         ])
         const root = tree.getHexRoot()
-        console.log("Root", root)
         await basicPool.connect(groupOwner0).publishRoot(root).then((tx) => tx.wait())
         // await token.setBalance(basicPool.address, 201)
       })
 
       it('successful verification', async () => {
+        const root = tree.getHexRoot()
         const proof0 = tree.getProof(0, user0id, BigNumber.from(100))
-        const proof1 = tree.getProof(1, user1id, BigNumber.from(101))
-        console.log("proof0", proof0)
-        console.log("proof1", proof1)
+
+        // const proof1 = tree.getProof(1, user1id, BigNumber.from(101))
+        // console.log("proof0", proof0)
+        // console.log("proof1", proof1)
+        console.log("TS Leaf", (BalanceTree.toNode(0, user0id, BigNumber.from(100))).toString('hex'))
+        console.log("Contract leaf", await basicPool.connect(user0).hack_leaf(0, user0id, 100, proof0, overrides))
+        
+        console.log("root", root)
+        console.log("hack_computeRoot", await basicPool.connect(user0).hack_computeRoot(0, user0id, 100, proof0, overrides))
+        
+        const proof0buff = proof0.map((el) => Buffer.from(el.slice(2), 'hex'))
+        const rootBuff = Buffer.from(root.slice(2), 'hex')
+        console.log(BalanceTree.verifyProof(0, user0id, BigNumber.from(100), proof0buff, rootBuff))
         // todo const totalScore1
         expect(await basicPool.connect(user0).myScore(0, user0id, 100, proof0, overrides)).to.be.eq(100)
         
