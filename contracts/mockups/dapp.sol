@@ -2,35 +2,43 @@ pragma solidity ^0.6.0;
 
 // import "../universe/i-score-provider.sol";
 import "../protocol/upala.sol";
+import "../pools/i-pool.sol";
 // ../universe/proto-group.sol
 
 // Upala library for DApps (human library)
 contract usingUpala {
 
-    mapping (uint160 => bool) trustedScoreProviders;
-    mapping (uint160 => address) scoreProviderAddresses;
-
     // IScoreProvider scoreProviderContract;  // e.g. BladerunnerDAO
+    uint8 public version;
     Upala upala;
+
     /*****
     SCORES
     ******/
 
-    // this function does not verify whether Id really belogs to msg.sender
-    function getUncofirmedUserIdentity(uint160[] memory path) internal pure returns (uint160){
-        return path[0];
+    function scoreIsAboveThreshold(
+        address pool, 
+        uint256 threshold, 
+        address identityID, 
+        uint8 score, 
+        bytes calldata proof)
+    internal 
+    returns (bool) 
+    {
+        return (userScore(pool, identityID, score, proof) >= threshold);
     }
 
-    function scoreIsAboveThreshold(address wallet, uint160[] memory path, uint256 threshold) internal returns (bool) {
-        return (getScoreByPath(wallet, path) >= threshold);
-    }
-
-    // this func does verify identity holder
-    
-    function getScoreByPath(address wallet, uint160[] memory path) internal returns (uint256){
-        require (trustedScoreProviders[path[path.length-1]] == true, "score provider is not proved");
-        // return upala.userScore(wallet, path);
-        return 42; // moving to Merkle (deprecating)
+    // verifies and returns user score
+    function userScore(
+        address pool, 
+        address identityID, 
+        uint8 score, 
+        bytes calldata proof) 
+    internal 
+    returns (uint256)
+    {   
+        // msg.sender is user
+        return IPool(pool).userScore(msg.sender, identityID, score, proof);
     }
 
 
@@ -43,19 +51,16 @@ contract usingUpala {
     }
 
     // Manage trusted score providers
-    // no need to check if scoreProviderAddresses is the group manager.
-    // Upala protocol will not let non-managers to get the score.
-    // path[path.length-1] = groupID, 
-    // scoreProviderAddress is groupID manager - ensured by the protocol
-    function approveScoreProvider(uint160 providerUpalaID) internal {
-        trustedScoreProviders[providerUpalaID] = true;
+    // Need to register DApp in all trusted pools
+    function approveScoreProvider(address groupAddress) internal {
+        IPool(groupAddress).registerDapp();
     }
-    function removeScoreProvider(uint160 providerUpalaID) internal {
-        delete trustedScoreProviders[providerUpalaID];
+    function removeScoreProvider(address groupAddress) internal {
+        IPool(groupAddress).unregisterDapp();
     }
 }
 
-contract UBIExampleDApp is usingUpala {
+contract UBIExampleDApp is usingUpala {  // gotHumans requiringHumans 
 
     uint256 MINIMAL_SCORE = 1 * 10 ** 18;  // 1 DAI
     uint256 UBI = 10 * 10 ** 18;  // 10 Tokens
