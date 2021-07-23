@@ -58,7 +58,7 @@ describe('MerkleDistributor', () => {
   // describe('#token', () => {
   //   it('returns the token address', async () => {
   //     const distributor = await deployContract(groupOwner0, Distributor, [], overrides)
-  //     await distributor.publishRoot(ZERO_BYTES32)
+  //     await distributor.publishScoreBundle(ZERO_BYTES32)
   //     expect(await distributor.token()).to.eq(token.address)
   //   })
   // })
@@ -67,7 +67,7 @@ describe('MerkleDistributor', () => {
     it('stores and returns the zero merkle root', async () => {
       const [fakeDai, upala, basicPool] = await resetProtocol(upalaAdmin, groupOwner0)
 
-      const tx = await basicPool.connect(groupOwner0).publishRoot(ZERO_BYTES32)
+      const tx = await basicPool.connect(groupOwner0).publishScoreBundle(ZERO_BYTES32)
       const block = await provider.getBlock((await tx.wait(1)).blockNumber)
       const now = (await block).timestamp
 
@@ -80,7 +80,7 @@ describe('MerkleDistributor', () => {
   describe('#claim', () => {
     it('fails for empty proof', async () => {
       const [fakeDai, upala, basicPool] = await resetProtocol(upalaAdmin, groupOwner0)
-      const tx = await basicPool.connect(groupOwner0).publishRoot(ZERO_BYTES32)
+      const tx = await basicPool.connect(groupOwner0).publishScoreBundle(ZERO_BYTES32)
       await upala.connect(user0).newIdentity(user0.address)
 
       const user0id = await upala.connect(user0).myId()
@@ -97,7 +97,7 @@ describe('MerkleDistributor', () => {
     //todo: was wrong in Uniswap merkle distibutor, do it right!
     // it('fails for invalid index', async () => {
     //   const distributor = await deployContract(groupOwner0, Distributor, [], overrides)
-    //   await distributor.publishRoot(ZERO_BYTES32)
+    //   await distributor.publishScoreBundle(ZERO_BYTES32)
     //   await expect(distributor.claim(0, groupOwner0.address, 10, [])).to.be.revertedWith(
     //     'MerkleDistributor: Invalid proof.'
     //   )
@@ -122,7 +122,7 @@ describe('MerkleDistributor', () => {
           { account: user1id, amount: BigNumber.from(101) },
         ])
         const root = tree.getHexRoot()
-        await basicPool.connect(groupOwner0).publishRoot(root).then((tx) => tx.wait())
+        await basicPool.connect(groupOwner0).publishScoreBundle(root).then((tx) => tx.wait())
         // await token.setBalance(basicPool.address, 201)
       })
 
@@ -193,7 +193,7 @@ describe('MerkleDistributor', () => {
           })
         )
         distributor = await deployContract(wallet0, Distributor, [], overrides)
-        await distributor.publishRoot(tree.getHexRoot())
+        await distributor.publishScoreBundle(tree.getHexRoot())
         await token.setBalance(distributor.address, 201)
       })
 
@@ -263,7 +263,7 @@ describe('MerkleDistributor', () => {
 
       beforeEach('deploy', async () => {
         distributor = await deployContract(wallet0, Distributor, [], overrides)
-        await distributor.publishRoot(tree.getHexRoot())
+        await distributor.publishScoreBundle(tree.getHexRoot())
         await token.setBalance(distributor.address, constants.MaxUint256)
       })
       /*
@@ -332,7 +332,7 @@ describe('MerkleDistributor', () => {
       expect(tokenTotal).to.eq('0x02ee') // 750
       claims = innerClaims
       distributor = await deployContract(wallet0, Distributor, [], overrides)
-      await distributor.publishRoot(merkleRoot)
+      await distributor.publishScoreBundle(merkleRoot)
       await token.setBalance(distributor.address, tokenTotal)
     })
 

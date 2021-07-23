@@ -39,6 +39,7 @@ contract BasicPoolFactory {
 }
 
 // The most important obligation of a group is to pay bot rewards.
+// MerkleTreePool
 contract BasicPool is Ownable {
     using SafeMath for uint256;
 
@@ -138,13 +139,15 @@ contract BasicPool is Ownable {
         _payBotReward(msg.sender, reward);
     }
 
-    function hack_computeRoot(uint256 index, address identityID, uint256 score, bytes32[] calldata proof) external view returns (bytes32) {
-        bytes32 leaf = keccak256(abi.encodePacked(index, identityID, score));
+    function hack_computeRoot(uint256 index, address identityID, uint8 score, bytes32[] calldata proof) external view returns (bytes32) {
+        uint256 hack_score = uint256(score);
+        bytes32 leaf = keccak256(abi.encodePacked(index, identityID, hack_score));
         return _computeRoot(proof, leaf);
     }
 
-    function hack_leaf(uint256 index, address identityID, uint256 score, bytes32[] calldata proof) external view returns (bytes32) {
-        return  keccak256(abi.encodePacked(index, identityID, score));
+    function hack_leaf(uint256 index, address identityID, uint8 score, bytes32[] calldata proof) external view returns (bytes32) {
+        uint256 hack_score = uint256(score);
+        return  keccak256(abi.encodePacked(index, identityID, hack_score));
     }
 
     function _userScore(address identityID, address ownerOrDelegate, uint256 index, uint8 score, bytes32[] memory proof) private view returns (uint256){
@@ -153,7 +156,8 @@ contract BasicPool is Ownable {
         require(upala.isOwnerOrDelegate(ownerOrDelegate, identityID), "Address doesn't own an ID or is exploded");
         // TODO check that pool balance is sufficient for explosion
         // check Merkle proof
-        bytes32 leaf = keccak256(abi.encodePacked(index, identityID, score));
+        uint256 hack_score = uint256(score);
+        bytes32 leaf = keccak256(abi.encodePacked(index, identityID, hack_score));
         console.logBytes32(leaf);
         bytes32 computedRoot = _computeRoot(proof, leaf);
         console.logBytes32(computedRoot);
@@ -244,7 +248,7 @@ contract BasicPool is Ownable {
     }
 
     // todo onlyOwner
-    function publishRoot(bytes32 newRoot) external  {
+    function publishScoreBundle(bytes32 newRoot) external  {
         console.log("publishRoot");
         roots[newRoot] = now;
     }
