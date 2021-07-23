@@ -15,11 +15,10 @@ Every group to manages its poool in it's own way.
 Or even to share one pool among several groups.
 */
 
-
+// production todo create IPool
 contract SignedScoresPoolFactory {
     
     Upala public upala;
-
     address public upalaAddress;
     address public approvedTokenAddress;
 
@@ -56,6 +55,7 @@ contract SignedScoresPool is Ownable {
         joinLink,
         dbUrl
         } */
+
     string public metaData;  // json object for future use
 
 
@@ -287,8 +287,4 @@ contract SignedScoresPool is Ownable {
     function unregisterDapp() external {
 
     }
-    /// metadata
-    // title 
-    // type 
-    // db-link (future)
 }
