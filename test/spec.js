@@ -4,47 +4,46 @@ const { time } = require('@openzeppelin/test-helpers')
 const { upgrades } = require('hardhat')
 const Upala = artifacts.require('Upala')
 const FakeDai = artifacts.require('FakeDai')
-const BasicPoolFactory = artifacts.require('BasicPoolFactory')
-const BasicPool = artifacts.require('BasicPool')
+const SignedScoresPoolFactory = artifacts.require('SignedScoresPoolFactory')
+const SignedScoresPool = artifacts.require('SignedScoresPool')
 
-let upala
-let fakeDai
-let basicPoolFactory
-let wallets
+const { resetProtocol, deployContract } = require('./deploy-helper.js');
+
 let oneETH = BigNumber.from(10).pow(18)
-let fakeUBI = oneETH.mul(100)
+// let fakeUBI = oneETH.mul(100)
 
-async function deployContract(contractName, ...args) {
-  const contractFactory = await ethers.getContractFactory(contractName)
-  const contractInstance = await contractFactory.deploy(...args)
-  await contractInstance.deployed()
-  return contractInstance
-}
+// async function deployContract(contractName, ...args) {
+//   const contractFactory = await ethers.getContractFactory(contractName)
+//   const contractInstance = await contractFactory.deploy(...args)
+//   await contractInstance.deployed()
+//   return contractInstance
+// }
 
-async function resetProtocol() {
-  // wallets and DAI mock
-  fakeDai = await deployContract('FakeDai')
-  wallets = await ethers.getSigners()
-  ;[upalaAdmin, user1, user2, user3, manager1, manager2, delegate1, delegate2, delegate3, nobody] = wallets
 
-  // fake DAI giveaway
-  wallets.map(async (wallet, ix) => {
-    if (ix <= 10) {
-      await fakeDai.freeDaiToTheWorld(wallet.address, fakeUBI)
-    }
-  })
+// async function resetProtocol() {
+//   // wallets and DAI mock
+//   fakeDai = await deployContract('FakeDai')
+//   wallets = await ethers.getSigners()
+//   ;[upalaAdmin, user1, user2, user3, manager1, manager2, delegate1, delegate2, delegate3, nobody] = wallets
 
-  // deploy upgradable upala
-  const Upala = await ethers.getContractFactory('Upala')
-  upala = await upgrades.deployProxy(Upala)
-  await upala.deployed()
+//   // fake DAI giveaway
+//   wallets.map(async (wallet, ix) => {
+//     if (ix <= 10) {
+//       await fakeDai.freeDaiToTheWorld(wallet.address, fakeUBI)
+//     }
+//   })
 
-  basicPoolFactory = await deployContract('BasicPoolFactory', upala.address, fakeDai.address)
-  basicPoolFactory2 = await deployContract('BasicPoolFactory', upala.address, fakeDai.address)
-}
+//   // deploy upgradable upala
+//   const Upala = await ethers.getContractFactory('Upala')
+//   upala = await upgrades.deployProxy(Upala)
+//   await upala.deployed()
+
+//   signedScoresPoolFactory = await deployContract('SignedScoresPoolFactory', upala.address, fakeDai.address)
+//   signedScoresPoolFactory2 = await deployContract('SignedScoresPoolFactory', upala.address, fakeDai.address)
+// }
 
 async function newPool(poolFactory, managerAddress) {
-  await upala.setApprovedPoolFactory(basicPoolFactory.address, 'true').then((tx) => tx.wait())
+  await upala.setApprovedPoolFactory(signedScoresPoolFactory.address, 'true').then((tx) => tx.wait())
   const receipt = await poolFactory
     .connect(managerAddress)
     .createPool()
@@ -53,10 +52,11 @@ async function newPool(poolFactory, managerAddress) {
     return x.event == 'NewPool'
   })
   const newPoolAddress = newPoolEvent[0].args.newPoolAddress
-  const PoolContract = await ethers.getContractFactory('BasicPool')
-  return PoolContract.attach(newPoolAddress)
+  const poolContract = await ethers.getContractFactory('SignedScoresPool')
+  return poolContract.attach(newPoolAddress)
 }
 
+/*
 describe('PROTOCOL MANAGEMENT', function () {
   before('set protocol', async () => {
     await resetProtocol()
@@ -220,36 +220,60 @@ describe('GROUPS', function () {
   let manager2Group
   let manager2Pool
 
+  let upala
+  let fakeDai
+  let signedScoresPoolFactory
+  let wallets
+
   before('register users', async () => {
-    await resetProtocol()
+    // console.log(await (resetProtocol()))
+    [upala, fakeDai, wallets] = await resetProtocol()
+    ;[upalaAdmin, user1, user2, user3, manager1, manager2, delegate1, delegate2, delegate3, nobody] = wallets
+    signedScoresPoolFactory = await deployContract('SignedScoresPoolFactory', upala.address, fakeDai.address)
+    // await resetProtocol()
   })
 
   describe('registration', function () {
     it('can only register an approved pool', async function () {
       // approve pool factory
-      await upala.setApprovedPoolFactory(basicPoolFactory.address, 'true').then((tx) => tx.wait())
-      expect(await upala.approvedPoolFactories(basicPoolFactory.address)).to.eq(true)
+      await upala.setApprovedPoolFactory(signedScoresPoolFactory.address, 'true').then((tx) => tx.wait())
+      expect(await upala.approvedPoolFactories(signedScoresPoolFactory.address)).to.eq(true)
 
       // spawn a new pool by the factory
-      const tx = await basicPoolFactory.connect(manager1).createPool()
+      const tx = await signedScoresPoolFactory.connect(manager1).createPool()
       const receipt = await tx.wait(1)
       const newPoolEvent = receipt.events.filter((x) => {
         return x.event == 'NewPool'
       })
       const newPoolAddress = newPoolEvent[0].args.newPoolAddress
-      const PoolContract = await ethers.getContractFactory('BasicPool')
-      PoolContract.attach(newPoolAddress)
-      expect(await upala.approvedPools(newPoolAddress)).to.eq(basicPoolFactory.address)
+      const poolContract = (await ethers.getContractFactory('SignedScoresPool')).attach(newPoolAddress)
+      expect(await upala.approvedPools(newPoolAddress)).to.eq(signedScoresPoolFactory.address)
 
       // try to spawn a pool from a not approved factory
-      await expect(basicPoolFactory2.connect(manager1).createPool()).to.be.revertedWith('Pool factory is not approved')
+      await expect(signedScoresPoolFactory2.connect(manager1).createPool()).to.be.revertedWith('Pool factory is not approved')
+
+
+      /// hack 
+
+      const TEST_MESSAGE = web3.utils.sha3('Human');
+      // Create the signature
+      const signature = await web3.eth.sign(TEST_MESSAGE, manager1.address);
+
+      // Recover the signer address from the generated message and signature.
+      const recovered = await poolContract.hack_recover(
+        // toEthSignedMessageHash(TEST_MESSAGE),
+        TEST_MESSAGE,
+        signature,
+      )
+      expect(recovered).to.equal(manager1.address);
+
     })
 
     // it('only owner can increase score', async function () {
-    //   const basicPool = await newPool(basicPoolFactory, manager1);
+    //   const signedScoresPool = await newPool(signedScoresPoolFactory, manager1);
 
-    //   await basicPool.connect(manager1).increaseBaseScore(1);
-    //   await expect(basicPool.connect(manager2).increaseBaseScore(2)).to.be.revertedWith(
+    //   await signedScoresPool.connect(manager1).increaseBaseScore(1);
+    //   await expect(signedScoresPool.connect(manager2).increaseBaseScore(2)).to.be.revertedWith(
     //     'Ownable: caller is not the owner'
     //   )
     // })
@@ -429,7 +453,7 @@ describe('GROUPS', function () {
     })
   })
 
-  // todo test basicPool in a separate file
+  // todo test signedScoresPool in a separate file
 })
 
 describe('SCORING', function () {

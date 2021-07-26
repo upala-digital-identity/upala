@@ -120,7 +120,7 @@ contract SignedScoresPool is Ownable {
     // todo no nonReentrant?
     function attack(address identityID, uint8 score, bytes calldata signature)
         external
-    {   
+    {
         console.log("hey");
         // calculate reward (and validity)
         uint256 reward = _userScore(msg.sender, identityID, score, signature);
@@ -130,6 +130,15 @@ contract SignedScoresPool is Ownable {
 
         // payout 💸
         _payBotReward(msg.sender, reward);
+    }
+    // function name(type name) {
+        
+    // }
+
+    function hack_recover(bytes32 message, bytes calldata signature) external view returns (address) {
+        return message
+            .toEthSignedMessageHash()
+            .recover(signature);
     }
 
     function _userScore(address ownerOrDelegate, address identityID, uint8 score, bytes memory signature) private view returns (uint256){
