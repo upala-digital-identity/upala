@@ -310,10 +310,7 @@ contract SignedScoresPool is Ownable {
     ****************/
     // (Need to register DApp in all trusted pools)
 
-    modifier onlyRegisteredApp() {
-        require(registeredDApps[msg.sender] == true, "DApp is not registered");
-        _;
-    }
+
 
     // DApps need to call this on every pool they want to approve
     // this may be chargable 
@@ -325,9 +322,34 @@ contract SignedScoresPool is Ownable {
     }
 
     function unregisterDapp() external {
-        require(registeredDApps[msg.sender] = true, "Caller address is not regitered");
+        require(registeredDApps[msg.sender] = true, "Caller address is not registered");
         registeredDApps[msg.sender] = false;
     }
+
+    modifier onlyRegisteredApp() {
+        require(registeredDApps[msg.sender] == true, "DApp is not registered");
+        _;
+    }
+
+    // modifier verificationFeeApplied() {
+    //     require(paywall.charge(msg.sender, score));
+    //     _;
+    // }
+
+    // modifier registrationFeeApplied() {
+    //     require(paywall.chargeRegistration(msg.sender));
+    //     _;
+    // }
+
+    // // Paywalls charge only DApps. They have their own balances. 
+    // // No need to prevent bot explosion front-run
+    // function appendPaywall(address newPaywall) {
+    //     require(upala.isApprovedPaywall(newPaywall) == true, 
+    //         "Paywall not approved");
+    //     require(Paywall(newPaywall).append() == true, 
+    //         "Paywall denies pool");
+    //     paywall = Paywall(newPaywall);
+    // }
 
     /**************
     GETTER FUNCTIONS

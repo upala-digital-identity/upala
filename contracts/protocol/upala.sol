@@ -196,4 +196,32 @@ contract Upala is OwnableUpgradeable{
     *******/
 
     // getExecutionWindow() ?
+
+    // /*******
+    // PAYWALLS
+    // ********/
+    // // groups can append any paywall they chose to charge dapps.
+
+    // modifier onlyApprovedPaywallFactory() {
+    //     require(approvedPaywallFactories[msg.sender] == true, "Paywall factory is not approved");
+    //     _;
+    // }
+
+    // // paywall factories approve all paywall they generate
+    // function approvePaywall(address newPaywall) external onlyApprovedPaywallFactory returns(bool) {
+    //     approvedPaywalls[newPaywall] = msg.sender;
+    //     NewPaywall(newPaywall, msg.sender);
+    //     return true;
+    // }
+
+    // // TODO only admin
+    // // Admin can swtich on and off all paywalls by a factory (both creation of new paywalls and approval of existing ones)
+    // function setApprovedPaywallFactory(address paywallFactory, bool isApproved) external {
+    //     approvedPaywallFactories[paywallFactory] = isApproved;
+    // }
+
+    // function isApprovedPaywall(paywall) external {
+    //     return true;
+    // }
+
 }
