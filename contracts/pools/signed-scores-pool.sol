@@ -22,6 +22,7 @@ contract SignedScoresPoolFactory {
     address public upalaAddress;
     address public approvedTokenAddress;
 
+    // used for testing 
     event NewPool(address newPoolAddress);
 
     constructor (address _upalaAddress, address _approvedTokenAddress) public {
@@ -29,7 +30,7 @@ contract SignedScoresPoolFactory {
         upala = Upala(_upalaAddress);
         approvedTokenAddress = _approvedTokenAddress;
     }
-    // todo title, baseScore, type
+    // todo title, baseScore
     function createPool() external returns (address) {
         address newPoolAddress = address(new SignedScoresPool(upalaAddress, approvedTokenAddress, msg.sender));
         require(upala.approvePool(newPoolAddress) == true, "Cannot approve new pool on Upala");
@@ -43,19 +44,16 @@ contract SignedScoresPool is Ownable {
     using SafeMath for uint256;
     using ECDSA for bytes32;
 
-
     Upala public upala;
     IERC20 public approvedToken; // approved token contract reference
 
     // Metadata
-    string public poolType;  // auto-assigned by pool factory
-    /* metadata:{
+    /* {
         title,
         url,
         joinLink,
         dbUrl
         } */
-
     string public metaData;  // json object for future use
 
 
@@ -75,6 +73,9 @@ contract SignedScoresPool is Ownable {
 
     // Any changes that can hurt bot rights must wait for an attackWindow to expire
     mapping(bytes32 => uint) public commitsTimestamps;
+    
+    // DApp integration
+    mapping (address => bool) registeredDApps;
 
     /*****
     EVENTS
@@ -108,7 +109,17 @@ contract SignedScoresPool is Ownable {
     }
 
     // dapps 
-    function userScore(address userAddress, address identityID, uint8 score, bytes calldata signature) external view returns (uint256) {
+    function userScore(
+        address userAddress, 
+        address identityID, 
+        uint8 score, 
+        bytes calldata signature
+    ) 
+    external 
+    view 
+    onlyRegisteredApp
+    returns (uint256)
+    {
         
         // calculate score (and check validity)
         uint256 totalScore = _userScore(userAddress, identityID, score, signature);
@@ -236,6 +247,11 @@ contract SignedScoresPool is Ownable {
         return newScoreBundle;
     }
 
+    function updateMetadata(string calldata newMetadata) external onlyOwner {
+        metaData = newMetadata;
+        // todo Emit
+    }
+
     // function upgradePool(address poolFactory, bytes32 secret) external returns (address, uint256) {
     // }
 
@@ -270,6 +286,31 @@ contract SignedScoresPool is Ownable {
         return approvedToken.transfer(recipient, amount);
     }
 
+
+    /***************
+    DAPP INTEGRATION
+    ****************/
+    // (Need to register DApp in all trusted pools)
+
+    modifier onlyRegisteredApp() {
+        require(registeredDApps[msg.sender] == true, "DApp is not registered");
+        _;
+    }
+
+    // DApps need to call this on every pool they want to approve
+    // this may be chargable 
+    function registerDapp() external {
+        // todo check if registration fee is paid
+        registeredDApps[msg.sender] = true;
+        // check if dapp human-lib version is compatible with this pool type
+        // emit DappRegistered  // dapps lib learn 
+    }
+
+    function unregisterDapp() external {
+        require(registeredDApps[msg.sender] = true, "Caller address is not regitered");
+        registeredDApps[msg.sender] = false;
+    }
+
     /**************
     GETTER FUNCTIONS
     ***************/
@@ -280,20 +321,5 @@ contract SignedScoresPool is Ownable {
 
     function groupBaseScore() external view returns (uint) {
         return baseScore;
-    }
-
-    /***************
-    DAPP INTEGRATION
-    ****************/
-
-    // DApps need to call this on every pool they want to approve
-    // this may be chargable 
-    function registerDapp() external {
-        // check if dapp lib version is compatible with this pool type
-        // emit DappRegistered
-    }
-
-    function unregisterDapp() external {
-
     }
 }

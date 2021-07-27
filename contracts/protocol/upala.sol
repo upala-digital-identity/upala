@@ -44,7 +44,14 @@ contract Upala is OwnableUpgradeable{
     // Pools created by approved pool factories
     mapping(address => address) public approvedPools;
 
+    /*****
+    EVENTS
+    *****/
 
+    // used to register new pools in graph
+    // helps define pool ABI by poolFactoryAddress
+    event NewPool(address newPoolAddress, address poolFactoryAddress); 
+    
 
     /**********
     CONSTRUCTOR
@@ -130,13 +137,6 @@ contract Upala is OwnableUpgradeable{
         return true;
     }
 
-
-    // only pools created by approved factories (admin can swtich on and off all pools by a factory)
-    modifier onlyApprovedPool() {
-        require(approvedPoolFactories[approvedPools[msg.sender]] == true);
-        _;
-    }
-
     // checks if the identity is already exploded
     function isExploded(address identity) external returns(bool){
         return (identityOwner[identity] == EXPLODED);
@@ -153,16 +153,21 @@ contract Upala is OwnableUpgradeable{
     POOLS
     *****/
 
+    // only pools created by approved factories (admin can swtich on and off all pools by a factory)
+    modifier onlyApprovedPool() {
+        require(approvedPoolFactories[approvedPools[msg.sender]] == true);
+        _;
+    }
+
     modifier onlyApprovedPoolFactory() {
         require(approvedPoolFactories[msg.sender] == true, "Pool factory is not approved");
         _;
     }
 
     // pool factories approve all pool they generate
-    // todo onlyApprovedPoolFactory
     function approvePool(address newPool) external onlyApprovedPoolFactory returns(bool) {
         approvedPools[newPool] = msg.sender;
-        
+        NewPool(newPool, msg.sender);
         return true;
     }
 
