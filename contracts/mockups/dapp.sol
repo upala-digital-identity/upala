@@ -15,24 +15,28 @@ contract usingUpala {
     function scoreIsAboveThreshold(
         uint256 threshold,
         address pool,
-        address identityID, 
+        address uID, 
         uint8 score, 
+        bytes32 bundle,
         bytes memory proof)
     internal 
     returns (bool){
-        return (userScore(pool, identityID, score, proof) >= threshold);
+        return (
+            userScore(pool, uID, score, bundle, proof) >= threshold);
     }
 
     // verifies and returns user score
     function userScore(
         address pool, 
-        address identityID, 
+        address uID, 
         uint8 score, 
+        bytes32 bundle,
         bytes memory proof) 
     internal 
     returns (uint256){
         // msg.sender is user
-        return SignedScoresPool(pool).userScore(msg.sender, identityID, score, proof);
+        return SignedScoresPool(pool)
+            .userScore(msg.sender, uID, score, bundle, proof);
     }
 
     /************
@@ -53,32 +57,37 @@ contract usingUpala {
 contract UBIExampleDApp is usingUpala {  // gotHumans requiringHumans 
 
     uint256 UBI = 10 * 10 ** 18;  // 10 Tokens
-    uint256 MINIMAL_SCORE = 1 * 10 ** 18;  // 1 DAI
+    uint256 MIN_SCORE = 1 * 10 ** 18;  // 1 DAI
     
     mapping (address => bool) claimed;
     mapping (address => uint256) balances;
 
     constructor (uint256 ubi, uint256 minimalScore, address upalaAddress) public {
         UBI = ubi; // e.g. 10 * 10 ** 18;  // 10 Tokens
-        MINIMAL_SCORE = minimalScore; // e.g. 1 * 10 ** 18;  // 1 DAI
+        MIN_SCORE = minimalScore; // e.g. 1 * 10 ** 18;  // 1 DAI
     }
 
     function claimUBI(
         address pool,
         uint256 threshold, 
-        address identityID, 
+        address uID, 
         uint8 score, 
+        bytes32 bundle,
         bytes calldata proof) 
     external {
-        require (claimed[identityID] == false, "Already claimed or not in the list");
-        require(scoreIsAboveThreshold(MINIMAL_SCORE, pool, identityID, score, proof), "Score is too low");
+        require (
+            claimed[uID] == false, 
+            "Already claimed or not in the list");
+        require(
+            scoreIsAboveThreshold(MIN_SCORE, pool, uID, score, bundle, proof), 
+            "Score is too low");
 
-        _payOutUBI(identityID, msg.sender);
+        _payOutUBI(uID, msg.sender);
     }
 
-    function _payOutUBI(address identityID, address recipient) private {
+    function _payOutUBI(address uID, address recipient) private {
         balances[recipient] += UBI;
-        claimed[identityID] = true;
+        claimed[uID] = true;
     }
 
     function myUBIBalance() external view returns (uint256) {

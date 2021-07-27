@@ -30,7 +30,7 @@ contract SignedScoresPoolFactory {
         upala = Upala(_upalaAddress);
         approvedTokenAddress = _approvedTokenAddress;
     }
-    // todo title, baseScore
+
     function createPool() external returns (address) {
         address newPoolAddress = address(new SignedScoresPool(upalaAddress, approvedTokenAddress, msg.sender));
         require(upala.approvePool(newPoolAddress) == true, "Cannot approve new pool on Upala");
@@ -100,19 +100,48 @@ contract SignedScoresPool is Ownable {
     **********************/
 
     // tests only for now
-    function myScore(address identityID, uint8 score, bytes calldata signature) external view returns (uint256) {
-        
+    function myScore(
+        address uID, 
+        uint8 score, 
+        bytes32 bundle,
+        bytes calldata signature) 
+    external 
+    view 
+    returns (uint256) {
         // calculate score (and check validity)
-        uint256 totalScore = _userScore(msg.sender, identityID, score, signature);
-
+        uint256 totalScore = _userScore(msg.sender, uID, score, bundle, signature);
         return totalScore;
     }
+
+
+    // Allows any identity to attack any group, run with the money and self-destruct.
+    // production todo nonReentrant?
+    function attack(
+        address uID, 
+        uint8 score, 
+        bytes32 bundle,
+        bytes calldata signature)
+    external
+    {
+        console.log("hey");
+        
+        // calculate reward (and validity)
+        uint256 reward = _userScore(msg.sender, uID, score, bundle, signature);
+
+        // explode (delete id forever)
+        upala.deleteID(uID);
+
+        // payout 💸
+        _payBotReward(msg.sender, reward);
+    }
+
 
     // dapps 
     function userScore(
         address userAddress, 
-        address identityID, 
+        address uID, 
         uint8 score, 
+        bytes32 bundle,
         bytes calldata signature
     ) 
     external 
@@ -122,58 +151,50 @@ contract SignedScoresPool is Ownable {
     {
         
         // calculate score (and check validity)
-        uint256 totalScore = _userScore(userAddress, identityID, score, signature);
+        uint256 totalScore = _userScore(userAddress, uID, score, bundle, signature);
 
         return totalScore;
     }
 
-    // Allows any identity to attack any group, run with the money and self-destruct.
-    // todo no nonReentrant?
-    function attack(address identityID, uint8 score, bytes calldata signature)
-        external
-    {
-        console.log("hey");
-        // calculate reward (and validity)
-        uint256 reward = _userScore(msg.sender, identityID, score, signature);
-        console.log(reward);
-        // explode (delete id forever)
-        upala.deleteID(identityID);
 
-        // payout 💸
-        _payBotReward(msg.sender, reward);
-    }
-    // function name(type name) {
+    function _userScore(
+        address ownerOrDelegate,
+        address uID, 
+        uint8 score,
+        bytes32 bundle,
+        bytes memory signature) 
+    private 
+    view 
+    returns (uint256){
+
+        // check identity validity
+        require(upala.isOwnerOrDelegate(ownerOrDelegate, uID), 
+            "Address doesn't own an Upala ID or is exploded");
+
+        // TODO check that pool balance is sufficient for explosion
+        uint256 totalScore = baseScore.mul(score);
+        require(_hasEnoughFunds(score),
+            "Pool balance is lower than the total score");
+
+        // check signature
+        // production todo security check (see ECDSA.sol, https://solidity-by-example.org/signature/)
+        // https://ethereum.stackexchange.com/questions/76810/sign-message-with-web3-and-verify-with-openzeppelin-solidity-ecdsa-sol
+        // https://docs.openzeppelin.com/contracts/2.x/utilities     
+        require (keccak256(abi.encodePacked(uID, score, bundle))
+            .toEthSignedMessageHash()
+            .recover(signature) == owner(),
+            'Invalid signature or signer is not group owner'
+        );
         
-    // }
+        return totalScore;
+    }
+    
 
     function hack_recover(bytes32 message, bytes calldata signature) external view returns (address) {
         return message
             .toEthSignedMessageHash()
             .recover(signature);
     }
-
-    function _userScore(address ownerOrDelegate, address identityID, uint8 score, bytes memory signature) private view returns (uint256){
-        // check identity validity
-        require(upala.isOwnerOrDelegate(ownerOrDelegate, identityID), "Address doesn't own an ID or is exploded");
-        // TODO check that pool balance is sufficient for explosion
-        // todo security check (see ECDSA.sol, https://solidity-by-example.org/signature/)
-        // https://ethereum.stackexchange.com/questions/76810/sign-message-with-web3-and-verify-with-openzeppelin-solidity-ecdsa-sol
-        // https://docs.openzeppelin.com/contracts/2.x/utilities        
-        // check signature
-        uint256 version = 1;
-        // bytes32 hash = ;
-        // bytes32 ethHash = ;
-        require (keccak256(abi.encodePacked(identityID, score, version))
-            .toEthSignedMessageHash()
-            .recover(signature) == owner(), 
-            'Invalid signature or signer is not group owner'
-        );
-        
-        uint256 totalScore = baseScore * score; // todo overflow safe
-        
-        return totalScore;
-    }
-    
 
     /***********
     MANAGE GROUP
@@ -252,16 +273,13 @@ contract SignedScoresPool is Ownable {
         // todo Emit
     }
 
-    // function upgradePool(address poolFactory, bytes32 secret) external returns (address, uint256) {
-    // }
-
 
     /****
     FUNDS
     *****/
 
     // Upala checks funds to make sure the pool has enough funds to fund a bot attack
-    function hasEnoughFunds(uint256 ammount) private view returns(bool) {
+    function _hasEnoughFunds(uint256 ammount) private view returns(bool) {
         return (approvedToken.balanceOf(address(this)) >= ammount);
     }
 
@@ -300,7 +318,7 @@ contract SignedScoresPool is Ownable {
     // DApps need to call this on every pool they want to approve
     // this may be chargable 
     function registerDapp() external {
-        // todo check if registration fee is paid
+        // production todo check if registration fee is paid
         registeredDApps[msg.sender] = true;
         // check if dapp human-lib version is compatible with this pool type
         // emit DappRegistered  // dapps lib learn 
