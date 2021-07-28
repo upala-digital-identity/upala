@@ -48,10 +48,21 @@ contract Upala is OwnableUpgradeable{
     EVENTS
     *****/
 
+    // Identity management
+    event NewIdentity(address upalaId, address owner);
+    event DelegateApproved(address upalaId, address delegate);
+    event DelegateRemoved(address upalaId, address delegate);
+    event NewIdentityOwner(address upalaId, address owner);
+    event Exploded(address upalaId);
+
     // used to register new pools in graph
     // helps define pool ABI by poolFactoryAddress
-    event NewPool(address newPoolAddress, address poolFactoryAddress); 
-    
+    event NewPool(address newPoolAddress, address poolFactoryAddress);
+    event NewPoolFactoryStatus(address poolFactory, bool isApproved);
+
+    // protocol settings
+    event NewAttackWindow(uint256 newWindow);
+    event NewExecutionWindow(uint256 newWindow);
 
     /**********
     CONSTRUCTOR
@@ -78,6 +89,7 @@ contract Upala is OwnableUpgradeable{
         require (delegateToIdentity[newIdentityOwner] == address(0x0), "Address is already an owner or delegate");
         identityOwner[newId] = newIdentityOwner;
         delegateToIdentity[newIdentityOwner] = newId;
+        NewIdentity(newId, newIdentityOwner);
         return newId;
     }
 
@@ -85,6 +97,7 @@ contract Upala is OwnableUpgradeable{
         address upalaId = delegateToIdentity[msg.sender];
         require (identityOwner[upalaId] == msg.sender, "Only identity holder can add or remove delegates");
         delegateToIdentity[delegate] = upalaId;
+        DelegateApproved(upalaId, delegate);
     }
 
     function removeDelegate(address delegate) external {
@@ -94,14 +107,17 @@ contract Upala is OwnableUpgradeable{
         // delegateToIdentity[delegate] = upalaId; // todo what is this line?
         // todo check if deleting the only delegate
         delete delegateToIdentity[delegate];
+        DelegateRemoved(upalaId, delegate);
     }
-
+    
+    // todo check again carefully. Delegate must exist (or created) 
     function setIdentityOwner(address newIdentityOwner) external {
         address identity = _identityByAddress(msg.sender);
         require (identityOwner[identity] == msg.sender, "Only identity holder can add or remove delegates");
         require (delegateToIdentity[newIdentityOwner] == identity || delegateToIdentity[newIdentityOwner] == address(0x0), "Address is already an owner or delegate");
         identityOwner[identity] = newIdentityOwner;
         delegateToIdentity[newIdentityOwner] = identity;
+        NewIdentityOwner(identity, newIdentityOwner);  // todo manage delegates in graph
     }
 
     // can be called by any delegate address to get id (used for tests)
@@ -124,6 +140,11 @@ contract Upala is OwnableUpgradeable{
         return identityOwner[upalaId];
     }
 
+    // production todo may be required by regulators
+    // function removeIdentity(address name) external {
+        
+    // }
+
     /********
     EXPLODING
     *********/
@@ -144,8 +165,10 @@ contract Upala is OwnableUpgradeable{
 
     // checks if the identity is already exploded
     function deleteID(address identity) external onlyApprovedPool returns(bool){
-        // delete delegateToIdentity[msg.sender];
         identityOwner[identity] = EXPLODED;
+        Exploded(identity);
+        // delete delegateToIdentity[msg.sender];
+        // todo deleting all other delegates?
         return true;
     }
 
@@ -175,6 +198,7 @@ contract Upala is OwnableUpgradeable{
     // Admin can swtich on and off all pools by a factory (both creation of new pools and approval of existing ones)
     function setApprovedPoolFactory(address poolFactory, bool isApproved) external {
         approvedPoolFactories[poolFactory] = isApproved;
+        NewPoolFactoryStatus(poolFactory, isApproved);
     }
 
 
@@ -185,10 +209,12 @@ contract Upala is OwnableUpgradeable{
     function setAttackWindow(uint256 newWindow) onlyOwner external {
         console.log("setAttackWindow");
         attackWindow = newWindow;
+        NewAttackWindow(newWindow);
     }
 
     function setExecutionWindow(uint256 newWindow) onlyOwner external {
         executionWindow = newWindow;
+        NewExecutionWindow(newWindow);
     }
 
     /******
