@@ -7,6 +7,11 @@ import "../pools/signed-scores-pool.sol";
 // Upala library for DApps (human library)
 contract usingUpala {
 
+    // Upala upala;
+    mapping(address => bool) approvedProviders;
+
+
+    event NewProviderStatus(address groupAddress, bool isApproved);
     /*****
     SCORES
     ******/
@@ -20,6 +25,7 @@ contract usingUpala {
         bytes32 bundle,
         bytes memory proof)
     internal 
+    onlyApprovedPools(pool)
     returns (bool){
         return (
             userScore(pool, uID, score, bundle, proof) >= threshold);
@@ -32,7 +38,8 @@ contract usingUpala {
         uint8 score, 
         bytes32 bundle,
         bytes memory proof) 
-    internal 
+    internal
+    onlyApprovedPools(pool) 
     returns (uint256){
         // msg.sender is user
         return SignedScoresPool(pool)
@@ -43,14 +50,22 @@ contract usingUpala {
     MANAGE GROUPS
     *************/
 
-    // Manage trusted score providers
-    // (Need to register DApp in all trusted pools)
-    function approveScoreProvider(address groupAddress) internal {
-        SignedScoresPool(groupAddress).registerDapp();
+    modifier onlyApprovedPools(address poolAddress) {
+        require(approvedProviders[poolAddress] == true, 
+            "Pool address is not approved");
+        _;
     }
 
-    function removeScoreProvider(address groupAddress) internal {
-        SignedScoresPool(groupAddress).unregisterDapp();
+    // Manage trusted score providers
+    // Events are fetched by graph
+    function approveScoreProvider(address groupAddress, bool isApproved) internal {
+        approvedProviders[groupAddress] = isApproved;
+        NewProviderStatus(groupAddress, isApproved);
+    }
+
+    // register DApp in Upala to let graph collect events. 
+    function register(address upalaAddress) internal {
+        Upala(upalaAddress).registerDApp();
     }
 }
 
@@ -63,6 +78,7 @@ contract UBIExampleDApp is usingUpala {  // gotHumans requiringHumans
     mapping (address => uint256) balances;
 
     constructor (uint256 ubi, uint256 minimalScore, address upalaAddress) public {
+        register(upalaAddress);
         UBI = ubi; // e.g. 10 * 10 ** 18;  // 10 Tokens
         MIN_SCORE = minimalScore; // e.g. 1 * 10 ** 18;  // 1 DAI
     }

@@ -312,24 +312,28 @@ contract SignedScoresPool is Ownable {
 
 
 
-    // DApps need to call this on every pool they want to approve
-    // this may be chargable 
-    function registerDapp() external {
-        // production todo check if registration fee is paid
-        registeredDApps[msg.sender] = true;
-        // check if dapp human-lib version is compatible with this pool type
-        // emit DappRegistered  // dapps lib learn 
-    }
+    // // DApps need to call this on every pool they want to approve
+    // // this may be chargable 
+    // function registerDapp() external {
+    //     registeredDApps[msg.sender] = true;
+    //     // emit DappRegistered  // dapps lib learn 
+    // }
 
-    function unregisterDapp() external {
-        require(registeredDApps[msg.sender] = true, "Caller address is not registered");
-        registeredDApps[msg.sender] = false;
-    }
+    // function unregisterDapp() external {
+    //     require(registeredDApps[msg.sender] = true, "Caller address is not registered");
+    //     registeredDApps[msg.sender] = false;
+    //     // emit DappRegistered  // dapps lib learn 
+    // }
+    
 
     modifier onlyRegisteredApp() {
         require(registeredDApps[msg.sender] == true, "DApp is not registered");
         _;
     }
+
+    /******
+    PAYWALL
+    *******/
 
     // modifier verificationFeeApplied() {
     //     require(paywall.charge(msg.sender, score));

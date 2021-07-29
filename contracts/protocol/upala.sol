@@ -60,6 +60,9 @@ contract Upala is OwnableUpgradeable{
     event NewPool(address newPoolAddress, address poolFactoryAddress);
     event NewPoolFactoryStatus(address poolFactory, bool isApproved);
 
+    // Dapps
+    event NewDApp(address dappAddress);
+
     // protocol settings
     event NewAttackWindow(uint256 newWindow);
     event NewExecutionWindow(uint256 newWindow);
@@ -201,6 +204,13 @@ contract Upala is OwnableUpgradeable{
         NewPoolFactoryStatus(poolFactory, isApproved);
     }
 
+    /****
+    DAPPS
+    *****/
+
+    function registerDApp() external {
+        NewDApp(msg.sender);
+    }
 
     /************************
     UPALA PROTOCOL MANAGEMENT
