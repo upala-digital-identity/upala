@@ -146,7 +146,7 @@ contract SignedScoresPool is Ownable {
     ) 
     external 
     view 
-    onlyRegisteredApp
+    /// production todo paywall modifier goes here
     returns (uint256)
     {
         
@@ -324,12 +324,6 @@ contract SignedScoresPool is Ownable {
     //     registeredDApps[msg.sender] = false;
     //     // emit DappRegistered  // dapps lib learn 
     // }
-    
-
-    modifier onlyRegisteredApp() {
-        require(registeredDApps[msg.sender] == true, "DApp is not registered");
-        _;
-    }
 
     /******
     PAYWALL
