@@ -1,30 +1,10 @@
 const { expect } = require('chai')
 const { BigNumber, utils } = require('ethers')
-const { time } = require('@openzeppelin/test-helpers')
-const { upgrades } = require('hardhat')
-const Upala = artifacts.require('Upala')
-const FakeDai = artifacts.require('FakeDai')
-const SignedScoresPoolFactory = artifacts.require('SignedScoresPoolFactory')
-const SignedScoresPool = artifacts.require('SignedScoresPool')
-
-const { resetProtocol, deployContract } = require('./deploy-helper.js');
+const { resetProtocol, deployContract, setUpPoolFactoryAndPool } = require('./deploy-helper.js');
 
 let oneETH = BigNumber.from(10).pow(18)
 // let fakeUBI = oneETH.mul(100)
 
-async function newPool(poolFactory, managerAddress) {
-  await upala.setApprovedPoolFactory(signedScoresPoolFactory.address, 'true').then((tx) => tx.wait())
-  const receipt = await poolFactory
-    .connect(managerAddress)
-    .createPool()
-    .then((tx) => tx.wait())
-  const newPoolEvent = receipt.events.filter((x) => {
-    return x.event == 'NewPool'
-  })
-  const newPoolAddress = newPoolEvent[0].args.newPoolAddress
-  const poolContract = await ethers.getContractFactory('SignedScoresPool')
-  return poolContract.attach(newPoolAddress)
-}
 
 
 /************************
@@ -32,11 +12,6 @@ async function newPool(poolFactory, managerAddress) {
 *************************/
 
 describe('GROUPS', function () {
-  let manager1Group
-  let manager1Pool
-  let manager2Group
-  let manager2Pool
-
   let upala
   let fakeDai
   let signedScoresPoolFactory
@@ -52,8 +27,10 @@ describe('GROUPS', function () {
   describe('registration', function () {
     it('can only register an approved pool', async function () {
       // approve pool factory
-      await upala.setApprovedPoolFactory(signedScoresPoolFactory.address, 'true').then((tx) => tx.wait())
+      await upala.connect(upalaAdmin).setApprovedPoolFactory(signedScoresPoolFactory.address, 'true').then((tx) => tx.wait())
       expect(await upala.approvedPoolFactories(signedScoresPoolFactory.address)).to.eq(true)
+      // todo only Upala admin 
+
 
       // spawn a new pool by the factory
       const tx = await signedScoresPoolFactory.connect(manager1).createPool()
@@ -61,27 +38,13 @@ describe('GROUPS', function () {
       const newPoolEvent = receipt.events.filter((x) => {
         return x.event == 'NewPool'
       })
-      const newPoolAddress = newPoolEvent[0].args.newPoolAddress
+      const newPoolAddress = newPoolEvent[0].args.poolAddress
       const poolContract = (await ethers.getContractFactory('SignedScoresPool')).attach(newPoolAddress)
+
       expect(await upala.approvedPools(newPoolAddress)).to.eq(signedScoresPoolFactory.address)
 
       // try to spawn a pool from a not approved factory
       // await expect(signedScoresPoolFactory2.connect(manager1).createPool()).to.be.revertedWith('Pool factory is not approved')
-
-
-      /// hack 
-
-      const TEST_MESSAGE = web3.utils.sha3('Human');
-      // Create the signature
-      // web3 adds "\x19Ethereum Signed Message:\n32" to the hashed message
-      const signature = await web3.eth.sign(TEST_MESSAGE, manager1.address);
-
-      // Recover the signer address from the generated message and signature.
-      const recovered = await poolContract.hack_recover(
-        TEST_MESSAGE,
-        signature,
-      )
-      expect(recovered).to.equal(manager1.address);
 
     })
 
@@ -94,6 +57,8 @@ describe('GROUPS', function () {
     //   )
     // })
   })
+})
+
   /*
   describe('commitments', function () {
     it('a group can issue a commitment', async function () {
@@ -287,18 +252,49 @@ describe('SCORING', function () {
 
   it('An address approved by Upala ID owner can approve scores to DApps', async function () {})
 })
-
+ */
 describe('EXPLOSIONS', function () {
   // todo setup protocol
+  let upala
+  let fakeDai
+  let signedScoresPoolFactory
+  let signedScoresPool
+  let wallets
+  let upalaAdmin
+  let manager1
 
-  it('you can explode, you can explode, you can explode, anyone can exploooooode', async function () {
-    ///function attack(uint160 groupID, uint160 identityID, uint8 score, bytes32[] calldata proof)
+  before('register users', async () => {
+    ;[upala, fakeDai, wallets] = await resetProtocol()
+    ;[upalaAdmin, manager1] = wallets.slice(0,2)
+    ;[signedScoresPoolFactory, signedScoresPool] = 
+      await setUpPoolFactoryAndPool(
+        upala, fakeDai, 'SignedScoresPoolFactory', upalaAdmin, manager1)
   })
 
-  it('cannot explode from an arbitrary address', async function () {})
+  describe('EXPLOSIONS', function () {
+    it('you can explode, you can explode, you can explode, anyone can exploooooode', async function () {
+      ///function attack(uint160 groupID, uint160 identityID, uint8 score, bytes32[] calldata proof)
 
-  it('cannot explode using delegate address', async function () {})
+      /// hack 
 
-  it('Upala ID owner can explode (check fees and rewards)', async function () {})
-  */
+      const TEST_MESSAGE = web3.utils.sha3('Human');
+      // Create the signature
+      // web3 adds "\x19Ethereum Signed Message:\n32" to the hashed message
+      const signature = await web3.eth.sign(TEST_MESSAGE, manager1.address);
+
+      // Recover the signer address from the generated message and signature.
+      const recovered = await signedScoresPool.hack_recover(
+        TEST_MESSAGE,
+        signature,
+      )
+      expect(recovered).to.equal(manager1.address);
+    })
+
+    it('cannot explode from an arbitrary address', async function () {})
+
+    it('cannot explode using delegate address', async function () {})
+
+    it('Upala ID owner can explode (check fees and rewards)', async function () {})
+  })
+
 })

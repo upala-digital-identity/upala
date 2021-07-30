@@ -27,15 +27,29 @@ async function resetProtocol() {
     const Upala = await ethers.getContractFactory('Upala')
     let upala = await upgrades.deployProxy(Upala)
     await upala.deployed()
-    
+  
     return [upala, fakeDai, wallets]
 }
 
-async function setUpPool() {
-    signedScoresPoolFactory = await deployContract('SignedScoresPoolFactory', upala.address, fakeDai.address)
+async function setUpPoolFactoryAndPool(upalaContract, tokenContract, poolFactoryName, upalaAdmin, managerWallet) {
+
+  poolFactory = await deployContract(poolFactoryName, upalaContract.address, tokenContract.address)
+  await upalaContract.connect(upalaAdmin).setApprovedPoolFactory(poolFactory.address, 'true').then((tx) => tx.wait())
+
+  // spawn a new pool by the factory
+  const tx = await poolFactory.connect(managerWallet).createPool()
+  const receipt = await tx.wait(1)
+  const newPoolEvent = receipt.events.filter((x) => {
+    return x.event == 'NewPool'
+  })
+  const newPoolAddress = newPoolEvent[0].args.poolAddress
+  const poolContract = (await ethers.getContractFactory('SignedScoresPool')).attach(newPoolAddress)
+
+  return [poolFactory, poolContract]
 }
 
   module.exports = {
     resetProtocol,
     deployContract,
+    setUpPoolFactoryAndPool,
   };
