@@ -9,13 +9,13 @@ import Distributor from '../artifacts/contracts/protocol/MerkleDistributor.sol/M
 import TestERC20 from '../artifacts/contracts/mockups/TestERC20.sol/TestERC20.json'
 import Upala from '../artifacts/contracts/protocol/upala.sol/Upala.json'
 import FakeDai from '../artifacts/contracts/mockups/fake-dai-mock.sol/FakeDai.json'
-// import BasicPoolFactory from '../artifacts/contracts/pools/basic-pool.sol/BasicPoolFactory.json'
+// import MerklePoolFactory from '../artifacts/contracts/pools/basic-pool.sol/MerklePoolFactory.json'
 import { parseBalanceMap } from '../src/parse-balance-map'
 import { Address } from 'cluster'
 
 const { upgrades, artifacts } = require('hardhat')
-const BasicPool = artifacts.require('BasicPool')
-const BasicPoolFactory = artifacts.require('BasicPoolFactory')
+const MerklePool = artifacts.require('MerklePool')
+const MerklePoolFactory = artifacts.require('MerklePoolFactory')
 
 chai.use(solidity)
 
@@ -29,18 +29,18 @@ async function resetProtocol(admin, groupOwner) {
   const fakeDai: Contract = await deployContract(admin, FakeDai)
   const upala: Contract = await deployContract(admin, Upala)
   await upala.deployed()
-  const basicPoolFactory = await deployContract(admin, BasicPoolFactory, [upala.address, fakeDai.address])
-  await upala.setApprovedPoolFactory(basicPoolFactory.address, 'true').then((tx) => tx.wait());
+  const merklePoolFactory = await deployContract(admin, MerklePoolFactory, [upala.address, fakeDai.address])
+  await upala.setApprovedPoolFactory(merklePoolFactory.address, 'true').then((tx) => tx.wait());
 
   // spawn a new pool by the factory
-  const tx = await basicPoolFactory.connect(groupOwner).createPool();
+  const tx = await merklePoolFactory.connect(groupOwner).createPool();
   const receipt = await tx.wait(1);
   const newPoolEvent = receipt.events.filter((x) => {return x.event == "NewPool"});
   const newPoolAddress = newPoolEvent[0].args.newPoolAddress;
-  const PoolContract = await ethers.getContractFactory("BasicPool");
-  const basicPool: Contract = PoolContract.attach(newPoolAddress);
+  const PoolContract = await ethers.getContractFactory("MerklePool");
+  const merklePool: Contract = PoolContract.attach(newPoolAddress);
 
-  return [fakeDai, upala, basicPool]
+  return [fakeDai, upala, merklePool]
 }
 
 describe('MerkleDistributor', () => {
@@ -65,13 +65,13 @@ describe('MerkleDistributor', () => {
 
   describe('#merkleRoot', () => {
     it('stores and returns the zero merkle root', async () => {
-      const [fakeDai, upala, basicPool] = await resetProtocol(upalaAdmin, groupOwner0)
+      const [fakeDai, upala, merklePool] = await resetProtocol(upalaAdmin, groupOwner0)
 
-      const tx = await basicPool.connect(groupOwner0).publishScoreBundle(ZERO_BYTES32)
+      const tx = await merklePool.connect(groupOwner0).publishScoreBundle(ZERO_BYTES32)
       const block = await provider.getBlock((await tx.wait(1)).blockNumber)
       const now = (await block).timestamp
 
-      const timestamp = await basicPool.connect(groupOwner0).roots(ZERO_BYTES32);
+      const timestamp = await merklePool.connect(groupOwner0).roots(ZERO_BYTES32);
 
       expect(timestamp - now).to.eq(0)
     })
@@ -79,8 +79,8 @@ describe('MerkleDistributor', () => {
 
   describe('#claim', () => {
     it('fails for empty proof', async () => {
-      const [fakeDai, upala, basicPool] = await resetProtocol(upalaAdmin, groupOwner0)
-      const tx = await basicPool.connect(groupOwner0).publishScoreBundle(ZERO_BYTES32)
+      const [fakeDai, upala, merklePool] = await resetProtocol(upalaAdmin, groupOwner0)
+      const tx = await merklePool.connect(groupOwner0).publishScoreBundle(ZERO_BYTES32)
       await upala.connect(user0).newIdentity(user0.address)
 
       const user0id = await upala.connect(user0).myId()
@@ -88,7 +88,7 @@ describe('MerkleDistributor', () => {
       const score = 0; 
       const proof = [];
 
-      await expect(basicPool.connect(user0).attack(user0id, index, score, proof)).to.be.revertedWith(
+      await expect(merklePool.connect(user0).attack(user0id, index, score, proof)).to.be.revertedWith(
         'MerkleDistributor: Invalid proof.'
       )
     })
@@ -104,7 +104,7 @@ describe('MerkleDistributor', () => {
     // })
 
     describe('two account tree', () => {
-      let basicPool: Contract
+      let merklePool: Contract
       let fakeDai: Contract
       let upala: Contract
       let tree: BalanceTree
@@ -112,7 +112,7 @@ describe('MerkleDistributor', () => {
       let user1id: string
       let baseScore: BigNumber
       beforeEach('deploy', async () => {
-        [fakeDai, upala, basicPool] = await resetProtocol(upalaAdmin, groupOwner0)
+        [fakeDai, upala, merklePool] = await resetProtocol(upalaAdmin, groupOwner0)
         await upala.connect(user0).newIdentity(user0.address)
         await upala.connect(user1).newIdentity(user1.address)
         user0id = await upala.connect(user0).myId()
@@ -122,8 +122,8 @@ describe('MerkleDistributor', () => {
           { account: user1id, amount: BigNumber.from(101) },
         ])
         const root = tree.getHexRoot()
-        await basicPool.connect(groupOwner0).publishScoreBundle(root).then((tx) => tx.wait())
-        // await token.setBalance(basicPool.address, 201)
+        await merklePool.connect(groupOwner0).publishScoreBundle(root).then((tx) => tx.wait())
+        // await token.setBalance(merklePool.address, 201)
       })
 
       it('successful verification', async () => {
@@ -134,29 +134,29 @@ describe('MerkleDistributor', () => {
         // console.log("proof0", proof0)
         // console.log("proof1", proof1)
         console.log("TS Leaf", (BalanceTree.toNode(0, user0id, BigNumber.from(100))).toString('hex'))
-        console.log("Contract leaf", await basicPool.connect(user0).hack_leaf(0, user0id, 100, proof0, overrides))
+        console.log("Contract leaf", await merklePool.connect(user0).hack_leaf(0, user0id, 100, proof0, overrides))
         
         console.log("root", root)
-        console.log("hack_computeRoot", await basicPool.connect(user0).hack_computeRoot(0, user0id, 100, proof0, overrides))
+        console.log("hack_computeRoot", await merklePool.connect(user0).hack_computeRoot(0, user0id, 100, proof0, overrides))
         
         const proof0buff = proof0.map((el) => Buffer.from(el.slice(2), 'hex'))
         const rootBuff = Buffer.from(root.slice(2), 'hex')
         console.log(BalanceTree.verifyProof(0, user0id, BigNumber.from(100), proof0buff, rootBuff))
         // todo const totalScore1
-        expect(await basicPool.connect(user0).myScore(0, user0id, 100, proof0, overrides)).to.be.eq(100)
+        expect(await merklePool.connect(user0).myScore(0, user0id, 100, proof0, overrides)).to.be.eq(100)
         
         // const proof1 = tree.getProof(1, user1id, BigNumber.from(101))
-        // expect(await basicPool.connect(user1).myScore(1, user1id, 101, proof1, overrides)).to.be.eq(101)
+        // expect(await merklePool.connect(user1).myScore(1, user1id, 101, proof1, overrides)).to.be.eq(101)
       })
 
       // it('successful attack', async () => {
       //   const proof0 = tree.getProof(0, user0id, BigNumber.from(100))
-      //   await expect(basicPool.myScore(0, user0id, 100, proof0, overrides))
-      //     .to.emit(basicPool, 'myScoreed')
+      //   await expect(merklePool.myScore(0, user0id, 100, proof0, overrides))
+      //     .to.emit(merklePool, 'myScoreed')
       //     .withArgs(0, user0id, 100)
       //   const proof1 = tree.getProof(1, user1id, BigNumber.from(101))
-      //   await expect(basicPool.myScore(1, user1id, 101, proof1, overrides))
-      //     .to.emit(basicPool, 'myScoreed')
+      //   await expect(merklePool.myScore(1, user1id, 101, proof1, overrides))
+      //     .to.emit(merklePool, 'myScoreed')
       //     .withArgs(1, user1id, 101)
       // })
     })

@@ -15,7 +15,7 @@ Or even to share one pool among several groups.
 */
 
 
-contract BasicPoolFactory {
+contract MerklePoolFactory {
     
     Upala public upala;
 
@@ -31,7 +31,7 @@ contract BasicPoolFactory {
     }
 
     function createPool() external returns (address) {
-        address newPoolAddress = address(new BasicPool(upalaAddress, approvedTokenAddress, msg.sender));
+        address newPoolAddress = address(new MerklePool(upalaAddress, approvedTokenAddress, msg.sender));
         require(upala.approvePool(newPoolAddress) == true, "Cannot approve new pool on Upala");
         NewPool(newPoolAddress);
         return newPoolAddress;
@@ -40,7 +40,7 @@ contract BasicPoolFactory {
 
 // The most important obligation of a group is to pay bot rewards.
 // MerkleTreePool
-contract BasicPool is Ownable {
+contract MerklePool is Ownable {
     using SafeMath for uint256;
 
     Upala public upala;
@@ -248,8 +248,11 @@ contract BasicPool is Ownable {
     }
 
     // todo onlyOwner
+    // note don't care for publishing same root? As it is Merkle, 
+    // the data inside would still be the same
     function publishScoreBundle(bytes32 newRoot) external  {
         console.log("publishRoot");
+        
         roots[newRoot] = now;
     }
 

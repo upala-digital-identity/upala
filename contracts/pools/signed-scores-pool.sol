@@ -40,7 +40,7 @@ contract SignedScoresPoolFactory {
         NewPool(newPoolAddress, msg.sender, address(this)); 
         return newPoolAddress;
     }
-}   
+}
 
 // The most important obligation of a group is to pay bot rewards.
 contract SignedScoresPool is Ownable {
@@ -68,7 +68,7 @@ contract SignedScoresPool is Ownable {
     // with base reward we can tweak all users scores simultaneously
     uint256 public baseScore;
 
-    mapping(bytes32 => uint256) public scoreBundles;
+    mapping(bytes32 => uint256) public scoreBundleIds;
 
     /************
     ANNOUNCEMENTS
@@ -85,8 +85,8 @@ contract SignedScoresPool is Ownable {
     *****/
 
     event MetaDataUpdate(string metadata);
-    event NewScoreBundle(bytes32 newScoreBundle, uint256 timestamp);
-    event ScoreBundleDeleted(bytes32 newScoreBundle);
+    event NewScoreBundleId(bytes32 newScoreBundleId, uint256 timestamp);
+    event ScoreBundleIdDeleted(bytes32 newScoreBundleId);
     event NewBaseScore(uint256 newBaseScore);
 
     constructor(
@@ -108,10 +108,10 @@ contract SignedScoresPool is Ownable {
     function myScore(
         address uID,
         uint8 score,
-        bytes32 bundle,
+        bytes32 bundleId,
         bytes calldata signature
     ) external view returns (uint256) {
-        return _userScore(msg.sender, uID, score, bundle, signature);
+        return _userScore(msg.sender, uID, score, bundleId, signature);
     }
 
     // Allows any identity to attack any group, 
@@ -120,13 +120,13 @@ contract SignedScoresPool is Ownable {
     function attack(
         address uID,
         uint8 score,
-        bytes32 bundle,
+        bytes32 bundleId,
         bytes calldata signature
     ) external {
         console.log('hey');
 
         // calculate reward (and validity)
-        uint256 reward = _userScore(msg.sender, uID, score, bundle, signature);
+        uint256 reward = _userScore(msg.sender, uID, score, bundleId, signature);
 
         // explode (delete id forever)
         upala.deleteID(uID);
@@ -140,7 +140,7 @@ contract SignedScoresPool is Ownable {
         address userAddress,
         address uID,
         uint8 score,
-        bytes32 bundle,
+        bytes32 bundleId,
         bytes calldata signature
     )
         external
@@ -148,16 +148,18 @@ contract SignedScoresPool is Ownable {
         /// production todo paywall modifier goes here
         returns (uint256)
     {
-        return _userScore(userAddress, uID, score, bundle, signature);
+        return _userScore(userAddress, uID, score, bundleId, signature);
     }
 
     function _userScore(
         address ownerOrDelegate,
         address uID,
         uint8 score,
-        bytes32 bundle,
+        bytes32 bundleId,
         bytes memory signature
     ) private view returns (uint256) {
+        // todo check bundleId exists
+
         // check identity validity
         require(upala.isOwnerOrDelegate(ownerOrDelegate, uID), 
             "Address doesn't own an Upala ID or is exploded");
@@ -173,7 +175,7 @@ contract SignedScoresPool is Ownable {
         // https://ethereum.stackexchange.com/questions/76810/sign-message-with-web3-and-verify-with-openzeppelin-solidity-ecdsa-sol
         // https://docs.openzeppelin.com/contracts/2.x/utilities
         require(
-            keccak256(abi.encodePacked(uID, score, bundle))
+            keccak256(abi.encodePacked(uID, score, bundleId))
                 .toEthSignedMessageHash()
                 .recover(signature) == owner(),
             'Invalid signature or signer is not group owner'
@@ -191,10 +193,10 @@ contract SignedScoresPool is Ownable {
     ************/
 
     /*Announcements*/
+
     // Announcements prevents front-running bot-exposions. Groups must announce
     // in advance any changes that may hurt bots rights
-
-    // hash = keccak256(action-type, [parameters], secret)
+    // hash = keccak256(action-type, [parameters], secret) - see below
     function commitHash(bytes32 hash) 
         external 
         onlyOwner 
@@ -205,7 +207,6 @@ contract SignedScoresPool is Ownable {
         return timestamp;
     }
 
-    // alternative to checkHash (under developement)
     modifier hasValidCommit(bytes32 hash) {
         require(commitsTimestamps[hash] != 0, 
             'No such commitment hash');
@@ -216,15 +217,14 @@ contract SignedScoresPool is Ownable {
             'Execution window is already closed'
         );
         _;
-        // todo is it possible to create lock for active commits when changing windows?
         delete commitsTimestamps[hash];
     }
 
-    /*Changes that may hurt bots rights*/
+    /*Changes that may hurt bots rights (require an announcement)*/
 
-    // todo this should apply to all commits?
-    // require(scoreBundles[scoreBundle] > now + attackWindow, 
-    // 'Commit is submitted before scoreBundle');
+    // todo should this apply to all commits?
+    // require(scoreBundleIds[scoreBundleId] > now + attackWindow, 
+    // 'Commit is submitted before scoreBundleId');
     
     // Sets the the base score for the group.
     function setBaseScore(uint256 newBaseScore, bytes32 secret)
@@ -237,14 +237,14 @@ contract SignedScoresPool is Ownable {
         NewBaseScore(newBaseScore);
     }
 
-    function deleteScoreBundle(bytes32 scoreBundle, bytes32 secret) 
+    function deleteScoreBundleId(bytes32 scoreBundleId, bytes32 secret) 
         external 
         onlyOwner
         hasValidCommit(
-            keccak256(abi.encodePacked('deleteScoreBundle', scoreBundle, secret)))
+            keccak256(abi.encodePacked('deleteScoreBundleId', scoreBundleId, secret)))
     {
-        delete scoreBundles[scoreBundle];
-        ScoreBundleDeleted(scoreBundle);
+        delete scoreBundleIds[scoreBundleId];
+        ScoreBundleIdDeleted(scoreBundleId);
     }
 
 
@@ -268,16 +268,16 @@ contract SignedScoresPool is Ownable {
         NewBaseScore(newBaseScore);
     }
 
-    // todo onlyOwner
-    // Score bundle ids are generated by the contract.
+    // Score bundleId ids are generated by the contract.
     // we don't need to care about block hash manipulation, we could
     // similary use incremented numbers. Hashes are used for compatibility
     // with Merkle pools.
-    function publishScoreBundle() external returns (bytes32) {
-        bytes32 newScoreBundle = blockhash(block.number);
-        scoreBundles[newScoreBundle] = now;
-        NewScoreBundle(newScoreBundle, now);
-        return newScoreBundle;
+    // todo do we need hashes generated by contract?
+    function publishScoreBundleId() external onlyOwner returns (bytes32) {
+        bytes32 newScoreBundleId = blockhash(block.number);
+        scoreBundleIds[newScoreBundleId] = now;
+        NewScoreBundleId(newScoreBundleId, now);
+        return newScoreBundleId;
     }
 
     function updateMetadata(string calldata newMetadata) external onlyOwner {
@@ -348,8 +348,8 @@ contract SignedScoresPool is Ownable {
     GETTER FUNCTIONS
     ***************/
 
-    function getScoreBundleTimestamp(bytes32 scoreBundle) external returns (uint256) {
-        return scoreBundles[scoreBundle];
+    function getScoreBundleIdTimestamp(bytes32 scoreBundleId) external returns (uint256) {
+        return scoreBundleIds[scoreBundleId];
     }
 
     function groupBaseScore() external view returns (uint256) {

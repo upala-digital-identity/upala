@@ -88,8 +88,8 @@ async function main() {
 
   // Testing environment
   fakeDai = await deployContract('FakeDai')
-  basicPoolFactory = await deployContract('BasicPoolFactory', fakeDai.address)
-  await upala.setapprovedPoolFactory(basicPoolFactory.address, 'true').then((tx) => tx.wait())
+  merklePoolFactory = await deployContract('MerklePoolFactory', fakeDai.address)
+  await upala.setapprovedPoolFactory(merklePoolFactory.address, 'true').then((tx) => tx.wait())
   console.log('approvedPoolFactory')
 
   console.log(chalk.green('\nDEPLOYING GROUPS \n'))
@@ -99,7 +99,7 @@ async function main() {
   const poolDonation = ethers.utils.parseEther('1000')
 
   async function deployGroup(groupName, manager, multiplier) {
-    await upala.newGroup(manager.getAddress(), basicPoolFactory.address)
+    await upala.newGroup(manager.getAddress(), merklePoolFactory.address)
     groupID = await upala.getGroupID(manager.getAddress())
     groupPool = await upala.getGroupPool(groupID)
 
@@ -171,9 +171,9 @@ async function main() {
 */
 
   // console.log(finalContracts);
-  //   deployer.deploy(BasicPoolFactory, FakeDai.address).then(() => {
+  //   deployer.deploy(MerklePoolFactory, FakeDai.address).then(() => {
   //     Upala.deployed().then(upala => {
-  //         return upala.setapprovedPoolFactory(BasicPoolFactory.address, "true");
+  //         return upala.setapprovedPoolFactory(MerklePoolFactory.address, "true");
   //     });
   // });
 

@@ -107,8 +107,7 @@ contract Upala is OwnableUpgradeable{
         require(delegate != msg.sender, "Cannot remove oneself");
         address upalaId = delegateToIdentity[msg.sender];
         require (identityOwner[upalaId] == msg.sender, "Only identity holder can add or remove delegates");
-        // delegateToIdentity[delegate] = upalaId; // todo what is this line?
-        // todo check if deleting the only delegate
+        // todo check if identityOwner == delegate
         delete delegateToIdentity[delegate];
         DelegateRemoved(upalaId, delegate);
     }
@@ -193,7 +192,7 @@ contract Upala is OwnableUpgradeable{
     // pool factories approve all pool they generate
     function approvePool(address newPool) external onlyApprovedPoolFactory returns(bool) {
         approvedPools[newPool] = msg.sender;
-        NewPool(newPool, msg.sender);
+        NewPool(newPool, msg.sender); // todo add pool manager
         return true;
     }
 
@@ -215,6 +214,8 @@ contract Upala is OwnableUpgradeable{
     /************************
     UPALA PROTOCOL MANAGEMENT
     *************************/
+    // Note. When decreasing attackWindow or executionWindow make sure to let 
+    // all group managers to know in advance as it affects commits life.
 
     function setAttackWindow(uint256 newWindow) onlyOwner external {
         console.log("setAttackWindow");

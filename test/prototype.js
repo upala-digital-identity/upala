@@ -1,6 +1,6 @@
 const Upala = artifacts.require('Upala')
 const FakeDai = artifacts.require('FakeDai')
-const BasicPoolFactory = artifacts.require('BasicPoolFactory')
+const MerklePoolFactory = artifacts.require('MerklePoolFactory')
 const ProtoGroup = artifacts.require('ProtoGroup')
 const BladerunnerDAO = artifacts.require('BladerunnerDAO')
 const UBIExampleDApp = artifacts.require('UBIExampleDApp')
@@ -53,12 +53,12 @@ contract('Upala2', function (accounts) {
     // initialize contracts
     const upalaProtocol = await Upala.deployed()
     const fakeDai = await FakeDai.deployed()
-    const basicPoolFactory = await BasicPoolFactory.deployed()
+    const merklePoolFactory = await MerklePoolFactory.deployed()
     console.log('Upala protocol address: ', upalaProtocol.address)
-    console.log('FakeDai pool factory address: ', basicPoolFactory.address, '\n')
+    console.log('FakeDai pool factory address: ', merklePoolFactory.address, '\n')
 
     // create ProtoGroup
-    group1 = await ProtoGroup.new(upalaProtocol.address, basicPoolFactory.address, { from: groupManager })
+    group1 = await ProtoGroup.new(upalaProtocol.address, merklePoolFactory.address, { from: groupManager })
     const group1ID = await group1.getUpalaGroupID.call({ from: groupManager })
     const group1PoolAddress = await group1.getGroupPoolAddress.call({ from: groupManager })
     console.log('Group1 Upala ID: ', group1ID.toNumber())
@@ -146,7 +146,7 @@ contract('Upala2', function (accounts) {
 
     // deploy DApp
     dapp1 = await UBIExampleDApp.new(group1.address, { from: groupManager })
-    console.log('UBIExampleDApp address: ', basicPoolFactory.address)
+    console.log('UBIExampleDApp address: ', merklePoolFactory.address)
 
     // DApp UX
     tx = await dapp1.claimUBICachedPath({ from: user_1 })

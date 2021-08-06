@@ -37,9 +37,51 @@ describe('PROTOCOL MANAGEMENT', function () {
     await upala.connect(upalaAdmin).transferOwnership(nobody.getAddress())
     expect(await upala.owner()).to.be.eq(await nobody.getAddress())
   })
+})
+
+describe('POOLS MANAGEMENT', function () {
+  let upala
+  let fakeDai
+  let signedScoresPoolFactory
+  let wallets
+
+  before('reset protocol', async () => {
+    [upala, fakeDai, wallets] = await resetProtocol()
+      ;[upalaAdmin, user1, user2, user3, manager1, manager2, delegate1, delegate2, delegate3, nobody] = wallets
+    signedScoresPoolFactory = await deployContract('SignedScoresPoolFactory', upala.address, fakeDai.address)
+  })
 
   // todo owner can approve pool factories
   // todo owner can remove pool factories
+  // todo owner can switch on and off all pool spawned by a factory
+
+  it('can only register an approved pool', async function () {
+    // approve pool factory
+    await upala.connect(upalaAdmin).setApprovedPoolFactory(signedScoresPoolFactory.address, 'true').then((tx) => tx.wait())
+    expect(await upala.approvedPoolFactories(signedScoresPoolFactory.address)).to.eq(true)
+    // todo only Upala admin 
+
+    // spawn a new pool by the factory
+    const tx = await signedScoresPoolFactory.connect(manager1).createPool()
+    const receipt = await tx.wait(1)
+    const newPoolEvent = receipt.events.filter((x) => {
+      return x.event == 'NewPool'
+    })
+    const newPoolAddress = newPoolEvent[0].args.poolAddress
+    const poolContract = (await ethers.getContractFactory('SignedScoresPool')).attach(newPoolAddress)
+
+    expect(await upala.approvedPools(newPoolAddress)).to.eq(signedScoresPoolFactory.address)
+
+    // try to spawn a pool from a not approved factory
+    // await expect(signedScoresPoolFactory2.connect(manager1).createPool()).to.be.revertedWith('Pool factory is not approved')
+
+  })
+
+})
+
+describe('DAPPS MANAGEMENT', function () {
+  // todo dapps can regiter in Upala
+  // todo dapss can unregister in Upala (only registered ones)
 })
 
 describe('USER', function () {
@@ -158,4 +200,15 @@ describe('USER', function () {
       expect(await upala.connect(delegate3).myIdOwner()).to.eq(await delegate3.getAddress())
     })
   })
+
+
+})
+
+
+describe('API? ', function () {
+  it('approved pools can explode users', async function () {
+  })
+
+  // todo isOwnerOrDelegate
+  // todo isExploded
 })
