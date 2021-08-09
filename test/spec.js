@@ -1,6 +1,6 @@
 const { expect } = require('chai')
 const { BigNumber, utils } = require('ethers')
-const { resetProtocol, deployContract, setUpPoolFactoryAndPool } = require('./deploy-helper.js');
+const { setupProtocol, deployContract, setUpPoolFactoryAndPool } = require('./deploy-helper.js');
 
 let oneETH = BigNumber.from(10).pow(18)
 
@@ -209,7 +209,7 @@ describe('EXPLOSIONS', function () {
   let manager1
 
   before('register users', async () => {
-    ;[upala, fakeDai, wallets] = await resetProtocol()
+    ;[upala, fakeDai, wallets] = await setupProtocol()
       ;[upalaAdmin, manager1] = wallets.slice(0, 2)
       ;[signedScoresPoolFactory, signedScoresPool] =
         await setUpPoolFactoryAndPool(

@@ -21,9 +21,6 @@ contract SignedScoresPoolFactory {
     address public upalaAddress;
     address public approvedTokenAddress;
 
-    // used for testing
-    event NewPool(address poolAddress, address manager, address parentFactory);
-
     constructor(address _upalaAddress, address _approvedTokenAddress) public {
         upalaAddress = _upalaAddress;
         upala = Upala(_upalaAddress);
@@ -36,8 +33,6 @@ contract SignedScoresPoolFactory {
 
         require(upala.approvePool(newPoolAddress) == true, 
             'Cannot approve new pool on Upala');
-        // todo move event to Upala?
-        NewPool(newPoolAddress, msg.sender, address(this)); 
         return newPoolAddress;
     }
 }
@@ -129,7 +124,7 @@ contract SignedScoresPool is Ownable {
         uint256 reward = _userScore(msg.sender, uID, score, bundleId, signature);
 
         // explode (delete id forever)
-        upala.deleteID(uID);
+        upala.explode(uID);
 
         // payout 💸
         _payBotReward(msg.sender, reward);

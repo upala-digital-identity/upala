@@ -20,7 +20,7 @@ contract Upala is OwnableUpgradeable{
     ********/
 
     // any changes that hurt bots rights must be announced an hour in advance
-    uint256 public attackWindow;  // 0 - for tests // TODO set to 1 hour at production
+    uint256 public attackWindow; 
     // changes must be executed within execution window
     uint256 public executionWindow; // 1000 - for tests
 
@@ -56,8 +56,8 @@ contract Upala is OwnableUpgradeable{
     event Exploded(address upalaId);
 
     // used to register new pools in graph
-    // helps define pool ABI by poolFactoryAddress
-    event NewPool(address newPoolAddress, address poolFactoryAddress);
+    // helps define pool ABI by factory address
+    event NewPool(address poolAddress, address factory);
     event NewPoolFactoryStatus(address poolFactory, bool isApproved);
 
     // Dapps
@@ -79,80 +79,87 @@ contract Upala is OwnableUpgradeable{
         // defaults
         attackWindow = 30 minutes;
         executionWindow = 1 hours;
-        EXPLODED = address(0x0000000000000000000000006578706c6f646564);  // Hex to ASCII = exploded
+        // Hex to ASCII = exploded
+        EXPLODED = address(0x0000000000000000000000006578706c6f646564);  
     }
 
     /*************
     REGISTER USERS
     **************/
 
+    // Creates UpalaId
     // Upala ID can be assigned to an address by a third party
     function newIdentity(address newIdentityOwner) external returns (address) {
+        require (newIdentityOwner != address(0x0),
+            "Cannot use an empty addess");
         address newId = address(uint(keccak256(abi.encodePacked(msg.sender, now))));
-        require (delegateToIdentity[newIdentityOwner] == address(0x0), "Address is already an owner or delegate");
+        require (delegateToIdentity[newIdentityOwner] == address(0x0), 
+            "Address is already an owner or delegate");
         identityOwner[newId] = newIdentityOwner;
         delegateToIdentity[newIdentityOwner] = newId;
         NewIdentity(newId, newIdentityOwner);
         return newId;
     }
 
-    function approveDelegate(address delegate) external {
+    modifier onlyIdOwner() {
+        require (identityOwner[delegateToIdentity[msg.sender]] == msg.sender, 
+            "Only identity holder can add or remove delegates");
+        _;
+    }
+
+    // Creates delegate for the UpalaId.
+    function approveDelegate(address delegate) external onlyIdOwner {
+        require (delegate != address(0x0),
+            "Cannot use an empty addess");
         address upalaId = delegateToIdentity[msg.sender];
-        require (identityOwner[upalaId] == msg.sender, "Only identity holder can add or remove delegates");
         delegateToIdentity[delegate] = upalaId;
         DelegateApproved(upalaId, delegate);
     }
 
-    function removeDelegate(address delegate) external {
-        require(delegate != msg.sender, "Cannot remove oneself");
-        address upalaId = delegateToIdentity[msg.sender];
-        require (identityOwner[upalaId] == msg.sender, "Only identity holder can add or remove delegates");
-        // todo check if identityOwner == delegate
+    // Removes delegate for the UpalaId. 
+    function removeDelegate(address delegate) external onlyIdOwner {
+        require(delegate != msg.sender, 
+            "Cannot remove oneself");
         delete delegateToIdentity[delegate];
-        DelegateRemoved(upalaId, delegate);
+        DelegateRemoved(delegateToIdentity[msg.sender], delegate);
     }
     
-    // todo check again carefully. Delegate must exist (or created) 
-    function setIdentityOwner(address newIdentityOwner) external {
-        address identity = _identityByAddress(msg.sender);
-        require (identityOwner[identity] == msg.sender, "Only identity holder can add or remove delegates");
-        require (delegateToIdentity[newIdentityOwner] == identity || delegateToIdentity[newIdentityOwner] == address(0x0), "Address is already an owner or delegate");
-        identityOwner[identity] = newIdentityOwner;
-        delegateToIdentity[newIdentityOwner] = identity;
-        NewIdentityOwner(identity, newIdentityOwner);  // todo manage delegates in graph
+    // Sets new UpalaId owner. Only allows to transfer ownership to an 
+    // existing delegate (owner is a speial case of delegate)
+    function setIdentityOwner(address newIdentityOwner) external onlyIdOwner {
+        address upalaId = delegateToIdentity[msg.sender];
+        require (delegateToIdentity[newIdentityOwner] == upalaId, 
+            "Address is not a delegate for current UpalaId");
+        identityOwner[upalaId] = newIdentityOwner;
+        NewIdentityOwner(upalaId, newIdentityOwner);
     }
+    
+    // production todo may be required by regulators
+    // function removeIdentity(address name) external {
+    // }
 
     // can be called by any delegate address to get id (used for tests)
     function myId() external view returns(address) {
-        return _identityByAddress(msg.sender);
+        return delegateToIdentity[msg.sender];
     }
 
     // can be called by any delegate address to get id owner (used for tests)
     function myIdOwner() external view  returns(address owner) {
-        return _identityOwner(_identityByAddress(msg.sender));
+        return identityOwner[delegateToIdentity[msg.sender]];
     }
 
-    function _identityByAddress(address ownerOrDelegate) internal view returns(address identity) {
-        address identity = delegateToIdentity[ownerOrDelegate];
-        require (identity != address(0x0), "no id registered for the address");
-        return identity;
-    }
 
-    function _identityOwner(address upalaId) internal view returns(address owner) {
-        return identityOwner[upalaId];
-    }
-
-    // production todo may be required by regulators
-    // function removeIdentity(address name) external {
-        
-    // }
 
     /********
     EXPLODING
     *********/
 
-    function isOwnerOrDelegate(address ownerOrDelegate, address identity) external view returns (bool) {
-        // todo check delegate
+    // used by pools to check validity of address and upala id
+    function isOwnerOrDelegate(address ownerOrDelegate, address identity) 
+        external 
+        view 
+        returns (bool) 
+    {
         require(identity == delegateToIdentity[ownerOrDelegate],
             "the address is not an owner or delegate of the id");
         require (identityOwner[identity] != EXPLODED,
@@ -165,12 +172,10 @@ contract Upala is OwnableUpgradeable{
         return (identityOwner[identity] == EXPLODED);
     }
 
-    // checks if the identity is already exploded
-    function deleteID(address identity) external onlyApprovedPool returns(bool){
+    // explodes ID
+    function explode(address identity) external onlyApprovedPool returns(bool){
         identityOwner[identity] = EXPLODED;
         Exploded(identity);
-        // delete delegateToIdentity[msg.sender];
-        // todo deleting all other delegates?
         return true;
     }
 
@@ -178,27 +183,36 @@ contract Upala is OwnableUpgradeable{
     POOLS
     *****/
 
-    // only pools created by approved factories (admin can swtich on and off all pools by a factory)
+    // only pools created by approved factories 
+    // (admin can swtich on and off all pools by a factory)
     modifier onlyApprovedPool() {
         require(approvedPoolFactories[approvedPools[msg.sender]] == true);
         _;
     }
 
     modifier onlyApprovedPoolFactory() {
-        require(approvedPoolFactories[msg.sender] == true, "Pool factory is not approved");
+        require(approvedPoolFactories[msg.sender] == true, 
+            "Pool factory is not approved");
         _;
     }
 
     // pool factories approve all pool they generate
-    function approvePool(address newPool) external onlyApprovedPoolFactory returns(bool) {
+    function approvePool(address newPool) 
+        external 
+        onlyApprovedPoolFactory 
+        returns(bool) 
+    {
         approvedPools[newPool] = msg.sender;
-        NewPool(newPool, msg.sender); // todo add pool manager
+        NewPool(newPool, msg.sender);
         return true;
     }
 
-    // TODO only admin
-    // Admin can swtich on and off all pools by a factory (both creation of new pools and approval of existing ones)
-    function setApprovedPoolFactory(address poolFactory, bool isApproved) external {
+    // Admin can swtich on and off all pools by a factory 
+    // (both creation of new pools and permissions of existing ones)
+    function approvePoolFactory(address poolFactory, bool isApproved) 
+        external 
+        onlyOwner 
+    {
         approvedPoolFactories[poolFactory] = isApproved;
         NewPoolFactoryStatus(poolFactory, isApproved);
     }
@@ -214,9 +228,9 @@ contract Upala is OwnableUpgradeable{
     /************************
     UPALA PROTOCOL MANAGEMENT
     *************************/
+
     // Note. When decreasing attackWindow or executionWindow make sure to let 
     // all group managers to know in advance as it affects commits life.
-
     function setAttackWindow(uint256 newWindow) onlyOwner external {
         console.log("setAttackWindow");
         attackWindow = newWindow;
@@ -240,12 +254,17 @@ contract Upala is OwnableUpgradeable{
     // // groups can append any paywall they chose to charge dapps.
 
     // modifier onlyApprovedPaywallFactory() {
-    //     require(approvedPaywallFactories[msg.sender] == true, "Paywall factory is not approved");
+    //     require(approvedPaywallFactories[msg.sender] == true, 
+    //          "Paywall factory is not approved");
     //     _;
     // }
 
     // // paywall factories approve all paywall they generate
-    // function approvePaywall(address newPaywall) external onlyApprovedPaywallFactory returns(bool) {
+    // function approvePaywall(address newPaywall) 
+    //     external 
+    //     onlyApprovedPaywallFactory 
+    //     returns(bool) 
+    // {
     //     approvedPaywalls[newPaywall] = msg.sender;
     //     NewPaywall(newPaywall, msg.sender);
     //     return true;

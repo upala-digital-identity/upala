@@ -11,7 +11,7 @@ async function deployContract(contractName, ...args) {
     return contractInstance
   }
 
-async function resetProtocol() {
+async function setupProtocol() {
     // wallets and DAI mock
     fakeDai = await deployContract('FakeDai')
     wallets = await ethers.getSigners()
@@ -34,7 +34,7 @@ async function resetProtocol() {
 async function setUpPoolFactoryAndPool(upalaContract, tokenContract, poolFactoryName, upalaAdmin, managerWallet) {
 
   poolFactory = await deployContract(poolFactoryName, upalaContract.address, tokenContract.address)
-  await upalaContract.connect(upalaAdmin).setApprovedPoolFactory(poolFactory.address, 'true').then((tx) => tx.wait())
+  await upalaContract.connect(upalaAdmin).approvePoolFactory(poolFactory.address, 'true').then((tx) => tx.wait())
 
   // spawn a new pool by the factory
   const tx = await poolFactory.connect(managerWallet).createPool()
@@ -49,7 +49,7 @@ async function setUpPoolFactoryAndPool(upalaContract, tokenContract, poolFactory
 }
 
   module.exports = {
-    resetProtocol,
+    setupProtocol,
     deployContract,
     setUpPoolFactoryAndPool,
   };

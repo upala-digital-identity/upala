@@ -1,12 +1,12 @@
 const { expect } = require('chai')
-const { resetProtocol } = require('./deploy-helper.js');
+const { setupProtocol } = require('./deploy-helper.js');
 
 describe('PROTOCOL MANAGEMENT', function () {
   let upala
   let unusedFakeDai
   let wallets
   before('set protocol', async () => {
-    [upala, unusedFakeDai, wallets] = await resetProtocol()
+    [upala, unusedFakeDai, wallets] = await setupProtocol()
     ;[upalaAdmin, nobody] = wallets
   })
 
@@ -46,7 +46,7 @@ describe('POOLS MANAGEMENT', function () {
   let wallets
 
   before('reset protocol', async () => {
-    [upala, fakeDai, wallets] = await resetProtocol()
+    [upala, fakeDai, wallets] = await setupProtocol()
       ;[upalaAdmin, user1, user2, user3, manager1, manager2, delegate1, delegate2, delegate3, nobody] = wallets
     signedScoresPoolFactory = await deployContract('SignedScoresPoolFactory', upala.address, fakeDai.address)
   })
@@ -57,7 +57,7 @@ describe('POOLS MANAGEMENT', function () {
 
   it('can only register an approved pool', async function () {
     // approve pool factory
-    await upala.connect(upalaAdmin).setApprovedPoolFactory(signedScoresPoolFactory.address, 'true').then((tx) => tx.wait())
+    await upala.connect(upalaAdmin).approvePoolFactory(signedScoresPoolFactory.address, 'true').then((tx) => tx.wait())
     expect(await upala.approvedPoolFactories(signedScoresPoolFactory.address)).to.eq(true)
     // todo only Upala admin 
 
@@ -89,7 +89,7 @@ describe('USER', function () {
   let unusedFakeDai
   let wallets
   before('register users', async () => {
-    [upala, unusedFakeDai, wallets] = await resetProtocol()
+    [upala, unusedFakeDai, wallets] = await setupProtocol()
     ;[upalaAdmin, user1, user2, user3, delegate1, delegate2, delegate3, nobody] = wallets
   
     await upala.connect(user2).newIdentity(user1.getAddress())

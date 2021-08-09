@@ -133,7 +133,7 @@ contract MerklePool is Ownable {
         uint256 reward = _userScore(identityID, msg.sender, index, score, proof);
         console.log(reward);
         // explode (delete id forever)
-        upala.deleteID(identityID);
+        upala.explode(identityID);
 
         // payout 💸
         _payBotReward(msg.sender, reward);

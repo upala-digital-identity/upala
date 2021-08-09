@@ -25,12 +25,12 @@ const overrides = {
 
 const ZERO_BYTES32 = '0x0000000000000000000000000000000000000000000000000000000000000000'
 
-async function resetProtocol(admin, groupOwner) {
+async function setupProtocol(admin, groupOwner) {
   const fakeDai: Contract = await deployContract(admin, FakeDai)
   const upala: Contract = await deployContract(admin, Upala)
   await upala.deployed()
   const merklePoolFactory = await deployContract(admin, MerklePoolFactory, [upala.address, fakeDai.address])
-  await upala.setApprovedPoolFactory(merklePoolFactory.address, 'true').then((tx) => tx.wait());
+  await upala.approvePoolFactory(merklePoolFactory.address, 'true').then((tx) => tx.wait());
 
   // spawn a new pool by the factory
   const tx = await merklePoolFactory.connect(groupOwner).createPool();
@@ -65,7 +65,7 @@ describe('MerkleDistributor', () => {
 
   describe('#merkleRoot', () => {
     it('stores and returns the zero merkle root', async () => {
-      const [fakeDai, upala, merklePool] = await resetProtocol(upalaAdmin, groupOwner0)
+      const [fakeDai, upala, merklePool] = await setupProtocol(upalaAdmin, groupOwner0)
 
       const tx = await merklePool.connect(groupOwner0).publishScoreBundle(ZERO_BYTES32)
       const block = await provider.getBlock((await tx.wait(1)).blockNumber)
@@ -79,7 +79,7 @@ describe('MerkleDistributor', () => {
 
   describe('#claim', () => {
     it('fails for empty proof', async () => {
-      const [fakeDai, upala, merklePool] = await resetProtocol(upalaAdmin, groupOwner0)
+      const [fakeDai, upala, merklePool] = await setupProtocol(upalaAdmin, groupOwner0)
       const tx = await merklePool.connect(groupOwner0).publishScoreBundle(ZERO_BYTES32)
       await upala.connect(user0).newIdentity(user0.address)
 
@@ -112,7 +112,7 @@ describe('MerkleDistributor', () => {
       let user1id: string
       let baseScore: BigNumber
       beforeEach('deploy', async () => {
-        [fakeDai, upala, merklePool] = await resetProtocol(upalaAdmin, groupOwner0)
+        [fakeDai, upala, merklePool] = await setupProtocol(upalaAdmin, groupOwner0)
         await upala.connect(user0).newIdentity(user0.address)
         await upala.connect(user1).newIdentity(user1.address)
         user0id = await upala.connect(user0).myId()
