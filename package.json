@@ -20,6 +20,7 @@
     "node": "cd packages/buidler && npx buidler node",
     "test": "cd packages/buidler && npx buidler test",
     "test-signed-scores": "npx hardhat test test/spec.js",
+    "test-upala": "npx hardhat test test/upala.js",
     "test-merkle": "TS_NODE_TRANSPILE_ONLY=1 npx hardhat test test/MerkleDistributor.spec.ts",
     "start": "yarn workspace @uniswap-v1-app/react-app start",
     "compile": "cd packages/buidler && npx buidler compile",

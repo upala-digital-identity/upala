@@ -1,11 +1,20 @@
 const { expect } = require('chai')
 const { setupProtocol } = require('./deploy-helper.js');
 
+// TODO
+/*
+- make all 'it's work
+- think where before/beforeEach could be placed best (and what they would do)
+- move pool setup to the deploy-helper.js
+- remove unnecessary wallets from tests and all unnecessary code in general
+- test for events
+*/
+
 describe('PROTOCOL MANAGEMENT', function () {
   let upala
   let unusedFakeDai
   let wallets
-  before('set protocol', async () => {
+  before('setup protocol', async () => {
     [upala, unusedFakeDai, wallets] = await setupProtocol()
     ;[upalaAdmin, nobody] = wallets
   })
@@ -39,66 +48,30 @@ describe('PROTOCOL MANAGEMENT', function () {
   })
 })
 
-describe('POOLS MANAGEMENT', function () {
+
+describe('USERS', function () {
   let upala
-  let fakeDai
-  let signedScoresPoolFactory
+  let fakeDai_NotUsedInThisTest
   let wallets
-
-  before('reset protocol', async () => {
-    [upala, fakeDai, wallets] = await setupProtocol()
-      ;[upalaAdmin, user1, user2, user3, manager1, manager2, delegate1, delegate2, delegate3, nobody] = wallets
-    signedScoresPoolFactory = await deployContract('SignedScoresPoolFactory', upala.address, fakeDai.address)
-  })
-
-  // todo owner can approve pool factories
-  // todo owner can remove pool factories
-  // todo owner can switch on and off all pool spawned by a factory
-
-  it('can only register an approved pool', async function () {
-    // approve pool factory
-    await upala.connect(upalaAdmin).approvePoolFactory(signedScoresPoolFactory.address, 'true').then((tx) => tx.wait())
-    expect(await upala.approvedPoolFactories(signedScoresPoolFactory.address)).to.eq(true)
-    // todo only Upala admin 
-
-    // spawn a new pool by the factory
-    const tx = await signedScoresPoolFactory.connect(manager1).createPool()
-    const receipt = await tx.wait(1)
-    const newPoolEvent = receipt.events.filter((x) => {
-      return x.event == 'NewPool'
-    })
-    const newPoolAddress = newPoolEvent[0].args.poolAddress
-    const poolContract = (await ethers.getContractFactory('SignedScoresPool')).attach(newPoolAddress)
-
-    expect(await upala.approvedPools(newPoolAddress)).to.eq(signedScoresPoolFactory.address)
-
-    // try to spawn a pool from a not approved factory
-    // await expect(signedScoresPoolFactory2.connect(manager1).createPool()).to.be.revertedWith('Pool factory is not approved')
-
-  })
-
-})
-
-describe('DAPPS MANAGEMENT', function () {
-  // todo dapps can regiter in Upala
-  // todo dapss can unregister in Upala (only registered ones)
-})
-
-describe('USER', function () {
-  let upala
-  let unusedFakeDai
-  let wallets
-  before('register users', async () => {
-    [upala, unusedFakeDai, wallets] = await setupProtocol()
+  before('setup protocol, register users', async () => {
+    [upala, fakeDai_NotUsedInThisTest, wallets] = await setupProtocol()
     ;[upalaAdmin, user1, user2, user3, delegate1, delegate2, delegate3, nobody] = wallets
-  
+    
+    // the follwoing two lines are tested first below
     await upala.connect(user2).newIdentity(user1.getAddress())
     await upala.connect(user2).newIdentity(user2.getAddress())
   })
 
   describe('registration', function () {
-    // the only delegate situation (ccheck that it works)
-    // it("registers Upala ID", async function() {
+
+    // the only delegate situation
+    // it("Owner can query ID and ID Owner", async function() {
+    //   expect(await upala.connect(user1).myId()).to.eq(id)
+    //   expect(await upala.connect(user1).myIdOwner()).to.eq(id)
+    // expect 'nobody' to fail
+    // });
+
+    // it("registers Upala ID for another address", async function() {
     //   expect(await upala.connect(user1).myId()).to.eq(1)
     // });
 
@@ -107,15 +80,6 @@ describe('USER', function () {
         'Address is already an owner or delegate'
       )
     })
-
-    it('cannot query Upala ID from an arbitrary address', async function () {
-      await expect(upala.connect(nobody).myId()).to.be.revertedWith('no id registered for the address')
-    })
-
-    // utils.id("Hello World");
-    // todo can register from another address
-    // todo can remove id (just explode with 0 reward)
-    // todo only delegates or owner can get identity owner
   })
 
   describe('delegation', function () {
@@ -124,12 +88,18 @@ describe('USER', function () {
     //   })
 
     it('cannot remove the only delegate', async function () {
-      await expect(upala.connect(user1).removeDelegate(user1.getAddress())).to.be.revertedWith('Cannot remove oneself')
+      await expect(
+        upala.connect(user1).removeDelegate(user1.getAddress()))
+        .to.be.revertedWith('Cannot remove oneself')
     })
 
-    it('can query Upala ID from an approved address', async function () {
+    it('can query Upala ID and owner address from an approved address', async function () {
+      // todo expect 'nobody' to fail 0x0 in return 
+      // todo get ownerID
       await upala.connect(user1).approveDelegate(delegate1.getAddress())
-      expect(await upala.connect(delegate1).myId()).to.eq(await upala.connect(user1).myId())
+      expect(
+        await upala.connect(delegate1).myId())
+        .to.eq(await upala.connect(user1).myId())
     })
 
     it('cannot register an address approved by another Upala ID as a delegate', async function () {
@@ -155,25 +125,10 @@ describe('USER', function () {
       await upala.connect(user1).removeDelegate(delegate2.getAddress())
       await expect(upala.connect(delegate2).myId()).to.be.revertedWith('no id registered for the address')
     })
+
   })
 
   describe('ownership', function () {
-    it('owner can change Upala ID ownership (change owner address)', async function () {
-      const upalaId = await upala.connect(user1).myId()
-      await upala.connect(user1).setIdentityOwner(user3.getAddress())
-      // id sticks
-      expect(await upala.connect(user3).myId()).to.eq(upalaId)
-      // delegates stick
-      expect(await upala.connect(delegate1).myIdOwner()).to.eq(await user3.getAddress())
-      // owner becomes delegate
-      expect(await upala.connect(user1).myIdOwner()).to.eq(await user3.getAddress())
-    })
-
-    it('arbitrary address cannot change Upala ID ownership', async function () {
-      await expect(upala.connect(nobody).setIdentityOwner(user3.getAddress())).to.be.revertedWith(
-        'no id registered for the address'
-      )
-    })
 
     it('cannot pass ownership to another account OWNER', async function () {
       await expect(upala.connect(user3).setIdentityOwner(user2.getAddress())).to.be.revertedWith(
@@ -195,20 +150,96 @@ describe('USER', function () {
       )
     })
 
-    it('can pass ownership to own delegate', async function () {
+    it('cannot transfer ownership to a non-delegate (create delegate first)', async function () {
+      // todo fails with "Address is not a delegate for current UpalaId"
+    })
+
+    it('a non-owner cannot transfer ownership', async function () {
+      // todo fails with "Only identity holder can add or remove delegates"
+    })
+
+    it('owner can pass ownership to own delegate (change owner address)', async function () {
+      const upalaId = await upala.connect(user1).myId()
       await upala.connect(user3).setIdentityOwner(delegate3.getAddress())
       expect(await upala.connect(delegate3).myIdOwner()).to.eq(await delegate3.getAddress())
+      // id sticks
+      expect(await upala.connect(user3).myId()).to.eq(upalaId)
+      // delegates sticks
+      expect(await upala.connect(delegate1).myIdOwner()).to.eq(await user3.getAddress())
+      // owner becomes delegate
+      expect(await upala.connect(user1).myIdOwner()).to.eq(await user3.getAddress())
     })
   })
+})
 
+describe('POOLS', function () {
+  let upala
+  let fakeDai
+  let signedScoresPoolFactory
+  let wallets
 
+  before('setup protocol', async () => {
+    [upala, fakeDai, wallets] = await setupProtocol()
+    ;[upalaAdmin, user1, user2, user3, manager1, manager2, delegate1, delegate2, delegate3, nobody] = wallets
+    signedScoresPoolFactory = await deployContract('SignedScoresPoolFactory', upala.address, fakeDai.address)
+  })
+
+  describe('management', function () {
+  
+    it('owner can approve pool FACTORIES', async function () {
+      // todo fails for nobody
+      // todo works for owner (event fired, record changed)
+    })
+
+    it('an approved pool factory can approve pools', async function () {
+      // todo 'nobody' cannot approve pools
+      // fails with "Not owner or something"
+
+      // production todo 'requires isPoolFactory bool to be true' 
+
+      // approve pool factory
+      await upala.connect(upalaAdmin).approvePoolFactory(signedScoresPoolFactory.address, 'true').then((tx) => tx.wait())
+      expect(await upala.approvedPoolFactories(signedScoresPoolFactory.address)).to.eq(true)
+      // todo only Upala admin 
+
+      // spawn a new pool by the factory
+      const tx = await signedScoresPoolFactory.connect(manager1).createPool()
+      const receipt = await tx.wait(1)
+      const newPoolEvent = receipt.events.filter((x) => {
+        return x.event == 'NewPool'
+      })
+      const newPoolAddress = newPoolEvent[0].args.poolAddress
+      const poolContract = (await ethers.getContractFactory('SignedScoresPool')).attach(newPoolAddress)
+
+      expect(await upala.approvedPools(newPoolAddress)).to.eq(signedScoresPoolFactory.address)
+
+      // try to spawn a pool from a not approved factory
+      // await expect(signedScoresPoolFactory2.connect(manager1).createPool()).to.be.revertedWith('Pool factory is not approved')
+
+    })
+
+    it('owner can remove pool factories', async function () {
+      // todo fails for nobody
+      // fails with factory that doesn't exist
+      // todo works for owner
+    })
+    
+    
+  // todo owner can switch on and off all pool spawned by a factory
+
+  })
+
+  describe('api', function () {
+    it('approved pools can explode users', async function () {
+    })
+  
+    // todo isOwnerOrDelegate
+    // todo isExploded
+  })
 })
 
 
-describe('API? ', function () {
-  it('approved pools can explode users', async function () {
-  })
-
-  // todo isOwnerOrDelegate
-  // todo isExploded
+describe('DAPPS MANAGEMENT', function () {
+  // todo dapps can regiter in Upala
+  // todo dapss can unregister in Upala (only registered ones)
 })
