@@ -5,9 +5,11 @@ const { setupProtocol } = require('./deploy-helper.js');
 /*
 - make all 'it's work
 - think where before/beforeEach could be placed best (and what they would do)
+- try preserve ordering of tests
 - move pool setup to the deploy-helper.js
 - remove unnecessary wallets from tests and all unnecessary code in general
-- test for events
+- add events testing
+- ignore production todos
 */
 
 describe('PROTOCOL MANAGEMENT', function () {
@@ -47,6 +49,7 @@ describe('PROTOCOL MANAGEMENT', function () {
     expect(await upala.owner()).to.be.eq(await nobody.getAddress())
   })
 })
+
 
 
 describe('USERS', function () {
@@ -159,6 +162,7 @@ describe('USERS', function () {
     })
 
     it('owner can pass ownership to own delegate (change owner address)', async function () {
+      // todo probably bad code here
       const upalaId = await upala.connect(user1).myId()
       await upala.connect(user3).setIdentityOwner(delegate3.getAddress())
       expect(await upala.connect(delegate3).myIdOwner()).to.eq(await delegate3.getAddress())
@@ -172,7 +176,9 @@ describe('USERS', function () {
   })
 })
 
-describe('POOLS', function () {
+
+
+describe('POOL FACTORIES', function () {
   let upala
   let fakeDai
   let signedScoresPoolFactory
@@ -183,60 +189,71 @@ describe('POOLS', function () {
     ;[upalaAdmin, user1, user2, user3, manager1, manager2, delegate1, delegate2, delegate3, nobody] = wallets
     signedScoresPoolFactory = await deployContract('SignedScoresPoolFactory', upala.address, fakeDai.address)
   })
-
-  describe('management', function () {
   
-    it('owner can approve pool FACTORIES', async function () {
-      // todo fails for nobody
-      // todo works for owner (event fired, record changed)
-    })
-
-    it('an approved pool factory can approve pools', async function () {
-      // todo 'nobody' cannot approve pools
-      // fails with "Not owner or something"
-
-      // production todo 'requires isPoolFactory bool to be true' 
-
-      // approve pool factory
-      await upala.connect(upalaAdmin).approvePoolFactory(signedScoresPoolFactory.address, 'true').then((tx) => tx.wait())
-      expect(await upala.approvedPoolFactories(signedScoresPoolFactory.address)).to.eq(true)
-      // todo only Upala admin 
-
-      // spawn a new pool by the factory
-      const tx = await signedScoresPoolFactory.connect(manager1).createPool()
-      const receipt = await tx.wait(1)
-      const newPoolEvent = receipt.events.filter((x) => {
-        return x.event == 'NewPool'
-      })
-      const newPoolAddress = newPoolEvent[0].args.poolAddress
-      const poolContract = (await ethers.getContractFactory('SignedScoresPool')).attach(newPoolAddress)
-
-      expect(await upala.approvedPools(newPoolAddress)).to.eq(signedScoresPoolFactory.address)
-
-      // try to spawn a pool from a not approved factory
-      // await expect(signedScoresPoolFactory2.connect(manager1).createPool()).to.be.revertedWith('Pool factory is not approved')
-
-    })
-
-    it('owner can remove pool factories', async function () {
-      // todo fails for nobody
-      // fails with factory that doesn't exist
-      // todo works for owner
-    })
-    
-    
-  // todo owner can switch on and off all pool spawned by a factory
-
+  it('owner can manage pool factories', async function () {
+    // approvePoolFactory(addr, true) fails for nobody - see ownable for 
+    // approvePoolFactory(addr, true) works for owner (event fired, record changed)
   })
 
-  describe('api', function () {
-    it('approved pools can explode users', async function () {
-    })
+  // production todo 'requires isPoolFactory bool to be true' 
   
-    // todo isOwnerOrDelegate
-    // todo isExploded
+  it('only approved pool factory can register new pools', async function () {
+    // todo 'nobody' cannot approve pools
+    // fails with "Not an owner" (see Ownbale contract)
+
+    // approve pool factory
+    await upala.connect(upalaAdmin).approvePoolFactory(signedScoresPoolFactory.address, 'true').then((tx) => tx.wait())
+    expect(await upala.approvedPoolFactories(signedScoresPoolFactory.address)).to.eq(true)
+    // todo only Upala admin 
+
+    // spawn a new pool by the factory
+    const tx = await signedScoresPoolFactory.connect(manager1).createPool()
+    const receipt = await tx.wait(1)
+    const newPoolEvent = receipt.events.filter((x) => {
+      return x.event == 'NewPool'
+    })
+    const newPoolAddress = newPoolEvent[0].args.poolAddress
+    const poolContract = (await ethers.getContractFactory('SignedScoresPool')).attach(newPoolAddress)
+
+    expect(await upala.approvedPools(newPoolAddress)).to.eq(signedScoresPoolFactory.address)
+
+    // try to spawn a pool from a not approved factory
+    // await expect(signedScoresPoolFactory2.connect(manager1).createPool()).to.be.revertedWith('Pool factory is not approved')
+  })
+
+  it('pool factories can be switched on and off', async function () {
+    // approvePoolFactory(addr, true)
+    // pool factory can register pools again
+    // approvePoolFactory(addr, false)
+    // pool factory cannot register pools
+    // approvePoolFactory(addr, true)
+    // pool factory can register pools again
+  })
+  
+})
+
+
+
+describe('POOLS', function () {
+  // before 
+  //    setup protocol
+  //    setup pool (approve pool factory and spawn a pool)
+  //    
+
+  it('only registered pools can validate and explode users', async function () {
+    // 'nobody' cannot read isOwnerOrDelegate - "Parent pool factory is disapproved"
+    // 'nobody' cannot explode - "Parent pool factory is disapproved"
+    // a registered one can do those
+  })
+
+  it('disapproved pool factory child pool cannot validate or explode users', async function () {
+    // disapprove 
+    // fails to validate or explode
+    // approve 
+    // can validate or explode again
   })
 })
+
 
 
 describe('DAPPS MANAGEMENT', function () {
