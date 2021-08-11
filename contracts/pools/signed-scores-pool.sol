@@ -31,7 +31,7 @@ contract SignedScoresPoolFactory {
         address newPoolAddress = address(
             new SignedScoresPool(upalaAddress, approvedTokenAddress, msg.sender));
 
-        require(upala.approvePool(newPoolAddress) == true, 
+        require(upala.registerPool(newPoolAddress) == true, 
             'Cannot approve new pool on Upala');
         return newPoolAddress;
     }

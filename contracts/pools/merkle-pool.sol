@@ -32,7 +32,7 @@ contract MerklePoolFactory {
 
     function createPool() external returns (address) {
         address newPoolAddress = address(new MerklePool(upalaAddress, approvedTokenAddress, msg.sender));
-        require(upala.approvePool(newPoolAddress) == true, "Cannot approve new pool on Upala");
+        require(upala.registerPool(newPoolAddress) == true, "Cannot approve new pool on Upala");
         NewPool(newPoolAddress);
         return newPoolAddress;
    }

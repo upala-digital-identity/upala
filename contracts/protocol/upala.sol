@@ -42,7 +42,7 @@ contract Upala is OwnableUpgradeable{
     // Pool Factories approved by Upala admin
     mapping(address => bool) public approvedPoolFactories;
     // Pools created by approved pool factories
-    mapping(address => address) public approvedPools;
+    mapping(address => address) public poolParent;
 
     /*****
     EVENTS
@@ -135,6 +135,7 @@ contract Upala is OwnableUpgradeable{
     }
     
     // production todo may be required by regulators
+    // just explode with 0 reward!
     // function removeIdentity(address name) external {
     // }
 
@@ -144,7 +145,7 @@ contract Upala is OwnableUpgradeable{
     }
 
     // can be called by any delegate address to get id owner (used for tests)
-    function myIdOwner() external view  returns(address owner) {
+    function myIdOwner() external view returns(address owner) {
         return identityOwner[delegateToIdentity[msg.sender]];
     }
 
@@ -157,7 +158,8 @@ contract Upala is OwnableUpgradeable{
     // used by pools to check validity of address and upala id
     function isOwnerOrDelegate(address ownerOrDelegate, address identity) 
         external 
-        view 
+        view
+        onlyApprovedPool
         returns (bool) 
     {
         require(identity == delegateToIdentity[ownerOrDelegate],
@@ -167,13 +169,12 @@ contract Upala is OwnableUpgradeable{
         return true;
     }
 
-    // checks if the identity is already exploded
-    function isExploded(address identity) external returns(bool){
-        return (identityOwner[identity] == EXPLODED);
-    }
-
     // explodes ID
-    function explode(address identity) external onlyApprovedPool returns(bool){
+    function explode(address identity) 
+        external 
+        onlyApprovedPool 
+        returns(bool)
+    {
         identityOwner[identity] = EXPLODED;
         Exploded(identity);
         return true;
@@ -186,7 +187,9 @@ contract Upala is OwnableUpgradeable{
     // only pools created by approved factories 
     // (admin can swtich on and off all pools by a factory)
     modifier onlyApprovedPool() {
-        require(approvedPoolFactories[approvedPools[msg.sender]] == true);
+        // msg.sender is a pool address
+        require(approvedPoolFactories[poolParent[msg.sender]] == true,
+            "Parent pool factory is disapproved");
         _;
     }
 
@@ -196,13 +199,14 @@ contract Upala is OwnableUpgradeable{
         _;
     }
 
-    // pool factories approve all pool they generate
-    function approvePool(address newPool) 
+    // pool factories can register pools they generate
+    function registerPool(address newPool) 
         external 
         onlyApprovedPoolFactory 
         returns(bool) 
     {
-        approvedPools[newPool] = msg.sender;
+        // msg.sender is an approved pool factory address
+        poolParent[newPool] = msg.sender;
         NewPool(newPool, msg.sender);
         return true;
     }
@@ -271,8 +275,14 @@ contract Upala is OwnableUpgradeable{
     // }
 
     // // TODO only admin
-    // // Admin can swtich on and off all paywalls by a factory (both creation of new paywalls and approval of existing ones)
-    // function setApprovedPaywallFactory(address paywallFactory, bool isApproved) external {
+    // Admin can swtich on and off all paywalls by a factory 
+    // (both creation of new paywalls and approval of existing ones)
+    // function setApprovedPaywallFactory(
+    //     address paywallFactory, 
+    //     bool isApproved
+    // ) 
+    //     external 
+    // {
     //     approvedPaywallFactories[paywallFactory] = isApproved;
     // }
 
