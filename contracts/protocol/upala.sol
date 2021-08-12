@@ -54,8 +54,7 @@ contract Upala is OwnableUpgradeable{
 
     // Identity management
     event NewIdentity(address upalaId, address owner);
-    event DelegateApproved(address upalaId, address delegate);
-    event DelegateRemoved(address upalaId, address delegate);
+    event NewDelegateStatus(address upalaId, address delegate, bool isApproved);
     event NewIdentityOwner(address upalaId, address owner);
     event Exploded(address upalaId);
 
@@ -117,7 +116,7 @@ contract Upala is OwnableUpgradeable{
             "Cannot use an empty addess");
         address upalaId = delegateToIdentity[msg.sender];
         delegateToIdentity[delegate] = upalaId;
-        DelegateApproved(upalaId, delegate);
+        NewDelegateStatus(upalaId, delegate, true);
     }
 
     // Removes delegate for the UpalaId. 
@@ -125,7 +124,7 @@ contract Upala is OwnableUpgradeable{
         require(delegate != msg.sender, 
             "Cannot remove oneself");
         delete delegateToIdentity[delegate];
-        DelegateRemoved(delegateToIdentity[msg.sender], delegate);
+        NewDelegateStatus(delegateToIdentity[msg.sender], delegate, false);
     }
     
     // Sets new UpalaId owner. Only allows to transfer ownership to an 
