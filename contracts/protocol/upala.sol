@@ -12,9 +12,6 @@ import "hardhat/console.sol";
 contract Upala is OwnableUpgradeable{
     using SafeMath for uint256;
 
-    // assigned as identity holder after ID explosion
-    address EXPLODED; 
-
     /*******
     SETTINGS
     ********/
@@ -24,16 +21,17 @@ contract Upala is OwnableUpgradeable{
     // changes must be executed within execution window
     uint256 public executionWindow; // 1000 - for tests
 
-
-    /*********
-    IDENTITIES
-    **********/
+    /****
+    USERS
+    *****/
 
     // Identity owner. Can change owner, can assign delegates
     mapping(address => address) identityOwner; // idOwner
     // Addresses that can use the associated id (delegates and oner).
     // Also used to retrieve id by address
     mapping(address => address) delegateToIdentity;
+    // assigned as identity holder after ID explosion
+    address EXPLODED; 
 
     /****
     POOLS
@@ -69,7 +67,7 @@ contract Upala is OwnableUpgradeable{
     // Dapps
     event NewDAppStatus(address dappAddress, bool isRegistered);
 
-    // protocol settings
+    // Protocol settings
     event NewAttackWindow(uint256 newWindow);
     event NewExecutionWindow(uint256 newWindow);
 
@@ -89,9 +87,9 @@ contract Upala is OwnableUpgradeable{
         EXPLODED = address(0x0000000000000000000000006578706c6f646564);  
     }
 
-    /*************
-    REGISTER USERS
-    **************/
+    /****
+    USERS
+    *****/
 
     // Creates UpalaId
     // Upala ID can be assigned to an address by a third party
@@ -155,37 +153,6 @@ contract Upala is OwnableUpgradeable{
         return identityOwner[delegateToIdentity[msg.sender]];
     }
 
-
-
-    /********
-    EXPLODING
-    *********/
-
-    // used by pools to check validity of address and upala id
-    function isOwnerOrDelegate(address ownerOrDelegate, address identity) 
-        external 
-        view
-        onlyApprovedPool
-        returns (bool) 
-    {
-        require(identity == delegateToIdentity[ownerOrDelegate],
-            "the address is not an owner or delegate of the id");
-        require (identityOwner[identity] != EXPLODED,
-            "The id is already exploded");
-        return true;
-    }
-
-    // explodes ID
-    function explode(address identity) 
-        external 
-        onlyApprovedPool 
-        returns(bool)
-    {
-        identityOwner[identity] = EXPLODED;
-        Exploded(identity);
-        return true;
-    }
-
     /****
     POOLS
     *****/
@@ -225,6 +192,31 @@ contract Upala is OwnableUpgradeable{
     {
         approvedPoolFactories[poolFactory] = isApproved;
         NewPoolFactoryStatus(poolFactory, isApproved);
+    }
+
+    // used by pools to check validity of address and upala id
+    function isOwnerOrDelegate(address ownerOrDelegate, address identity) 
+        external 
+        view
+        onlyApprovedPool
+        returns (bool) 
+    {
+        require(identity == delegateToIdentity[ownerOrDelegate],
+            "the address is not an owner or delegate of the id");
+        require (identityOwner[identity] != EXPLODED,
+            "The id is already exploded");
+        return true;
+    }
+
+    // explodes ID
+    function explode(address identity) 
+        external 
+        onlyApprovedPool 
+        returns(bool)
+    {
+        identityOwner[identity] = EXPLODED;
+        Exploded(identity);
+        return true;
     }
 
     /****
