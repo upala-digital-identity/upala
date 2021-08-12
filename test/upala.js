@@ -56,7 +56,7 @@ describe('USERS', function () {
   let upala
   let fakeDai_NotUsedInThisTest
   let wallets
-  before('setup protocol, register users', async () => {
+  before('setup protocol, register users', async () => {  //todo beforeEach
     [upala, fakeDai_NotUsedInThisTest, wallets] = await setupProtocol()
     ;[upalaAdmin, user1, user2, user3, delegate1, delegate2, delegate3, nobody] = wallets
     
@@ -67,16 +67,15 @@ describe('USERS', function () {
 
   describe('registration', function () {
 
-    // the only delegate situation
-    // it("Owner can query ID and ID Owner", async function() {
-    //   expect(await upala.connect(user1).myId()).to.eq(id)
-    //   expect(await upala.connect(user1).myIdOwner()).to.eq(id)
-    // expect 'nobody' to fail
-    // });
+    it("Owner can query ID and ID Owner", async function() {
+      expect(await upala.connect(user1).myId()).to.eq(id)
+      expect(await upala.connect(user1).myIdOwner()).to.eq(id)
+    // todo expect 'nobody' to fail
+    });
 
-    // it("registers Upala ID for another address", async function() {
-    //   expect(await upala.connect(user1).myId()).to.eq(1)
-    // });
+    it("registers Upala ID for another address", async function() {
+      expect(await upala.connect(user1).myId()).to.eq(1)
+    });
 
     it('Upala ID owner address cannot be used to register another Upala ID', async function () {
       await expect(upala.connect(user2).newIdentity(user1.getAddress())).to.be.revertedWith(
@@ -86,6 +85,7 @@ describe('USERS', function () {
   })
 
   describe('delegation', function () {
+    // todo
     // before('create delegate', async () => {
     //   await upala.connect(user1).approveDelegate(delegate1.getAddress());
     //   })
