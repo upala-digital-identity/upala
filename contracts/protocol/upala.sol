@@ -44,6 +44,12 @@ contract Upala is OwnableUpgradeable{
     // Pools created by approved pool factories
     mapping(address => address) public poolParent;
 
+    /****
+    DAPPS
+    *****/
+
+    mapping(address => bool) public registeredDapps;
+
     /*****
     EVENTS
     *****/
@@ -61,7 +67,7 @@ contract Upala is OwnableUpgradeable{
     event NewPoolFactoryStatus(address poolFactory, bool isApproved);
 
     // Dapps
-    event NewDApp(address dappAddress);
+    event NewDAppStatus(address dappAddress, bool isRegistered);
 
     // protocol settings
     event NewAttackWindow(uint256 newWindow);
@@ -226,7 +232,15 @@ contract Upala is OwnableUpgradeable{
     *****/
 
     function registerDApp() external {
-        NewDApp(msg.sender);
+        registeredDapps[msg.sender] = true;
+        NewDAppStatus(msg.sender, true);
+    }
+
+    function unRegisterDApp() external {
+        require(registeredDapps[msg.sender] == true,
+            "DApp is not registered");
+        delete registeredDapps[msg.sender];
+        NewDAppStatus(msg.sender, false);
     }
 
     /************************
