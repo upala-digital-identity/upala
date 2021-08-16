@@ -95,9 +95,12 @@ contract Upala is OwnableUpgradeable{
     function newIdentity(address newIdentityOwner) external returns (address) {
         require (newIdentityOwner != address(0x0),
             "Cannot use an empty addess");
-        address newId = address(uint(keccak256(abi.encodePacked(msg.sender, now))));
         require (delegateToIdentity[newIdentityOwner] == address(0x0), 
             "Address is already an owner or delegate");
+        // UpalaIDs are n non-deterministic. Cannot assign scores to Upala ID
+        // before Upala ID is created. 
+        address newId = address(uint(keccak256(abi.encodePacked(
+            newIdentityOwner, now)))); // UIP-22.
         identityOwner[newId] = newIdentityOwner;
         delegateToIdentity[newIdentityOwner] = newId;
         NewIdentity(newId, newIdentityOwner);
