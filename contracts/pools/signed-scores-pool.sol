@@ -261,18 +261,20 @@ contract SignedScoresPool is Ownable {
 
     // tests only for now
     function myScore(
-        address uID,
+        address upalaID,
+        address scoreAssignedTo,
         uint8 score,
         bytes32 bundleId,
         bytes calldata proof
     ) external view returns (uint256) {
-        return _userScore(msg.sender, uID, score, bundleId, proof);
+        return _userScore(msg.sender, upalaID, scoreAssignedTo, score, bundleId, proof);
     }
 
     // dapps
     function userScore(
         address userAddress,
-        address uID,
+        address upalaID,
+        address scoreAssignedTo,
         uint8 score,
         bytes32 bundleId,
         bytes calldata proof
@@ -282,13 +284,14 @@ contract SignedScoresPool is Ownable {
         /// production todo paywall modifier goes here
         returns (uint256)
     {
-        return _userScore(userAddress, uID, score, bundleId, proof);
+        return _userScore(userAddress, upalaID, scoreAssignedTo, score, bundleId, proof);
     }
 
     // Allows any identity to attack the group (pool), 
     // run with the money and self-destruct.
     function attack(
-        address uID,
+        address upalaID,
+        address scoreAssignedTo,
         uint8 score,
         bytes32 bundleId,
         bytes calldata proof
@@ -296,35 +299,44 @@ contract SignedScoresPool is Ownable {
         console.log('hey');
 
         // calculate reward (and validity)
-        uint256 reward = _userScore(msg.sender, uID, score, bundleId, proof);
+        uint256 reward = _userScore(msg.sender, upalaID, scoreAssignedTo, score, bundleId, proof);
 
         // explode (delete id forever)
-        upala.explode(uID);
+        upala.explode(upalaID);
 
         // payout 💸
         _payBotReward(msg.sender, reward);
     }
 
     function _userScore(
-        address ownerOrDelegate,
-        address uID,
-        uint8 score,
-        bytes32 bundleId,
-        bytes memory proof
+        address ownerOrDelegate,    // user address that shoots verification call
+        address upalaID,            // user Upala ID
+        address scoreAssignedTo,    // the address used in bundle
+        uint8 score,                // assigned score
+        bytes32 bundleId,           // bundle hash (root if using Merkle pool)
+        bytes memory proof    // a proof that verifies user score is in bundle
     ) private view returns (uint256) {
 
         require(scoreBundleIds[bundleId] > 0, 
             "Provided score bundle does not exist or deleted");
 
-        require(upala.isOwnerOrDelegate(ownerOrDelegate, uID), 
-            "Address doesn't own an Upala ID or is exploded");
+        require(upala.isOwnerOrDelegate(ownerOrDelegate, upalaID),
+            "Not an owner or delegate. Or Upala ID is exploded");
+
+        // a way to validate by address (UIP-22)
+        // can still validate from any delegate address
+        if (scoreAssignedTo != upalaID && scoreAssignedTo != ownerOrDelegate) {
+            require(upala.isOwnerOrDelegate(scoreAssignedTo, upalaID),
+                "Score bearing address is not associated with Upala ID");
+        }
 
         uint256 totalScore = baseScore.mul(score);
-        require(_balanceIsAbove(totalScore), 
+        require(_balanceIsAbove(totalScore),
             "Pool balance is lower than the total score");
 
-        require(isInBundle(uID, score, bundleId, proof) == true,
-            "Can't validate UpalaID-score pair is in the bundle");
+
+        require(isInBundle(scoreAssignedTo, score, bundleId, proof) == true,
+            "Can't validate that scoreAssignedTo-score pair is in the bundle");
 
         return totalScore;
     }
@@ -335,13 +347,13 @@ contract SignedScoresPool is Ownable {
     // https://ethereum.stackexchange.com/questions/76810/sign-message-with-web3-and-verify-with-openzeppelin-solidity-ecdsa-sol
     // https://docs.openzeppelin.com/contracts/2.x/utilities
     function isInBundle(
-        address uID,
+        address intraBundleUserID,
         uint8 score,
         bytes32 bundleId,
         bytes memory signature
     ) private view returns (bool) {
         return(
-            keccak256(abi.encodePacked(uID, score, bundleId))
+            keccak256(abi.encodePacked(intraBundleUserID, score, bundleId))
                 .toEthSignedMessageHash()
                 .recover(signature) == owner());
     }

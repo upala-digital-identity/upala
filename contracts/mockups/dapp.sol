@@ -43,7 +43,7 @@ contract usingUpala {
     returns (uint256){
         // msg.sender is user
         return SignedScoresPool(pool)
-            .userScore(msg.sender, uID, score, bundle, proof);
+            .userScore(msg.sender, uID, uID, score, bundle, proof);
     }
 
     /************
