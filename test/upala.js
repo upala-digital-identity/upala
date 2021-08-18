@@ -260,3 +260,6 @@ describe('DAPPS MANAGEMENT', function () {
   // todo dapps can regiter in Upala
   // todo dapss can unregister in Upala (only registered ones)
 })
+
+// todo check treasury 
+// todo check explosionFee settings 

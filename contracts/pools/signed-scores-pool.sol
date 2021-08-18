@@ -193,9 +193,13 @@ contract SignedScoresPool is Ownable {
     }
 
     // bots are getting paid instantly
-    function _payBotReward(address bot, uint256 amount) private returns (bool) {
-        require(_withdraw(bot, amount), 'token transfer to bot failed');
-        return true;
+    function _payBotReward(address bot, uint256 amount) private {
+        uint256 fee = amount.mul(upala.explosionFeePercent()).div(100);
+        require(_withdraw(bot, amount.sub(fee)), 
+            'Token transfer to bot failed');
+        // UIP-6. Sustainability + mitigating withdrawals by explosion
+        require(_withdraw(upala.treasury(), fee), 
+            'Explosion fee transfer failed');
     }
 
     // tries to withdraw as much as possible 
@@ -341,7 +345,8 @@ contract SignedScoresPool is Ownable {
         return totalScore;
     }
 
-    // checks signature
+    // Pool-specific way to validate that userID is in bundle
+    // SignedScoresPool requires every score to be signed by pool manager
     // production todo security check (see ECDSA.sol, 
     // https://solidity-by-example.org/signature/)
     // https://ethereum.stackexchange.com/questions/76810/sign-message-with-web3-and-verify-with-openzeppelin-solidity-ecdsa-sol

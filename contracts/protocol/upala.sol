@@ -16,11 +16,15 @@ contract Upala is OwnableUpgradeable{
     SETTINGS
     ********/
 
+    // funds
+    uint8 public explosionFeePercent;
+    address public treasury;
+
     // any changes that hurt bots rights must be announced an hour in advance
     uint256 public attackWindow; 
     // changes must be executed within execution window
     uint256 public executionWindow; // 1000 - for tests
-
+    
     /****
     USERS
     *****/
@@ -69,6 +73,8 @@ contract Upala is OwnableUpgradeable{
     // Protocol settings
     event NewAttackWindow(uint256 newWindow);
     event NewExecutionWindow(uint256 newWindow);
+    event NewExplosionFeePercent(uint8 newFee);
+    event NewTreasury(address newTreasury);
 
     /**********
     CONSTRUCTOR
@@ -80,6 +86,8 @@ contract Upala is OwnableUpgradeable{
         __Context_init_unchained();
         __Ownable_init_unchained();
         // defaults
+        explosionFeePercent = 3;
+        treasury = owner();
         attackWindow = 30 minutes;
         executionWindow = 1 hours;
         // Hex to ASCII = exploded
@@ -244,7 +252,7 @@ contract Upala is OwnableUpgradeable{
     // Note. When decreasing attackWindow or executionWindow make sure to let 
     // all group managers to know in advance as it affects commits life.
     function setAttackWindow(uint256 newWindow) onlyOwner external {
-        console.log("setAttackWindow");
+        console.log("setAttackWindow");  // production todo remove
         attackWindow = newWindow;
         NewAttackWindow(newWindow);
     }
@@ -252,6 +260,17 @@ contract Upala is OwnableUpgradeable{
     function setExecutionWindow(uint256 newWindow) onlyOwner external {
         executionWindow = newWindow;
         NewExecutionWindow(newWindow);
+    }
+
+    function setExplosionFeePercent(uint8 newFee) onlyOwner external {
+        explosionFeePercent = newFee;
+        NewExplosionFeePercent(newFee);
+    }
+
+    function setTreasury(address newTreasury) onlyOwner external {
+        // production todo make sure treasury is ERC-20 compatible
+        treasury = newTreasury;
+        NewTreasury(newTreasury);
     }
 
     /******
