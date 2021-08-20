@@ -5,7 +5,7 @@ import { solidity, MockProvider, deployContract } from 'ethereum-waffle'
 import { Contract, BigNumber, constants } from 'ethers'
 import BalanceTree from '../src/balance-tree'
 
-import Distributor from '../artifacts/contracts/protocol/MerkleDistributor.sol/MerkleDistributor.json'
+import Distributor from '../artifacts/contracts/mockups/MerkleDistributor.sol/MerkleDistributor.json'
 import TestERC20 from '../artifacts/contracts/mockups/TestERC20.sol/TestERC20.json'
 import Upala from '../artifacts/contracts/protocol/upala.sol/Upala.json'
 import FakeDai from '../artifacts/contracts/mockups/fake-dai-mock.sol/FakeDai.json'

@@ -1,15 +1,6 @@
 pragma solidity ^0.6.0;
 
 import 'contracts/pools/bundledScoresPool.sol';
-import "./i-pool-factory.sol";
-import "./i-pool.sol";
-import "hardhat/console.sol";
-/*
-
-Every group to manages its poool in it's own way.
-Or even to share one pool among several groups.
-*/
-
 
 contract MerklePoolFactory {
     
@@ -34,8 +25,6 @@ contract MerklePoolFactory {
    }
 }
 
-// The most important obligation of a group is to pay bot rewards.
-// MerkleTreePool
 contract MerklePool is BundledScoresPool {
 
     constructor(
