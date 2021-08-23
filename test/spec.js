@@ -1,6 +1,6 @@
 const { expect } = require('chai')
 const { BigNumber, utils } = require('ethers')
-const { setupProtocol, deployContract, setUpPoolFactoryAndPool } = require('./deploy-helper.js');
+const { setupProtocol, deployContract, setUpPoolFactoryAndPool } = require('../scripts/upala-admin.js');
 
 let oneETH = BigNumber.from(10).pow(18)
 

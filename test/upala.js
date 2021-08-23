@@ -1,12 +1,12 @@
 const { expect } = require('chai')
-const { setupProtocol } = require('./deploy-helper.js');
+const { setupProtocol } = require('../scripts/upala-admin.js');
 
 // TODO
 /*
 - make all 'it's work
 - think where before/beforeEach could be placed best (and what they would do)
 - try preserve ordering of tests
-- move pool setup to the deploy-helper.js
+- move pool setup to the upala-admin.js
 - remove unnecessary wallets from tests and all unnecessary code in general
 - add events testing
 - ignore production todos
