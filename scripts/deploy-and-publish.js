@@ -12,10 +12,6 @@ const exampleDappDir = '../example-app/packages/contracts/'
 const newPublishDir = '../scaffold-eth/rad-new-dapp/packages/contracts/'
 
 async function main() {
-  // Buidler always runs the compile task when running scripts through it.
-  // If this runs in a standalone fashion you may want to call compile manually
-  // to make sure everything is compiled
-  // await bre.run('compile');
 
   const networkName = bre.network.name
 

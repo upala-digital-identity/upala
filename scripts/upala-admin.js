@@ -1,3 +1,6 @@
+// all upala admin functions go here - both for testing and production 
+// other scripts (like deploy-to-rinkeby or similar) will use this lib
+
 const { BigNumber, utils } = require('ethers')
 const { upgrades } = require('hardhat')
 
@@ -10,6 +13,7 @@ async function deployContract(contractName, ...args) {
     await contractInstance.deployed()
     return contractInstance
   }
+
 
 async function setupProtocol() {
     // wallets and DAI mock

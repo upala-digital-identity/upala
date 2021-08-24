@@ -25,7 +25,7 @@
     "start": "yarn workspace @uniswap-v1-app/react-app start",
     "compile": "cd packages/buidler && npx buidler compile",
     "deploy": "npx buidler run scripts/deploy.js && npx buidler run scripts/publish.js",
-    "watch": "cd packages/buidler && node scripts/watch.js",
+    "watch": "cd packages/buidler && node scripts/examples/watch.js",
     "accounts": "cd packages/buidler && npx buidler accounts",
     "balance": "cd packages/buidler && npx buidler balance",
     "send": "cd packages/buidler && npx buidler send"
