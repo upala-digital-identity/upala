@@ -288,7 +288,7 @@ contract BundledScoresPool is Ownable {
     }
 
     function _userScore(
-        address ownerOrDelegate,    // user address that shoots verification call
+        address caller,    // user address that shoots the verification call
         address upalaID,            // user Upala ID
         address scoreAssignedTo,    // the address used in bundle
         uint8 score,                // assigned score
@@ -299,15 +299,12 @@ contract BundledScoresPool is Ownable {
         require(scoreBundleTimestamp[bundleId] > 0, 
             "Provided score bundle does not exist or deleted");
 
-        require(upala.isOwnerOrDelegate(ownerOrDelegate, upalaID),
-            "Not an owner or delegate. Or Upala ID is exploded");
-
-        // a way to validate by address (UIP-22)
-        // can still validate from any delegate address
-        if (scoreAssignedTo != upalaID && scoreAssignedTo != ownerOrDelegate) {
-            require(upala.isOwnerOrDelegate(scoreAssignedTo, upalaID),
-                "Score bearing address is not associated with Upala ID");
-        }
+        require(
+            upala.isOwnerOrDelegate(caller, upalaID) ||
+            upala.isOwnerOrDelegate(scoreAssignedTo, upalaID),  // a way to validate by address (UIP-22)
+            "Not an owner or delegate."
+            "Upala ID is exploded,"
+            "or score bearing address is not associated with Upala ID");
 
         uint256 totalScore = baseScore.mul(score);
         require(_balanceIsAbove(totalScore),
