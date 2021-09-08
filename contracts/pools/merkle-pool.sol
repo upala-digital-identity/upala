@@ -27,6 +27,13 @@ contract MerklePoolFactory {
 
 contract MerklePool is BundledScoresPool {
 
+    /************
+    ANNOUNCEMENTS
+    *************/
+
+    // Any changes that can hurt bot rights must wait for an attackWindow
+    mapping(bytes32 => uint256) public commitsTimestamps;
+
     constructor(
         address upalaAddress,
         address approvedTokenAddress,
@@ -49,6 +56,77 @@ contract MerklePool is BundledScoresPool {
         bytes32 computedRoot = _computeRoot(proof, leaf);
         return(scoreBundleTimestamp[computedRoot] > 0);
     }
+
+
+    /* Announcements */
+    // Announcements prevents front-running bot-exposions. Groups must announce
+    // in advance any changes that may hurt bots rights
+    // hash = keccak256(action-type, [parameters], secret) - see below
+
+    function commitHash(bytes32 hash) 
+        external 
+        onlyOwner 
+        returns (uint256 timestamp) 
+    {
+        uint256 timestamp = now;
+        commitsTimestamps[hash] = timestamp;
+        return timestamp;
+    }
+
+    modifier hasValidCommit(bytes32 hash) {
+        require(commitsTimestamps[hash] != 0, 
+            'No such commitment hash');
+        require(commitsTimestamps[hash] + upala.attackWindow() <= now, 
+            'Attack window is not closed yet');
+        require(
+            commitsTimestamps[hash] + upala.attackWindow() + upala.executionWindow() >= now,
+            'Execution window is already closed'
+        );
+        _;
+        delete commitsTimestamps[hash];
+    }
+
+    /*Changes that may hurt bots rights (require an announcement)*/
+
+    // todo should this apply to all commits?
+    // require(scoreBundleTimestamp[scoreBundleId] > now + attackWindow, 
+    // 'Commit is submitted before scoreBundleId');
+    
+    // Sets the the base score for the group.
+    function setBaseScore(uint256 newBaseScore, bytes32 secret)
+        external
+        hasValidCommit(keccak256(abi.encodePacked(
+            'setBaseScore', newBaseScore, secret)))
+    {
+        _setBaseScore(newBaseScore);
+    }
+
+    function deleteScoreBundleId(bytes32 scoreBundleId, bytes32 secret) 
+        external 
+        hasValidCommit(keccak256(abi.encodePacked(
+            'deleteScoreBundleId', scoreBundleId, secret)))
+    {
+        _deleteScoreBundleId(scoreBundleId);
+    }
+
+    function withdrawFromPool(address recipient, uint256 amount, bytes32 secret) 
+        external 
+        hasValidCommit(keccak256(abi.encodePacked(
+            'withdrawFromPool', secret)))
+        returns (uint256) 
+    {
+        // event is triggered by DAI contract
+        return _withdrawFromPool(recipient, amount);
+    }
+
+    /*Changes that don't hurt bots rights*/
+
+    function increaseBaseScore(uint256 newBaseScore) external onlyOwner {
+        require(newBaseScore > baseScore, 
+            'To decrease score, make a commitment first');
+        _setBaseScore(newBaseScore);
+    }
+
 
     // todo
     function hack_extractIndex(bytes memory indexAndProof) private pure returns (uint256) {

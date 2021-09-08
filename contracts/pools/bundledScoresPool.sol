@@ -38,13 +38,6 @@ contract BundledScoresPool is Ownable {
     // score bundle. 
     mapping(bytes32 => uint256) public scoreBundleTimestamp;
 
-    /************
-    ANNOUNCEMENTS
-    *************/
-
-    // Any changes that can hurt bot rights must wait for an attackWindow
-    mapping(bytes32 => uint256) public commitsTimestamps;
-    
     /*****
     EVENTS
     *****/
@@ -64,88 +57,16 @@ contract BundledScoresPool is Ownable {
         transferOwnership(poolManager);
     }
 
-    
     /***********
     MANAGE GROUP
     ************/
 
-    /* Announcements */
-    // Announcements prevents front-running bot-exposions. Groups must announce
-    // in advance any changes that may hurt bots rights
-    // hash = keccak256(action-type, [parameters], secret) - see below
-
-    function commitHash(bytes32 hash) 
+    // Bytes32 is used for compatibility with Merkle pools.
+    function publishScoreBundleId(bytes32 newBundleId) 
         external 
         onlyOwner 
-        returns (uint256 timestamp) 
-    {
-        uint256 timestamp = now;
-        commitsTimestamps[hash] = timestamp;
-        return timestamp;
-    }
-
-    modifier hasValidCommit(bytes32 hash) {
-        require(commitsTimestamps[hash] != 0, 
-            'No such commitment hash');
-        require(commitsTimestamps[hash] + upala.attackWindow() <= now, 
-            'Attack window is not closed yet');
-        require(
-            commitsTimestamps[hash] + upala.attackWindow() + upala.executionWindow() >= now,
-            'Execution window is already closed'
-        );
-        _;
-        delete commitsTimestamps[hash];
-    }
-
-    /*Changes that may hurt bots rights (require an announcement)*/
-
-    // todo should this apply to all commits?
-    // require(scoreBundleTimestamp[scoreBundleId] > now + attackWindow, 
-    // 'Commit is submitted before scoreBundleId');
-    
-    // Sets the the base score for the group.
-    function setBaseScore(uint256 newBaseScore, bytes32 secret)
-        external
-        onlyOwner
-        hasValidCommit(keccak256(abi.encodePacked(
-            'setBaseScore', newBaseScore, secret)))
-    {
-        baseScore = newBaseScore;
-        NewBaseScore(newBaseScore);
-    }
-
-    function deleteScoreBundleId(bytes32 scoreBundleId, bytes32 secret) 
-        external 
-        onlyOwner
-        hasValidCommit(keccak256(abi.encodePacked(
-            'deleteScoreBundleId', scoreBundleId, secret)))
-    {
-        delete scoreBundleTimestamp[scoreBundleId];
-        ScoreBundleIdDeleted(scoreBundleId);
-    }
-
-    function withdrawFromPool(address recipient, uint256 amount, bytes32 secret) 
-        external 
-        onlyOwner
-        hasValidCommit(keccak256(abi.encodePacked(
-            'withdrawFromPool', secret)))
         returns (uint256) 
     {
-        // event is triggered by DAI contract
-        return _withdrawAvailable(recipient, amount);
-    }
-
-    /*Changes that don't hurt bots rights*/
-
-    function increaseBaseScore(uint256 newBaseScore) external onlyOwner {
-        require(newBaseScore > baseScore, 
-            'To decrease score, make a commitment first');
-        baseScore = newBaseScore;
-        NewBaseScore(newBaseScore);
-    }
-
-    // Hashes are used for compatibility with Merkle pools.
-    function publishScoreBundleId(bytes32 newBundleId) external onlyOwner returns (uint256) {
         require(scoreBundleTimestamp[newBundleId] == 0, 
             'Score bundle id already exists');
         scoreBundleTimestamp[newBundleId] = now;
@@ -153,9 +74,50 @@ contract BundledScoresPool is Ownable {
         return now;
     }
 
-    function updateMetadata(string calldata newMetadata) external onlyOwner {
+    function updateMetadata(string calldata newMetadata) 
+        external 
+        onlyOwner 
+    {
         metaData = newMetadata;
         MetaDataUpdate(newMetadata);
+    }
+
+    // the functions below affect bot rights (group managers can fron-run an 
+    // exploding bot). For Merkle pool commit-reveal process is needed.
+    // No way to mitigate that with signed scores pool, thus no commit-reveal
+
+    function _setBaseScore(uint256 newBaseScore)
+        internal
+        onlyOwner
+    {
+        baseScore = newBaseScore;
+        NewBaseScore(newBaseScore);
+    }
+
+    function _deleteScoreBundleId(bytes32 scoreBundleId) 
+        internal 
+        onlyOwner
+    {
+        delete scoreBundleTimestamp[scoreBundleId];
+        ScoreBundleIdDeleted(scoreBundleId);
+    }
+
+    // tries to withdraw as much as possible 
+    // (bots can attack after an announcement)
+    function _withdrawFromPool(address receiver, uint256 amount) 
+        internal 
+        onlyOwner
+        returns (uint256 whitdrawnAmount) 
+    {   
+        uint256 balance = approvedToken.balanceOf(address(this));
+        if (balance >= amount) {
+            _withdraw(receiver, amount);
+            return amount;
+        } else {
+            _withdraw(receiver, balance);
+            return balance;
+        }
+        // event is triggered by DAI contract
     }
 
     /****
@@ -175,22 +137,6 @@ contract BundledScoresPool is Ownable {
         // UIP-6. Sustainability + mitigating withdrawals by explosion
         require(_withdraw(upala.treasury(), fee), 
             'Explosion fee transfer failed');
-    }
-
-    // tries to withdraw as much as possible 
-    // (bots can attack after an announcement)
-    function _withdrawAvailable(address receiver, uint256 amount) 
-        private 
-        returns (uint256 whitdrawnAmount) 
-    {
-        uint256 balance = approvedToken.balanceOf(address(this));
-        if (balance >= amount) {
-            _withdraw(receiver, amount);
-            return amount;
-        } else {
-            _withdraw(receiver, balance);
-            return balance;
-        }
     }
 
     function _withdraw(address recipient, uint256 amount) private returns (bool) {
@@ -305,6 +251,7 @@ contract BundledScoresPool is Ownable {
             "Not an owner or delegate."
             "Upala ID is exploded,"
             "or score bearing address is not associated with Upala ID");
+            // todo or Upala ID is not created yet (if we remove it from this contract)
 
         uint256 totalScore = baseScore.mul(score);
         require(_balanceIsAbove(totalScore),

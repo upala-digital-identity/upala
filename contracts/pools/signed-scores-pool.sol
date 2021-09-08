@@ -39,6 +39,26 @@ contract SignedScoresPool is BundledScoresPool {
         poolManager) 
     public {}
 
+    // Pool-specific score management
+    function setBaseScore(uint256 newBaseScore)
+        external
+    {
+        _setBaseScore(newBaseScore);
+    }
+
+    function deleteScoreBundleId(bytes32 scoreBundleId) 
+        external 
+    {
+        _deleteScoreBundleId(scoreBundleId);
+    }
+
+    function withdrawFromPool(address recipient, uint256 amount) 
+        external 
+        returns (uint256) 
+    {
+        _withdrawFromPool(recipient, amount);
+    }
+
     // Pool-specific way to validate that userID is in bundle
     // SignedScoresPool requires every score to be signed by pool manager
     // production todo security check (see ECDSA.sol, 
