@@ -57,7 +57,7 @@
     ]
   },
   "dependencies": {
-    "@openzeppelin/contracts-upgradeable": "^3.3.0",
+    "@openzeppelin/contracts-upgradeable": "^3.4.2",
     "@openzeppelin/upgrades": "^2.8.0"
   }
 }
