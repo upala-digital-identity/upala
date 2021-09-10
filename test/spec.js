@@ -1,12 +1,10 @@
 const { expect } = require('chai')
 const { BigNumber, utils } = require('ethers')
-const { setupProtocol, deployContract, setUpPoolFactoryAndPool } = require('../scripts/upala-admin.js');
+const { setupProtocol, deployContract, setUpPoolFactoryAndPool } = require('../scripts/upala-admin.js')
 
 let oneETH = BigNumber.from(10).pow(18)
 
-
 describe('BASE SCORE MANAGEMENT', function () {
-
   let attackWindow
   let executionWindow
   let hash
@@ -50,7 +48,6 @@ describe('BASE SCORE MANAGEMENT', function () {
       hash = utils.solidityKeccak256(['string', 'uint256', 'bytes32'], ['setBaseScore', newScore, secret])
       await upala.connect(manager1).commitHash(hash)
     })
-
   })
 })
 
@@ -66,7 +63,6 @@ describe('SCORE BUNDLES MANAGEMENT', function () {
     await upala.connect(manager1).publishRoot(someRoot)
     expect(await upala.roots(manager1Group, someRoot)).to.eq((await time.latest()).toString())
   })
-
 
   it('cannot publish commit before root', async function () {
     await upala.connect(manager1).commitHash(delRootCommitHash)
@@ -90,10 +86,8 @@ describe('SCORE BUNDLES MANAGEMENT', function () {
     await upala.connect(manager1).deleteRoot(someRoot, secret)
     expect(await upala.commitsTimestamps(manager1Group, delRootCommitHash)).to.eq(0)
     expect(await upala.roots(manager1Group, someRoot)).to.eq(0)
-
   })
 })
-
 
 describe('FUNDS MANAGEMENT', function () {
   // cannot withdraw without commitment
@@ -119,7 +113,6 @@ describe('MISC', function () {
   })
 })
 
-
 describe('VERIFYING OWN SCORE', function () {
   // todo setup protocol
 
@@ -127,10 +120,8 @@ describe('VERIFYING OWN SCORE', function () {
     //  function verifyMyScore (uint160 groupID, uint160 identityID, address holder, uint8 score, bytes32[] calldata proof) external {
   })
 
-  it('cannot approve scores from an arbitrary address', async function () { })
-
+  it('cannot approve scores from an arbitrary address', async function () {})
 })
-
 
 describe('EXPLOSIONS', function () {
   // todo setup protocol
@@ -144,35 +135,36 @@ describe('EXPLOSIONS', function () {
 
   before('register users', async () => {
     ;[upala, fakeDai, wallets] = await setupProtocol()
-      ;[upalaAdmin, manager1] = wallets.slice(0, 2)
-      ;[signedScoresPoolFactory, signedScoresPool] =
-        await setUpPoolFactoryAndPool(
-          upala, fakeDai, 'SignedScoresPoolFactory', upalaAdmin, manager1)
+    ;[upalaAdmin, manager1] = wallets.slice(0, 2)
+    ;[signedScoresPoolFactory, signedScoresPool] = await setUpPoolFactoryAndPool(
+      upala,
+      fakeDai,
+      'SignedScoresPoolFactory',
+      upalaAdmin,
+      manager1
+    )
   })
 
   it('you can explode, you can explode, you can explode, anyone can exploooooode', async function () {
     ///function attack(uint160 groupID, uint160 identityID, uint8 score, bytes32[] calldata proof)
 
-    /// hack 
+    /// hack
 
-    const TEST_MESSAGE = web3.utils.sha3('Human');
+    const TEST_MESSAGE = web3.utils.sha3('Human')
     // Create the signature
     // web3 adds "\x19Ethereum Signed Message:\n32" to the hashed message
-    const signature = await web3.eth.sign(TEST_MESSAGE, manager1.address);
+    const signature = await web3.eth.sign(TEST_MESSAGE, manager1.address)
 
     // Recover the signer address from the generated message and signature.
-    const recovered = await signedScoresPool.hack_recover(
-      TEST_MESSAGE,
-      signature,
-    )
-    expect(recovered).to.equal(manager1.address);
+    const recovered = await signedScoresPool.hack_recover(TEST_MESSAGE, signature)
+    expect(recovered).to.equal(manager1.address)
   })
 
-  it('cannot explode from an arbitrary address', async function () { })
+  it('cannot explode from an arbitrary address', async function () {})
 
-  it('cannot explode using delegate address', async function () { })
+  it('cannot explode using delegate address', async function () {})
 
-  it('Upala ID owner can explode (check fees and rewards)', async function () { })
+  it('Upala ID owner can explode (check fees and rewards)', async function () {})
 })
 
 describe('DAPPS VERIFYING SCORES', function () {
@@ -182,5 +174,5 @@ describe('DAPPS VERIFYING SCORES', function () {
     // function verifyUserScore (uint160 groupID, uint160 identityID, address holder, uint8 score, bytes32[] calldata proof) external {
   })
 
-  it('An address approved by Upala ID owner can approve scores to DApps', async function () { })
+  it('An address approved by Upala ID owner can approve scores to DApps', async function () {})
 })

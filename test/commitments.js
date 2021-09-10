@@ -1,5 +1,4 @@
 describe('COMMITMENTS', function () {
-
   it('a group can issue a commitment', async function () {
     const someHash = utils.formatBytes32String('First commitment!')
     await upala.connect(manager1).commitHash(someHash)

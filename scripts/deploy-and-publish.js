@@ -12,7 +12,6 @@ const exampleDappDir = '../example-app/packages/contracts/'
 const newPublishDir = '../scaffold-eth/rad-new-dapp/packages/contracts/'
 
 async function main() {
-
   const networkName = bre.network.name
 
   var finalContracts = {}
