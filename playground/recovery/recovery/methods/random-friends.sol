@@ -81,12 +81,12 @@ contract RandomFriend {
 	}
 
 	function setRoundExpirationTime()	{
-		roundExpirationTime = now + defaultRoundLength;
+		roundExpirationTime = block.timestamp + defaultRoundLength;
 	}
 
 	// anyone can add more veriviers if it takes too long. 
 	function addVerifiers() external {
-		if (roundExpirationTime < now) {
+		if (roundExpirationTime < block.timestamp) {
 			batchAddVerifiers(defaultVerifiersSetLength);
 		}
 	}

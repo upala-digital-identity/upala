@@ -1,4 +1,4 @@
-pragma solidity 0.6;
+pragma solidity ^0.8.0;
 
 interface IPool {
     function payBotReward(address, uint256) external returns (bool);

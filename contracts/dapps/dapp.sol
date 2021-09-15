@@ -1,4 +1,4 @@
-pragma solidity ^0.6.0;
+pragma solidity ^0.8.0;
 
 import "../protocol/upala.sol";
 // import "../pools/i-pool.sol"; // production todo create IPool

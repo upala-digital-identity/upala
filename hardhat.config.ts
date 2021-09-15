@@ -63,7 +63,14 @@ export default {
     },
   },
   solidity: {
-    version: '0.6.6',
+    compilers: [
+      {
+          version: "0.6.6"
+      },
+      {
+          version: "0.8.0"
+      }],
+    // version: '0.8.0',
     settings: {
       optimizer: {
         enabled: true,

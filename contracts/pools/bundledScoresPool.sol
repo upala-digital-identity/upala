@@ -1,8 +1,8 @@
-pragma solidity ^0.6.0;
+pragma solidity ^0.8.0;
 
-import '../libraries/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol';
-import '../libraries/openzeppelin-contracts/contracts/math/SafeMath.sol';
-import '../libraries/openzeppelin-contracts/contracts/access/Ownable.sol';
+import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
+import '@openzeppelin/contracts/utils/math/SafeMath.sol';
+import '@openzeppelin/contracts/access/Ownable.sol';
 import './i-pool.sol';
 import '../protocol/upala.sol';
 import 'hardhat/console.sol';
@@ -69,9 +69,9 @@ contract BundledScoresPool is Ownable {
     {
         require(scoreBundleTimestamp[newBundleId] == 0, 
             'Score bundle id already exists');
-        scoreBundleTimestamp[newBundleId] = now;
-        NewScoreBundleId(newBundleId, now);
-        return now;
+        scoreBundleTimestamp[newBundleId] = block.timestamp;
+        NewScoreBundleId(newBundleId, block.timestamp);
+        return block.timestamp;
     }
 
     function updateMetadata(string calldata newMetadata) 

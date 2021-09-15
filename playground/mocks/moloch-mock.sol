@@ -131,7 +131,7 @@ contract Moloch {
         dilutionBound = _dilutionBound;
         processingReward = _processingReward;
 
-        summoningTime = now;
+        summoningTime = block.timestamp;
 
         members[summoner] = Member(summoner, 1, true, 0);
         memberAddressByDelegateKey[summoner] = summoner;

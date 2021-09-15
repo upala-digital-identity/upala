@@ -1,7 +1,7 @@
-pragma solidity ^0.6.0;
+pragma solidity ^0.8.0;
 
 // import "./i-upala.sol";
-import "../libraries/openzeppelin-contracts/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "../pools/i-pool-factory.sol";
 import "../pools/i-pool.sol";
@@ -83,9 +83,11 @@ contract Upala is OwnableUpgradeable{
     function initialize () external {
         // todo (is this a good production practice?) 
         // https://forum.openzeppelin.com/t/how-to-use-ownable-with-upgradeable-contract/3336/4
-        __Context_init_unchained();
-        __Ownable_init_unchained();
+        // __Context_init_unchained();  // todo why it breaks? ask OZ
+        // __Ownable_init_unchained();  // ... with this line 
+        __Ownable_init();
         // defaults
+        console.log("sdfsdf");
         explosionFeePercent = 3;
         treasury = owner();
         attackWindow = 30 minutes;
@@ -107,8 +109,8 @@ contract Upala is OwnableUpgradeable{
             "Address is already an owner or delegate");
         // UpalaIDs are n non-deterministic. Cannot assign scores to Upala ID
         // before Upala ID is created. 
-        address newId = address(uint(keccak256(abi.encodePacked(
-            newIdentityOwner, now)))); // UIP-22.
+        address newId = address(uint160(uint256(keccak256(abi.encodePacked(
+            newIdentityOwner, block.timestamp))))); // UIP-22.
         identityOwner[newId] = newIdentityOwner;
         delegateToIdentity[newIdentityOwner] = newId;
         NewIdentity(newId, newIdentityOwner);

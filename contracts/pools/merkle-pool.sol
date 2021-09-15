@@ -1,4 +1,4 @@
-pragma solidity ^0.6.0;
+pragma solidity ^0.8.0;
 
 import 'contracts/pools/bundledScoresPool.sol';
 
@@ -68,7 +68,7 @@ contract MerklePool is BundledScoresPool {
         onlyOwner 
         returns (uint256 timestamp) 
     {
-        uint256 timestamp = now;
+        uint256 timestamp = block.timestamp;
         commitsTimestamps[hash] = timestamp;
         return timestamp;
     }
@@ -76,10 +76,10 @@ contract MerklePool is BundledScoresPool {
     modifier hasValidCommit(bytes32 hash) {
         require(commitsTimestamps[hash] != 0, 
             'No such commitment hash');
-        require(commitsTimestamps[hash] + upala.attackWindow() <= now, 
+        require(commitsTimestamps[hash] + upala.attackWindow() <= block.timestamp, 
             'Attack window is not closed yet');
         require(
-            commitsTimestamps[hash] + upala.attackWindow() + upala.executionWindow() >= now,
+            commitsTimestamps[hash] + upala.attackWindow() + upala.executionWindow() >= block.timestamp,
             'Execution window is already closed'
         );
         _;

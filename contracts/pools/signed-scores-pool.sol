@@ -1,7 +1,7 @@
-pragma solidity ^0.6.0;
+pragma solidity ^0.8.0;
 
 import 'contracts/pools/bundledScoresPool.sol';
-import '../libraries/openzeppelin-contracts/contracts/cryptography/ECDSA.sol';
+import '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';
 
 // production todo create IPool
 contract SignedScoresPoolFactory {
