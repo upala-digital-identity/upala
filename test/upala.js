@@ -1,6 +1,5 @@
 const { expect } = require('chai')
 const { setupProtocol } = require('../scripts/upala-admin.js')
-const groupManager = require('@upala/group-manager')
 
 // TODO
 /*
@@ -13,7 +12,7 @@ const groupManager = require('@upala/group-manager')
 - ignore production todos
 */
 
-groupManager.hello(); 
+
 describe('PROTOCOL MANAGEMENT', function () {
   let upala
   let unusedFakeDai

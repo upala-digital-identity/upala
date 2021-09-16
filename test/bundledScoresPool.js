@@ -1,9 +1,43 @@
 const { expect } = require('chai')
 const { BigNumber, utils } = require('ethers')
 const { setupProtocol, deployContract, setUpPoolFactoryAndPool } = require('../scripts/upala-admin.js')
+const { Pool } = require('@upala/group-manager')
 
 let oneETH = BigNumber.from(10).pow(18)
 
+
+describe('GROUP MANAGER', function () {
+  let upala
+  let unusedFakeDai
+  let wallets
+
+  it('decrease base score', async function () {
+    console.log('before')
+    ;[upala, unusedFakeDai, wallets] = await setupProtocol()
+    ;[upalaAdmin, manager, nobody] = wallets
+    // console.log(upala)
+    // todo move to Upala manager
+    signedScoresPoolFactory = await deployContract('SignedScoresPoolFactory', upala.address, fakeDai.address)
+    await upala
+      .connect(upalaAdmin)
+      .approvePoolFactory(signedScoresPoolFactory.address, 'true')
+      .then((tx) => tx.wait())
+
+    // inititalizing pool manager
+    poolManagerArgs = {
+      wallet: manager,
+      overrides: {
+        poolFactory: signedScoresPoolFactory
+      }
+    }
+    console.log('poolpool')
+    const pool = Pool(poolManagerArgs)
+    await pool.deploy('asdfas')
+    await expect(1).to.be.equal(1)
+  })
+
+})
+/*
 describe('BASE SCORE MANAGEMENT', function () {
   let attackWindow
   let executionWindow
@@ -176,3 +210,4 @@ describe('DAPPS VERIFYING SCORES', function () {
 
   it('An address approved by Upala ID owner can approve scores to DApps', async function () {})
 })
+*/
