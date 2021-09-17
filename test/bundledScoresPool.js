@@ -1,7 +1,7 @@
 const { expect } = require('chai')
 const { BigNumber, utils } = require('ethers')
 const { setupProtocol, deployContract, setUpPoolFactoryAndPool } = require('../scripts/upala-admin.js')
-const { Pool } = require('@upala/group-manager')
+const Pool = require('@upala/group-manager')
 
 let oneETH = BigNumber.from(10).pow(18)
 
@@ -27,12 +27,16 @@ describe('GROUP MANAGER', function () {
     poolManagerArgs = {
       wallet: manager,
       overrides: {
-        poolFactory: signedScoresPoolFactory
+        poolFactory: signedScoresPoolFactory,
+        upala: upala
       }
     }
-    console.log('poolpool')
-    const pool = Pool(poolManagerArgs)
+    var pool = new Pool(poolManagerArgs)
     await pool.deploy('asdfas')
+    
+    
+    // const hash = events[0].args[0];
+
     await expect(1).to.be.equal(1)
   })
 

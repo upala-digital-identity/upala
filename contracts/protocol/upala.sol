@@ -192,7 +192,7 @@ contract Upala is OwnableUpgradeable{
     {
         // msg.sender is an approved pool factory address
         poolParent[newPool] = msg.sender;
-        NewPool(newPool, msg.sender);
+        emit NewPool(newPool, msg.sender);
         return true;
     }
 
