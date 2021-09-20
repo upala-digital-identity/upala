@@ -1,8 +1,8 @@
 const { expect } = require('chai')
 const { BigNumber, utils } = require('ethers')
-const { setupProtocol, deployContract, setUpPoolFactoryAndPool } = require('../scripts/upala-admin.js')
+const UpalaManager = require('../scripts/upala-admin.js')
 const Pool = require('@upala/group-manager')
-
+const poolAbi = require("../artifacts/contracts/pools/signed-scores-pool.sol/SignedScoresPool.json")
 let oneETH = BigNumber.from(10).pow(18)
 
 
@@ -12,27 +12,18 @@ describe('GROUP MANAGER', function () {
   let wallets
 
   it('decrease base score', async function () {
-    console.log('before')
-    ;[upala, unusedFakeDai, wallets] = await setupProtocol()
-    ;[upalaAdmin, manager, nobody] = wallets
-    // console.log(upala)
-    // todo move to Upala manager
-    signedScoresPoolFactory = await deployContract('SignedScoresPoolFactory', upala.address, fakeDai.address)
-    await upala
-      .connect(upalaAdmin)
-      .approvePoolFactory(signedScoresPoolFactory.address, 'true')
-      .then((tx) => tx.wait())
+    // initializing Upala manager
+    let upalaManager = new UpalaManager()
+    await upalaManager.setupProtocol()
+    ;[upalaAdmin, poolManagerWallet, nobody] = upalaManager.wallets
 
-    // inititalizing pool manager
-    poolManagerArgs = {
-      wallet: manager,
-      overrides: {
-        poolFactory: signedScoresPoolFactory,
-        upala: upala
-      }
-    }
-    var pool = new Pool(poolManagerArgs)
-    await pool.deploy('asdfas')
+    // inititalizing pool poolManagerWallet
+    var pool = new Pool({
+      upalaManager: upalaManager,
+      wallet: poolManagerWallet,
+      poolAbi: poolAbi.abi
+    })
+    await pool.deploy('SignedScoresPoolFactory')
     
     
     // const hash = events[0].args[0];
