@@ -3,6 +3,7 @@
 
 const { BigNumber, utils } = require('ethers')
 const { upgrades } = require('hardhat')
+const FormatTypes = ethers.utils.FormatTypes;
 
 let oneETH = BigNumber.from(10).pow(18)
 let fakeUBI = oneETH.mul(100)
@@ -24,10 +25,30 @@ class UpalaManager {
     this.upala = await this._deployUpala()
     // todo production: introduce other options for pool factory types
     this.poolFactory = await this._setUpPoolFactory('SignedScoresPoolFactory', this.upala, this.fakeDai)
+    await this.exportUpalaConstants()
+  }
+
+  async exportUpalaConstants() {
+    console.log(await this.wallets[0].getChainId())
+
+    let abis = {
+      'Upala': this.upala.interface.format(FormatTypes.json),
+      'Dai': this.fakeDai.interface.format(FormatTypes.json),
+      'SignedScoresPoolFactory': this.poolFactory.interface.format(FormatTypes.json),
+      'SignedScoresPool': this.poolFactory.interface.format(FormatTypes.json),
+    }
+    let addresses = {
+      'Upala': this.upala.address,
+      'Dai': this.fakeDai.address,
+      'SignedScoresPoolFactory': this.poolFactory.address,
+    }
+    // console.log(abis.Dai)
+    console.log(addresses)
   }
   
   async _setupWallets() {
     let wallets = await ethers.getSigners()
+    
     // fake DAI giveaway
     wallets.map(async (wallet, ix) => {
       if (ix <= 10) {
@@ -61,5 +82,20 @@ class UpalaManager {
     return this.poolFactory
   }
 }
+
+// this function is used for testing
+async function main() {
+  
+  console.log("Run Forest!")
+  let upalaManager = new UpalaManager()
+  await upalaManager.setupProtocol()
+}
+
+main()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error(error)
+    process.exit(1)
+  })
 
 module.exports = UpalaManager
