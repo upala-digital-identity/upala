@@ -3,7 +3,7 @@
 
 const { BigNumber, utils } = require('ethers')
 const { upgrades } = require('hardhat')
-const FormatTypes = ethers.utils.FormatTypes;
+const FormatTypes = ethers.utils.FormatTypes
 
 let oneETH = BigNumber.from(10).pow(18)
 let fakeUBI = oneETH.mul(100)
@@ -15,9 +15,7 @@ async function deployContract(contractName, ...args) {
 }
 
 class UpalaManager {
-
-  constructor(initArgs) {
-  }
+  constructor(initArgs) {}
 
   async setupProtocol() {
     this.fakeDai = await deployContract('FakeDai')
@@ -32,23 +30,23 @@ class UpalaManager {
     console.log(await this.wallets[0].getChainId())
 
     let abis = {
-      'Upala': this.upala.interface.format(FormatTypes.json),
-      'Dai': this.fakeDai.interface.format(FormatTypes.json),
-      'SignedScoresPoolFactory': this.poolFactory.interface.format(FormatTypes.json),
-      'SignedScoresPool': this.poolFactory.interface.format(FormatTypes.json),
+      Upala: this.upala.interface.format(FormatTypes.json),
+      Dai: this.fakeDai.interface.format(FormatTypes.json),
+      SignedScoresPoolFactory: this.poolFactory.interface.format(FormatTypes.json),
+      SignedScoresPool: this.poolFactory.interface.format(FormatTypes.json),
     }
     let addresses = {
-      'Upala': this.upala.address,
-      'Dai': this.fakeDai.address,
-      'SignedScoresPoolFactory': this.poolFactory.address,
+      Upala: this.upala.address,
+      Dai: this.fakeDai.address,
+      SignedScoresPoolFactory: this.poolFactory.address,
     }
     // console.log(abis.Dai)
     console.log(addresses)
   }
-  
+
   async _setupWallets() {
     let wallets = await ethers.getSigners()
-    
+
     // fake DAI giveaway
     wallets.map(async (wallet, ix) => {
       if (ix <= 10) {
@@ -58,23 +56,22 @@ class UpalaManager {
     return wallets
   }
 
-
   async _deployUpala() {
-      // deploy upgradable upala
-      const Upala = await ethers.getContractFactory('Upala')
-      let upala = await upgrades.deployProxy(Upala)
-      await upala.deployed()
-      return upala
+    // deploy upgradable upala
+    const Upala = await ethers.getContractFactory('Upala')
+    let upala = await upgrades.deployProxy(Upala)
+    await upala.deployed()
+    return upala
   }
 
   async _setUpPoolFactory(poolType, upalaContract, tokenContract) {
-      // deploy Pool factory and approve in Upala
-      let poolFactory = await deployContract(poolType, upalaContract.address, tokenContract.address)
-      await upalaContract
-        // .connect(upalaAdmin)
-        .approvePoolFactory(poolFactory.address, 'true')
-        .then((tx) => tx.wait())
-      return poolFactory
+    // deploy Pool factory and approve in Upala
+    let poolFactory = await deployContract(poolType, upalaContract.address, tokenContract.address)
+    await upalaContract
+      // .connect(upalaAdmin)
+      .approvePoolFactory(poolFactory.address, 'true')
+      .then((tx) => tx.wait())
+    return poolFactory
   }
 
   // todo now returns only 'SignedScoresPoolFactory'
@@ -85,8 +82,7 @@ class UpalaManager {
 
 // this function is used for testing
 async function main() {
-  
-  console.log("Run Forest!")
+  console.log('Run Forest!')
   let upalaManager = new UpalaManager()
   await upalaManager.setupProtocol()
 }

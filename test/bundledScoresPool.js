@@ -2,9 +2,8 @@ const { expect } = require('chai')
 const { BigNumber, utils } = require('ethers')
 const UpalaManager = require('../scripts/upala-admin.js')
 const Pool = require('@upala/group-manager')
-const poolAbi = require("../artifacts/contracts/pools/signed-scores-pool.sol/SignedScoresPool.json")
+const poolAbi = require('../artifacts/contracts/pools/signed-scores-pool.sol/SignedScoresPool.json')
 let oneETH = BigNumber.from(10).pow(18)
-
 
 describe('GROUP MANAGER', function () {
   let upala
@@ -21,16 +20,14 @@ describe('GROUP MANAGER', function () {
     var pool = new Pool({
       upalaManager: upalaManager,
       wallet: poolManagerWallet,
-      poolAbi: poolAbi.abi
+      poolAbi: poolAbi.abi,
     })
     await pool.deploy('SignedScoresPoolFactory')
-    
-    
+
     // const hash = events[0].args[0];
 
     await expect(1).to.be.equal(1)
   })
-
 })
 /*
 describe('BASE SCORE MANAGEMENT', function () {
