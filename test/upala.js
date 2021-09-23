@@ -12,16 +12,14 @@ const { setupProtocol } = require('../scripts/upala-admin.js')
 - ignore production todos
 */
 
-
 describe('PROTOCOL MANAGEMENT', function () {
   let upala
   let unusedFakeDai
   let wallets
-  
+
   before('setup protocol', async () => {
     ;[upala, unusedFakeDai, wallets] = await setupProtocol()
     ;[upalaAdmin, nobody] = wallets
-  
   })
 
   it('owner can set attack window', async function () {
@@ -30,8 +28,8 @@ describe('PROTOCOL MANAGEMENT', function () {
     await expect(upala.connect(nobody).setAttackWindow(newAttackWindow)).to.be.revertedWith(
       'Ownable: caller is not the owner'
     )
-    console.log("upalaAdmin", upalaAdmin.address)
-    console.log("upala.owner()", await upala.owner())
+    console.log('upalaAdmin', upalaAdmin.address)
+    console.log('upala.owner()', await upala.owner())
     await upala.connect(upalaAdmin).setAttackWindow(newAttackWindow)
     expect(await upala.attackWindow()).to.be.eq(newAttackWindow)
   })
