@@ -39,8 +39,8 @@ class UpalaManager {
     }
     let savedAbis = upalaConstants.getAbis()
     if (!_.isEqual(savedAbis, abis)) {
-      console.log(chalk.red("\n\n\nWarning ABIs changed.\n\n\n"))
-      fs.writeFileSync(upalaConstants.getAbisFilePath(), JSON.stringify(abis));
+      console.log(chalk.red('\n\n\nWarning ABIs changed.\n\n\n'))
+      fs.writeFileSync(upalaConstants.getAbisFilePath(), JSON.stringify(abis))
     }
 
     // Export addresses
@@ -50,12 +50,10 @@ class UpalaManager {
       SignedScoresPoolFactory: this.poolFactory.address,
     }
     let chainID = await this.wallets[0].getChainId()
-    let savedAddresses = upalaConstants.getAddresses({chainID: chainID})
+    let savedAddresses = upalaConstants.getAddresses({ chainID: chainID })
     if (!_.isEqual(savedAddresses, addresses) && chainID != 31337) {
-      fs.writeFileSync(upalaConstants.getAddressesFilePath({chainID: chainID}), JSON.stringify(addresses));
-      console.log(
-        'Wrote addresses to:', 
-        chalk.green(upalaConstants.getAddressesFilePath({chainID: chainID})))
+      fs.writeFileSync(upalaConstants.getAddressesFilePath({ chainID: chainID }), JSON.stringify(addresses))
+      console.log('Wrote addresses to:', chalk.green(upalaConstants.getAddressesFilePath({ chainID: chainID })))
     }
   }
 
