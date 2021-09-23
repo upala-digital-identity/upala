@@ -1,11 +1,12 @@
 // all upala admin functions go here - both for testing and production
 // other scripts (like deploy-to-rinkeby or similar) will use this lib
-
+const upalaConstants = require('upala-constants')
 const { BigNumber, utils } = require('ethers')
 const { upgrades } = require('hardhat')
 const FormatTypes = ethers.utils.FormatTypes
 const fs = require('fs')
 const _ = require('lodash')
+const chalk = require('chalk')
 
 let oneETH = BigNumber.from(10).pow(18)
 let fakeUBI = oneETH.mul(100)
@@ -29,39 +30,32 @@ class UpalaManager {
   }
 
   async exportUpalaConstants() {
+    // Export ABIs
     let abis = {
       Upala: this.upala.interface.format(FormatTypes.json),
       Dai: this.fakeDai.interface.format(FormatTypes.json),
       SignedScoresPoolFactory: this.poolFactory.interface.format(FormatTypes.json),
-      SignedScoresPool: this.poolFactory.interface.format(FormatTypes.json),
+      SignedScoresPool: (await artifacts.readArtifact('SignedScoresPool')).abi,
     }
+    let savedAbis = upalaConstants.getAbis()
+    if (!_.isEqual(savedAbis, abis)) {
+      console.log(chalk.red("\n\n\nWarning ABIs changed.\n\n\n"))
+      fs.writeFileSync(upalaConstants.getAbisFilePath(), JSON.stringify(abis));
+    }
+
+    // Export addresses
     let addresses = {
       Upala: this.upala.address,
       Dai: this.fakeDai.address,
       SignedScoresPoolFactory: this.poolFactory.address,
     }
-
-    //https://stackabuse.com/reading-and-writing-json-files-with-node-js/
-
-    console.log(await this.wallets[0].getChainId())
-
-    // upalaConstants.getAbis({chainID: chainID})
-    let rawAbis = fs.readFileSync('abis.json')
-    let savedAbis = JSON.parse(rawAbis)
-    if (!_.isEqual(savedAbis, abis)) {
-      console.log("Warning ABIs changed. New abis saved to abis_new.json \
-      just replace the old one if that's ok")
-      // let data = JSON.stringify(abis);
-      // fs.writeFileSync('abis.json', data);
-    }
-
-    // upalaConstants.getAddresses({chainID: chainID})
-    let rawAddresses = fs.readFileSync('addresses.json')
-    let savedAddresses = JSON.parse(rawAddresses)
-    if (!_.isEqual(savedAddresses, addresses)) {
-      console.log('Writing new addresses')
-      // let data = JSON.stringify(addresses);
-      // fs.writeFileSync('addresses.json', data);
+    let chainID = await this.wallets[0].getChainId()
+    let savedAddresses = upalaConstants.getAddresses({chainID: chainID})
+    if (!_.isEqual(savedAddresses, addresses) && chainID != 31337) {
+      fs.writeFileSync(upalaConstants.getAddressesFilePath({chainID: chainID}), JSON.stringify(addresses));
+      console.log(
+        'Wrote addresses to:', 
+        chalk.green(upalaConstants.getAddressesFilePath({chainID: chainID})))
     }
   }
 
@@ -103,7 +97,6 @@ class UpalaManager {
 
 // this function is used for testing
 async function main() {
-  console.log('Run Forest!')
   let upalaManager = new UpalaManager()
   await upalaManager.setupProtocol()
 }
