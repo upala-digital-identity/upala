@@ -3,9 +3,9 @@
 
 const { BigNumber, utils } = require('ethers')
 const { upgrades } = require('hardhat')
-const FormatTypes = ethers.utils.FormatTypes;
-const fs = require('fs');
-const _ = require('lodash');
+const FormatTypes = ethers.utils.FormatTypes
+const fs = require('fs')
+const _ = require('lodash')
 
 let oneETH = BigNumber.from(10).pow(18)
 let fakeUBI = oneETH.mul(100)
@@ -15,7 +15,6 @@ async function deployContract(contractName, ...args) {
   await contractInstance.deployed()
   return contractInstance
 }
-
 
 class UpalaManager {
   constructor(initArgs) {}
@@ -30,8 +29,6 @@ class UpalaManager {
   }
 
   async exportUpalaConstants() {
-    
-
     let abis = {
       Upala: this.upala.interface.format(FormatTypes.json),
       Dai: this.fakeDai.interface.format(FormatTypes.json),
@@ -49,20 +46,20 @@ class UpalaManager {
     console.log(await this.wallets[0].getChainId())
 
     // upalaConstants.getAbis({chainID: chainID})
-    let rawAbis = fs.readFileSync('abis.json');
-    let savedAbis = JSON.parse(rawAbis);
+    let rawAbis = fs.readFileSync('abis.json')
+    let savedAbis = JSON.parse(rawAbis)
     if (!_.isEqual(savedAbis, abis)) {
       console.log("Warning ABIs changed. New abis saved to abis_new.json \
       just replace the old one if that's ok")
       // let data = JSON.stringify(abis);
       // fs.writeFileSync('abis.json', data);
     }
-    
+
     // upalaConstants.getAddresses({chainID: chainID})
-    let rawAddresses = fs.readFileSync('addresses.json');
-    let savedAddresses = JSON.parse(rawAddresses);
+    let rawAddresses = fs.readFileSync('addresses.json')
+    let savedAddresses = JSON.parse(rawAddresses)
     if (!_.isEqual(savedAddresses, addresses)) {
-      console.log("Writing new addresses")
+      console.log('Writing new addresses')
       // let data = JSON.stringify(addresses);
       // fs.writeFileSync('addresses.json', data);
     }
