@@ -34,8 +34,8 @@ class UpalaManager {
     let abis = await this.getAbis()
     let savedAbis = upalaConstants.getAbis()
     if (!_.isEqual(savedAbis, abis)) {
-      console.log(chalk.red("\n\n\nWarning ABIs changed.\n\n\n"))
-      fs.writeFileSync(upalaConstants.getAbisFilePath(), JSON.stringify(abis));
+      console.log(chalk.red('\n\n\nWarning ABIs changed.\n\n\n'))
+      fs.writeFileSync(upalaConstants.getAbisFilePath(), JSON.stringify(abis))
     }
     // Export addresses
     let addresses = this.getAddresses()
