@@ -41,15 +41,13 @@ class UpalaManager {
     let addresses = this.getAddresses()
     let chainID = await this.wallets[0].getChainId()
     console.log('chainID:', chainID)
-    let savedAddresses = upalaConstants.getAddresses({chainID: chainID})
+    let savedAddresses = upalaConstants.getAddresses({ chainID: chainID })
     if (!_.isEqual(savedAddresses, addresses) && this.writeAddresses) {
-      fs.writeFileSync(upalaConstants.getAddressesFilePath({chainID: chainID}), JSON.stringify(addresses));
-      console.log(
-        'Wrote addresses to:', 
-        chalk.green(upalaConstants.getAddressesFilePath({chainID: chainID})))
+      fs.writeFileSync(upalaConstants.getAddressesFilePath({ chainID: chainID }), JSON.stringify(addresses))
+      console.log('Wrote addresses to:', chalk.green(upalaConstants.getAddressesFilePath({ chainID: chainID })))
     }
   }
-  
+
   async getAbis() {
     return {
       Upala: this.upala.interface.format(FormatTypes.json),
@@ -96,12 +94,10 @@ class UpalaManager {
       .then((tx) => tx.wait())
     return poolFactory
   }
-
 }
 
-
 async function main() {
-  let upalaManager = new UpalaManager({writeAddresses: true})
+  let upalaManager = new UpalaManager({ writeAddresses: true })
   await upalaManager.setupProtocol()
 }
 
