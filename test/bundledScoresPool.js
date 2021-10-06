@@ -1,10 +1,10 @@
 const { expect } = require('chai')
 const { BigNumber, utils } = require('ethers')
 const UpalaManager = require('../scripts/upala-admin.js')
-const Pool = require('@upala/group-manager')
+const PoolManager = require('@upala/group-manager')
 const poolAbi = require('../artifacts/contracts/pools/signed-scores-pool.sol/SignedScoresPool.json')
 let oneETH = BigNumber.from(10).pow(18)
-
+console.log("GROUP")
 describe('GROUP MANAGER', function () {
   let upala
   let unusedFakeDai
@@ -17,16 +17,15 @@ describe('GROUP MANAGER', function () {
     ;[upalaAdmin, poolManagerWallet, nobody] = upalaManager.wallets
 
     // inititalizing pool poolManagerWallet
-    var pool = new Pool({
-      upalaManager: upalaManager,
+    var poolManager = new PoolManager({
       wallet: poolManagerWallet,
-      poolAbi: poolAbi.abi,
+      overrideAddresses: upalaManager.getAddresses()
     })
-    await pool.deploy('SignedScoresPoolFactory')
-
+    console.log("decrease")
+    console.log(await poolManager.deployPool('SignedScoresPool'))
     // const hash = events[0].args[0];
 
-    await expect(1).to.be.equal(1)
+    expect(1).to.be.equal(2)
   })
 })
 /*

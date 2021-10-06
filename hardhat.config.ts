@@ -1,13 +1,13 @@
 import { task } from 'hardhat/config'
 import '@nomiclabs/hardhat-waffle'
-// require("@nomiclabs/hardhat-waffle");
 import '@nomiclabs/hardhat-truffle5'
 import '@openzeppelin/hardhat-upgrades'
 import '@nomiclabs/hardhat-web3'
+// const os = require('os');
 
 // This is a sample Buidler task. To learn how to create your own go to
 // https://buidler.dev/guides/create-task.html
-task('accounts', 'Prints the list of accounts', async (args, hre) => {
+task("accounts", "Prints the list of accounts", async (args, hre) => {
   const accounts = await hre.ethers.getSigners()
 
   for (const account of accounts) {
@@ -20,6 +20,8 @@ task('accounts', 'Prints the list of accounts', async (args, hre) => {
 // defaultNetwork, networks, solc, and paths.
 // Go to https://buidler.dev/config/ to learn more
 const secrets = require('./secrets.js')
+// const secrets = require(os.homedir() + "/gocrypt/dev/ah-token/Ah-mnemonic.js");
+// const gateway = require(os.homedir() + "/gocrypt/dev/ah-token/gateway.js");
 
 export default {
   defaultNetwork: 'localhost',

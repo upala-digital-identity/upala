@@ -8,8 +8,6 @@ const fs = require('fs')
 const _ = require('lodash')
 const chalk = require('chalk')
 
-let oneETH = BigNumber.from(10).pow(18)
-let fakeUBI = oneETH.mul(100)
 async function deployContract(contractName, ...args) {
   const contractFactory = await ethers.getContractFactory(contractName)
   const contractInstance = await contractFactory.deploy(...args)
@@ -18,7 +16,9 @@ async function deployContract(contractName, ...args) {
 }
 
 class UpalaManager {
-  constructor(initArgs) {}
+  constructor(args) {
+    this.writeAddresses = args.writeAddresses // if true will write addresses to upala constants
+  }
 
   async setupProtocol() {
     this.fakeDai = await deployContract('FakeDai')
@@ -31,31 +31,39 @@ class UpalaManager {
 
   async exportUpalaConstants() {
     // Export ABIs
-    let abis = {
-      Upala: this.upala.interface.format(FormatTypes.json),
-      Dai: this.fakeDai.interface.format(FormatTypes.json),
-      SignedScoresPoolFactory: this.poolFactory.interface.format(FormatTypes.json),
-      SignedScoresPool: (await artifacts.readArtifact('SignedScoresPool')).abi,
-    }
+    let abis = await this.getAbis()
     let savedAbis = upalaConstants.getAbis()
     if (!_.isEqual(savedAbis, abis)) {
       console.log(chalk.red("\n\n\nWarning ABIs changed.\n\n\n"))
       fs.writeFileSync(upalaConstants.getAbisFilePath(), JSON.stringify(abis));
     }
-
     // Export addresses
-    let addresses = {
-      Upala: this.upala.address,
-      Dai: this.fakeDai.address,
-      SignedScoresPoolFactory: this.poolFactory.address,
-    }
+    let addresses = this.getAddresses()
     let chainID = await this.wallets[0].getChainId()
+    console.log('chainID:', chainID)
     let savedAddresses = upalaConstants.getAddresses({chainID: chainID})
-    if (!_.isEqual(savedAddresses, addresses) && chainID != 31337) {
+    if (!_.isEqual(savedAddresses, addresses) && this.writeAddresses) {
       fs.writeFileSync(upalaConstants.getAddressesFilePath({chainID: chainID}), JSON.stringify(addresses));
       console.log(
         'Wrote addresses to:', 
         chalk.green(upalaConstants.getAddressesFilePath({chainID: chainID})))
+    }
+  }
+  
+  async getAbis() {
+    return {
+      Upala: this.upala.interface.format(FormatTypes.json),
+      Dai: this.fakeDai.interface.format(FormatTypes.json),
+      SignedScoresPoolFactory: this.poolFactory.interface.format(FormatTypes.json),
+      SignedScoresPool: (await artifacts.readArtifact('SignedScoresPool')).abi,
+    }
+  }
+
+  getAddresses() {
+    return {
+      Upala: this.upala.address,
+      Dai: this.fakeDai.address,
+      SignedScoresPoolFactory: this.poolFactory.address,
     }
   }
 
@@ -65,7 +73,7 @@ class UpalaManager {
     // fake DAI giveaway
     wallets.map(async (wallet, ix) => {
       if (ix <= 10) {
-        await this.fakeDai.freeDaiToTheWorld(wallet.address, fakeUBI)
+        await this.fakeDai.freeDaiToTheWorld(wallet.address, BigNumber.from(1000).pow(18))
       }
     })
     return wallets
@@ -89,15 +97,11 @@ class UpalaManager {
     return poolFactory
   }
 
-  // todo now returns only 'SignedScoresPoolFactory'
-  getPoolFactory(factoryType) {
-    return this.poolFactory
-  }
 }
 
-// this function is used for testing
+
 async function main() {
-  let upalaManager = new UpalaManager()
+  let upalaManager = new UpalaManager({writeAddresses: true})
   await upalaManager.setupProtocol()
 }
 
