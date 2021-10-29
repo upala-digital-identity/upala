@@ -1,6 +1,6 @@
 // all upala admin functions go here - both for testing and production
 // other scripts (like deploy-to-rinkeby or similar) will use this lib
-const upalaConstants = require('upala-constants')
+const upalaConstants = require('@upala/constants')
 const { BigNumber, utils } = require('ethers')
 const { upgrades } = require('hardhat')
 const FormatTypes = ethers.utils.FormatTypes
@@ -16,88 +16,111 @@ async function deployContract(contractName, ...args) {
 }
 
 class UpalaManager {
-  constructor(args) {
-    this.writeAddresses = args.writeAddresses // if true will write addresses to upala constants
-  }
-
-  async setupProtocol() {
-    this.fakeDai = await deployContract('FakeDai')
-    this.wallets = await this._setupWallets()
-    this.upala = await this._deployUpala()
-    // todo production: introduce other options for pool factory types
-    this.poolFactory = await this._setUpPoolFactory('SignedScoresPoolFactory', this.upala, this.fakeDai)
-    await this.exportUpalaConstants()
-  }
-
-  async exportUpalaConstants() {
-    // Export ABIs
-    let abis = await this.getAbis()
-    let savedAbis = upalaConstants.getAbis()
-    if (!_.isEqual(savedAbis, abis)) {
-      console.log(chalk.red('\n\n\nWarning ABIs changed.\n\n\n'))
-      fs.writeFileSync(upalaConstants.getAbisFilePath(), JSON.stringify(abis))
+  // todo add chainID as parameter - would simplify a lot
+  // will move contract initialization and upala constants to constructor
+  constructor(adminWallet, overrides) {  
+    this.adminWallet = adminWallet
+    if (overrides && overrides.upalaConstants) {
+      this.upalaConstants = upalaConstants
     }
-    // Export addresses
-    let addresses = this.getAddresses()
-    let chainID = await this.wallets[0].getChainId()
-    console.log('chainID:', chainID)
-    let savedAddresses = upalaConstants.getAddresses({ chainID: chainID })
-    if (!_.isEqual(savedAddresses, addresses) && this.writeAddresses) {
-      fs.writeFileSync(upalaConstants.getAddressesFilePath({ chainID: chainID }), JSON.stringify(addresses))
-      console.log('Wrote addresses to:', chalk.green(upalaConstants.getAddressesFilePath({ chainID: chainID })))
+  }
+  
+  async getChainID() {
+    if (!this.chainID) { 
+      this.chainID = await this.adminWallet.getChainId()
+    }
+    return this.chainID
+  }
+
+  async getUpalaConstants() {
+    if (!this.upalaConstants) { 
+      this.upalaConstants = new UpalaConstants(await this.getChainID())
     }
   }
 
-  async getAbis() {
-    return {
-      Upala: this.upala.interface.format(FormatTypes.json),
-      Dai: this.fakeDai.interface.format(FormatTypes.json),
-      SignedScoresPoolFactory: this.poolFactory.interface.format(FormatTypes.json),
-      SignedScoresPool: (await artifacts.readArtifact('SignedScoresPool')).abi,
+  async getUpalaContract() {
+    if (!this.upalaContract) {
+      this.upalaContract = upConsts.getContract("Upala", this.adminWallet)
     }
+    return this.upalaContract
   }
 
-  getAddresses() {
-    return {
-      Upala: this.upala.address,
-      Dai: this.fakeDai.address,
-      SignedScoresPoolFactory: this.poolFactory.address,
-    }
-  }
-
-  async _setupWallets() {
-    let wallets = await ethers.getSigners()
-
-    // fake DAI giveaway
-    wallets.map(async (wallet, ix) => {
-      if (ix <= 10) {
-        await this.fakeDai.freeDaiToTheWorld(wallet.address, BigNumber.from(1000).pow(18))
-      }
-    })
-    return wallets
-  }
-
-  async _deployUpala() {
-    // deploy upgradable upala
-    const Upala = await ethers.getContractFactory('Upala')
-    let upala = await upgrades.deployProxy(Upala)
-    await upala.deployed()
-    return upala
-  }
-
-  async _setUpPoolFactory(poolType, upalaContract, tokenContract) {
-    // deploy Pool factory and approve in Upala
-    let poolFactory = await deployContract(poolType, upalaContract.address, tokenContract.address)
+  // deploy Pool factory and approve in Upala
+  async setUpPoolFactory(poolType) {
+    const upConsts = this.getUpalaConstants()
+    const upalaContract = this.getUpalaContract()
+    let poolFactory = await deployContract(poolType, upalaContract.address, upConsts.getAddress("DAI"))
     await upalaContract
-      // .connect(upalaAdmin)
       .approvePoolFactory(poolFactory.address, 'true')
       .then((tx) => tx.wait())
     return poolFactory
   }
 }
 
+
+/***************
+TEST ENVIRONMENT 
+****************/
+
+// TODO should live somewhere separate
+async function _setupWallets(fakeDai) {
+  let wallets = await ethers.getSigners()
+
+  // fake DAI giveaway
+  wallets.map(async (wallet, ix) => {
+    if (ix <= 10) {
+      await fakeDai.freeDaiToTheWorld(wallet.address, BigNumber.from(1000).pow(18))
+    }
+  })
+  return wallets
+}
+
+// deploy setupTestEnvironment
+async function setupProtocol(isSavingConstants) {
+  // depoly Upala
+  this.fakeDai = await deployContract('FakeDai')
+  this.wallets = await this._setupWallets()
+  const adminWallet = this.wallets[0]
+  this.upala = await this._deployUpgradableUpala()
+  const upalaConstants = new UpalaConstants(chainID, { loadFromDisk: false })
+  upalaConstants.addContract('Upala', upala)
+  upalaConstants.addContract('DAI', fakeDai)
+
+  // managing - adding new Pool Factory (...prototyping production flow)
+  const upalaManager = new UpalaManager(adminWallet, {upalaConstants: upalaConstants})
+  this.poolFactory = await upalaManager.setUpPoolFactory('SignedScoresPoolFactory')
+  upalaConstants.addContract('SignedScoresPoolFactory'. poolFactory)
+  upalaConstants.addABI('SignedScoresPool', (await artifacts.readArtifact('SignedScoresPool')).abi)
+
+  // save Upala constants if needed (...prototyping production flow)
+  if (isSavingConstants) {
+    upalaConstants.save()
+  }
+  return 1 // return all contracts and wallets
+}
+
+/*********
+PRODUCTION
+**********/
+
+// prototyping production deployment sequence...
+async function productionDeployment(wallet) {
+  // try 
+  const dai = attachToRealDai()
+  const adminWallet = wallet
+  const upala = await _deployUpgradableUpala()
+  // <<-- deploy poolFactory 
+  const poolFactory = await setUpPoolFactory('SignedScoresPoolFactory', upala, fakeDai)
+  //save constants
+  // catch
+  // finally 
+    // updateUpalaConstants
+    // store status
+}
+
+
 async function main() {
-  let upalaManager = new UpalaManager({ writeAddresses: true })
+  let upalaManager = new UpalaTestEnvironment({ writeAddresses: true })
   await upalaManager.setupProtocol()
 }
 
@@ -108,4 +131,4 @@ main()
     process.exit(1)
   })
 
-module.exports = UpalaManager
+module.exports = UpalaTestEnvironment

@@ -1,7 +1,7 @@
 const { expect } = require('chai')
 const { BigNumber, utils } = require('ethers')
-const UpalaManager = require('../scripts/upala-admin.js')
-const PoolManager = require('@upala/group-manager')
+const UpalaTestEnvironment = require('../scripts/upala-admin.js')
+// const PoolManager = require('@upala/group-manager')
 const poolAbi = require('../artifacts/contracts/pools/signed-scores-pool.sol/SignedScoresPool.json')
 let oneETH = BigNumber.from(10).pow(18)
 console.log('GROUP')
@@ -12,17 +12,17 @@ describe('GROUP MANAGER', function () {
 
   it('decrease base score', async function () {
     // initializing Upala manager
-    let upalaManager = new UpalaManager()
+    let upalaManager = new UpalaTestEnvironment()
     await upalaManager.setupProtocol()
     ;[upalaAdmin, poolManagerWallet, nobody] = upalaManager.wallets
 
     // inititalizing pool poolManagerWallet
-    var poolManager = new PoolManager({
-      wallet: poolManagerWallet,
-      overrideAddresses: upalaManager.getAddresses(),
-    })
-    console.log('decrease')
-    console.log(await poolManager.deployPool('SignedScoresPool'))
+    // var poolManager = new PoolManager({
+    //   wallet: poolManagerWallet,
+    //   overrideAddresses: upalaManager.getAddresses(),
+    // })
+    // console.log('decrease')
+    // console.log(await poolManager.deployPool('SignedScoresPool'))
     // const hash = events[0].args[0];
 
     expect(1).to.be.equal(2)

@@ -19,7 +19,14 @@ task('accounts', 'Prints the list of accounts', async (args, hre) => {
 // This object can have the following optional entries:
 // defaultNetwork, networks, solc, and paths.
 // Go to https://buidler.dev/config/ to learn more
-const secrets = require('./secrets.js')
+// 
+let secrets = { mnemonic: "test" }
+try {
+  secrets = require('./secrets.js')
+} catch {
+  console.log("No secrets provided (local developement mode)")
+}
+
 // const secrets = require(os.homedir() + "/gocrypt/dev/ah-token/Ah-mnemonic.js");
 // const gateway = require(os.homedir() + "/gocrypt/dev/ah-token/gateway.js");
 
