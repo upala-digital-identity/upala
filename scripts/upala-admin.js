@@ -18,29 +18,29 @@ async function deployContract(contractName, ...args) {
 class UpalaManager {
   // todo add chainID as parameter - would simplify a lot
   // will move contract initialization and upala constants to constructor
-  constructor(adminWallet, overrides) {  
+  constructor(adminWallet, overrides) {
     this.adminWallet = adminWallet
     if (overrides && overrides.upalaConstants) {
       this.upalaConstants = upalaConstants
     }
   }
-  
+
   async getChainID() {
-    if (!this.chainID) { 
+    if (!this.chainID) {
       this.chainID = await this.adminWallet.getChainId()
     }
     return this.chainID
   }
 
   async getUpalaConstants() {
-    if (!this.upalaConstants) { 
+    if (!this.upalaConstants) {
       this.upalaConstants = new UpalaConstants(await this.getChainID())
     }
   }
 
   async getUpalaContract() {
     if (!this.upalaContract) {
-      this.upalaContract = upConsts.getContract("Upala", this.adminWallet)
+      this.upalaContract = upConsts.getContract('Upala', this.adminWallet)
     }
     return this.upalaContract
   }
@@ -49,14 +49,11 @@ class UpalaManager {
   async setUpPoolFactory(poolType) {
     const upConsts = this.getUpalaConstants()
     const upalaContract = this.getUpalaContract()
-    let poolFactory = await deployContract(poolType, upalaContract.address, upConsts.getAddress("DAI"))
-    await upalaContract
-      .approvePoolFactory(poolFactory.address, 'true')
-      .then((tx) => tx.wait())
+    let poolFactory = await deployContract(poolType, upalaContract.address, upConsts.getAddress('DAI'))
+    await upalaContract.approvePoolFactory(poolFactory.address, 'true').then((tx) => tx.wait())
     return poolFactory
   }
 }
-
 
 /***************
 TEST ENVIRONMENT 
@@ -87,9 +84,9 @@ async function setupProtocol(isSavingConstants) {
   upalaConstants.addContract('DAI', fakeDai)
 
   // managing - adding new Pool Factory (...prototyping production flow)
-  const upalaManager = new UpalaManager(adminWallet, {upalaConstants: upalaConstants})
+  const upalaManager = new UpalaManager(adminWallet, { upalaConstants: upalaConstants })
   this.poolFactory = await upalaManager.setUpPoolFactory('SignedScoresPoolFactory')
-  upalaConstants.addContract('SignedScoresPoolFactory'. poolFactory)
+  upalaConstants.addContract('SignedScoresPoolFactory'.poolFactory)
   upalaConstants.addABI('SignedScoresPool', (await artifacts.readArtifact('SignedScoresPool')).abi)
 
   // save Upala constants if needed (...prototyping production flow)
@@ -105,19 +102,18 @@ PRODUCTION
 
 // prototyping production deployment sequence...
 async function productionDeployment(wallet) {
-  // try 
+  // try
   const dai = attachToRealDai()
   const adminWallet = wallet
   const upala = await _deployUpgradableUpala()
-  // <<-- deploy poolFactory 
+  // <<-- deploy poolFactory
   const poolFactory = await setUpPoolFactory('SignedScoresPoolFactory', upala, fakeDai)
   //save constants
   // catch
-  // finally 
-    // updateUpalaConstants
-    // store status
+  // finally
+  // updateUpalaConstants
+  // store status
 }
-
 
 async function main() {
   let upalaManager = new UpalaTestEnvironment({ writeAddresses: true })
