@@ -36,14 +36,14 @@ class UpalaManager {
   }
   // async initialize
   async getChainID() {
-    if (!this.chainID) { 
+    if (!this.chainID) {
       this.chainID = await this.adminWallet.getChainId()
     }
     return this.chainID
   }
 
   async getUpalaConstants() {
-    if (!this.upalaConstants) { 
+    if (!this.upalaConstants) {
       this.upalaConstants = new UpalaConstants(await this.getChainID())
     }
     return this.upalaConstants
@@ -119,19 +119,18 @@ PRODUCTION
 
 // prototyping production deployment sequence...
 async function productionDeployment(wallet) {
-  // try 
+  // try
   const dai = attachToRealDai()
   const adminWallet = wallet
   const upala = await _deployUpgradableUpala()
-  // <<-- deploy poolFactory 
+  // <<-- deploy poolFactory
   const poolFactory = await setUpPoolFactory('SignedScoresPoolFactory', upala, fakeDai)
   //save constants
   // catch
-  // finally 
-    // updateUpalaConstants
-    // store status
+  // finally
+  // updateUpalaConstants
+  // store status
 }
-
 
 async function main() {
   const protocol = await setupProtocol()
