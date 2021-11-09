@@ -133,7 +133,7 @@ async function productionDeployment(wallet) {
 }
 
 async function main() {
-  const protocol = await setupProtocol()
+  const protocol = await setupProtocol(true)
   console.log(protocol.wallets[0])
 }
 

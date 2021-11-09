@@ -11,3 +11,4 @@ cache
 node_modules/
 build/
 wrangler.toml
+**/.DS_Store
