@@ -27,8 +27,7 @@ UPALA MANAGER
 *************/
 
 class UpalaManager {
-
-  constructor(adminWallet, overrides) {  
+  constructor(adminWallet, overrides) {
     this.adminWallet = adminWallet
     if (overrides && overrides.upalaConstants) {
       this.upalaConstants = overrides.upalaConstants
@@ -51,8 +50,7 @@ class UpalaManager {
 
   async getUpalaContract() {
     if (!this.upalaContract) {
-      this.upalaContract = (await this.getUpalaConstants())
-        .getContract("Upala", this.adminWallet)
+      this.upalaContract = (await this.getUpalaConstants()).getContract('Upala', this.adminWallet)
     }
     return this.upalaContract
   }
@@ -61,12 +59,9 @@ class UpalaManager {
   async setUpPoolFactory(poolType) {
     const upConsts = await this.getUpalaConstants() // todo introduce initialize function instead
     const upalaContract = await this.getUpalaContract()
-    let poolFactory = await deployContract(
-      poolType, upalaContract.address, upConsts.getAddress("DAI"))
-    console.log("poolFactory.address", poolFactory.address)
-    await upalaContract
-      .approvePoolFactory(poolFactory.address, 'true')
-      .then((tx) => tx.wait())
+    let poolFactory = await deployContract(poolType, upalaContract.address, upConsts.getAddress('DAI'))
+    console.log('poolFactory.address', poolFactory.address)
+    await upalaContract.approvePoolFactory(poolFactory.address, 'true').then((tx) => tx.wait())
     return poolFactory
   }
 }
@@ -95,13 +90,12 @@ async function setupProtocol(isSavingConstants) {
   const wallets = await _setupWallets(fakeDai)
   const adminWallet = wallets[0]
   const upala = await deployUpgradableUpala()
-  const upalaConstants = new UpalaConstants(
-    await adminWallet.getChainId(), { loadFromDisk: false })
+  const upalaConstants = new UpalaConstants(await adminWallet.getChainId(), { loadFromDisk: false })
   upalaConstants.addContract('Upala', upala)
   upalaConstants.addContract('DAI', fakeDai)
 
   // managing - adding new Pool Factory (...prototyping production flow)
-  const upalaManager = new UpalaManager(adminWallet, {upalaConstants: upalaConstants})
+  const upalaManager = new UpalaManager(adminWallet, { upalaConstants: upalaConstants })
   const poolFactory = await upalaManager.setUpPoolFactory('SignedScoresPoolFactory')
   upalaConstants.addContract('SignedScoresPoolFactory', poolFactory)
   upalaConstants.addABI('SignedScoresPool', (await artifacts.readArtifact('SignedScoresPool')).abi)
@@ -110,7 +104,7 @@ async function setupProtocol(isSavingConstants) {
   if (isSavingConstants) {
     upalaConstants.save()
   }
-  return {wallets: wallets} // return all contracts and wallets
+  return { wallets: wallets } // return all contracts and wallets
 }
 
 /*********
@@ -143,4 +137,3 @@ main()
     console.error(error)
     process.exit(1)
   })
-
