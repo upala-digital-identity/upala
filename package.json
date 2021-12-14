@@ -57,7 +57,7 @@
     ]
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^4.3.2",
+    "@openzeppelin/contracts": "^4.4.1",
     "@openzeppelin/contracts-upgradeable": "^4.3.2",
     "@openzeppelin/upgrades": "^2.8.0",
     "loadash": "^1.0.0"
