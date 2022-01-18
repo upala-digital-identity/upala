@@ -9,6 +9,7 @@ const { Cipher } = require('crypto')
 async function deployContract(contractName, ...args) {
   const contractFactory = await ethers.getContractFactory(contractName)
   const contractInstance = await contractFactory.deploy(...args)
+  await contractInstance.deployTransaction.wait(2)
   await contractInstance.deployed()
   return contractInstance
 }
@@ -17,7 +18,9 @@ async function deployContract(contractName, ...args) {
 async function deployUpgradableUpala(adminWallet) {
   // const chainChainID = await adminWallet.getChainId()
   const Upala = await ethers.getContractFactory('Upala')
-  let upala = await upgrades.deployProxy(Upala)
+  let upala = await upgrades.deployProxy(Upala, [], { gasPrice: utils.parseUnits('1.3', 'gwei') })
+  // await upala.deployTransaction.wait(2)
+  console.log(upala)
   await upala.deployed()
   return upala
 }
@@ -75,26 +78,34 @@ async function _setupWallets(fakeDai) {
   let wallets = await ethers.getSigners()
 
   // fake DAI giveaway
-  wallets.map(async (wallet, ix) => {
-    if (ix <= 10) {
-      await fakeDai.freeDaiToTheWorld(wallet.address, BigNumber.from(1000).pow(18))
-    }
-  })
+  // wallets.map(async (wallet, ix) => {
+  //   if (ix <= 5) {
+  //     console.log("minting 1000 fakeDAI to", wallet.address)
+  //     const tx = await fakeDai.freeDaiToTheWorld(wallet.address, BigNumber.from('1000000000000000000000'))
+  //     await tx.wait(2)
+  //   }
+  // })
   return wallets
 }
 
 // deploy setupTestEnvironment
 async function setupProtocol(isSavingConstants) {
   // depoly Upala
-  const fakeDai = await deployContract('FakeDai')
-  const wallets = await _setupWallets(fakeDai)
-  const adminWallet = wallets[0]
   const upala = await deployUpgradableUpala()
+  // const upala = await deployContract('Upala')
+  console.log("upala", upala.address)
+
+  const fakeDai = await deployContract('FakeDai')
+  console.log("fakeDai", fakeDai.address)
+  const wallets = await _setupWallets(fakeDai)
+
+  const adminWallet = wallets[0]
   const upalaConstants = new UpalaConstants(await adminWallet.getChainId(), { loadFromDisk: false })
   upalaConstants.addContract('Upala', upala)
   upalaConstants.addContract('DAI', fakeDai)
 
   // managing - adding new Pool Factory (...prototyping production flow)
+  // upalaManager grabs DAI contract from Upala Constants
   const upalaManager = new UpalaManager(adminWallet, { upalaConstants: upalaConstants })
   const poolFactory = await upalaManager.setUpPoolFactory('SignedScoresPoolFactory')
   upalaConstants.addContract('SignedScoresPoolFactory', poolFactory)
@@ -127,8 +138,10 @@ async function productionDeployment(wallet) {
 }
 
 async function main() {
+  // const upala = await hre.ethers.getContractAt("Upala", "0xD74Ce6D4eA2b11BDC0E0A1CbD9156A3FD50c7870")
+  // console.log(await upala.attackWindow())
   const protocol = await setupProtocol(true)
-  console.log(protocol.wallets[0])
+  // console.log(protocol.wallets[0])
 }
 
 main()

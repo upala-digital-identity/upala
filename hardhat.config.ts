@@ -3,6 +3,7 @@ import '@nomiclabs/hardhat-waffle'
 import '@nomiclabs/hardhat-truffle5'
 import '@openzeppelin/hardhat-upgrades'
 import '@nomiclabs/hardhat-web3'
+import '@nomiclabs/hardhat-etherscan'
 // const os = require('os');
 
 // This is a sample Buidler task. To learn how to create your own go to
@@ -15,37 +16,30 @@ task('accounts', 'Prints the list of accounts', async (args, hre) => {
   }
 })
 
-// You have to export an object to set up your config
-// This object can have the following optional entries:
-// defaultNetwork, networks, solc, and paths.
-// Go to https://buidler.dev/config/ to learn more
-//
-let secrets = { mnemonic: 'test' }
+// store your secrets in a secure (cyphered) directory. 
+// uses defaults when secrets vault locked (for local developement)
+let secrets = { mnemonic: 'test', etherscanKey: 'none', alchemyKey: 'none', infuraKey: 'none' }
 try {
-  secrets = require('./secrets.js')
+  secrets = require('/Volumes/Secrets/dev/ah-token/Ah-mnemonic.js')
 } catch {
   console.log('No secrets provided (local developement mode)')
 }
-
-// const secrets = require(os.homedir() + "/gocrypt/dev/ah-token/Ah-mnemonic.js");
-// const gateway = require(os.homedir() + "/gocrypt/dev/ah-token/gateway.js");
 
 export default {
   defaultNetwork: 'localhost',
   networks: {
     localhost: {
-      //url: 'https://rinkeby.infura.io/v3/2717afb6bf164045b5d5468031b93f87',
       url: 'http://localhost:8545',
     },
     kovan: {
-      url: 'https://kovan.infura.io/v3/3b076e7d293041b684349d436904ccdb', //+infura_project_id,
+      url: 'https://kovan.infura.io/v3/' + secrets.infuraKey,
       accounts: {
         mnemonic: secrets.mnemonic,
       },
       timeout: 60000,
     },
     rinkeby: {
-      url: 'https://rinkeby.infura.io/v3/3b076e7d293041b684349d436904ccdb', //+infura_project_id,
+      url: 'https://eth-rinkeby.alchemyapi.io/v2/' + secrets.alchemyKey,
       accounts: {
         mnemonic: secrets.mnemonic,
       },
@@ -70,6 +64,11 @@ export default {
         mnemonic: secrets.mnemonic,
       },
     },
+  },
+  etherscan: {
+    // Your API key for Etherscan
+    // Obtain one at https://etherscan.io/
+    apiKey: secrets.etherscanKey
   },
   solidity: {
     compilers: [
