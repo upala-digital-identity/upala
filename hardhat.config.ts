@@ -16,7 +16,7 @@ task('accounts', 'Prints the list of accounts', async (args, hre) => {
   }
 })
 
-// store your secrets in a secure (cyphered) directory. 
+// store your secrets in a secure (cyphered) directory.
 // uses defaults when secrets vault locked (for local developement)
 let secrets = { mnemonic: 'test', etherscanKey: 'none', alchemyKey: 'none', infuraKey: 'none' }
 try {
@@ -68,7 +68,7 @@ export default {
   etherscan: {
     // Your API key for Etherscan
     // Obtain one at https://etherscan.io/
-    apiKey: secrets.etherscanKey
+    apiKey: secrets.etherscanKey,
   },
   solidity: {
     compilers: [

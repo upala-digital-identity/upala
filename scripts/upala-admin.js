@@ -93,10 +93,10 @@ async function setupProtocol(isSavingConstants) {
   // depoly Upala
   const upala = await deployUpgradableUpala()
   // const upala = await deployContract('Upala')
-  console.log("upala", upala.address)
+  console.log('upala', upala.address)
 
   const fakeDai = await deployContract('FakeDai')
-  console.log("fakeDai", fakeDai.address)
+  console.log('fakeDai', fakeDai.address)
   const wallets = await _setupWallets(fakeDai)
 
   const adminWallet = wallets[0]
