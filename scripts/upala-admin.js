@@ -1,5 +1,8 @@
+// Upala admin tools
 // all upala admin functions go here - both for testing and production
 // other scripts (like deploy-to-rinkeby or similar) will use this lib
+
+
 const { UpalaConstants } = require('@upala/constants')
 const { BigNumber, utils } = require('ethers')
 const { upgrades } = require('hardhat')
@@ -9,7 +12,7 @@ const { Cipher } = require('crypto')
 async function deployContract(contractName, ...args) {
   const contractFactory = await ethers.getContractFactory(contractName)
   const contractInstance = await contractFactory.deploy(...args)
-  await contractInstance.deployTransaction.wait(2)
+  await contractInstance.deployTransaction.wait()  // todo wait(2) for real nets
   await contractInstance.deployed()
   return contractInstance
 }
@@ -20,7 +23,6 @@ async function deployUpgradableUpala(adminWallet) {
   const Upala = await ethers.getContractFactory('Upala')
   let upala = await upgrades.deployProxy(Upala, [], { gasPrice: utils.parseUnits('1.3', 'gwei') })
   // await upala.deployTransaction.wait(2)
-  console.log(upala)
   await upala.deployed()
   return upala
 }
@@ -140,7 +142,7 @@ async function productionDeployment(wallet) {
 async function main() {
   // const upala = await hre.ethers.getContractAt("Upala", "0xD74Ce6D4eA2b11BDC0E0A1CbD9156A3FD50c7870")
   // console.log(await upala.attackWindow())
-  const protocol = await setupProtocol(true)
+  const protocol = await setupProtocol(false)
   // console.log(protocol.wallets[0])
 }
 
