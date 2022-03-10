@@ -1,8 +1,6 @@
-//// 
-
+////
 
 //// WARNING!!! This whole script is under deprication!
-
 
 ////
 const bre = require('hardhat')

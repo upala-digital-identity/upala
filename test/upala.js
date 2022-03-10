@@ -183,9 +183,9 @@ describe('POOL FACTORIES', function () {
     let environment = await setupProtocol({ isSavingConstants: false })
     upala = environment.upala
     fakeDai = environment.dai
-    ;[upalaAdmin, user1, user2, user3, manager1, manager2, delegate1, delegate2, delegate3, nobody] = environment.wallets
+    ;[upalaAdmin, user1, user2, user3, manager1, manager2, delegate1, delegate2, delegate3, nobody] =
+      environment.wallets
 
-    
     signedScoresPoolFactory = await deployContract('SignedScoresPoolFactory', upala.address, fakeDai.address)
   })
 

@@ -12,7 +12,7 @@ const { concat } = require('ethers/lib/utils')
 async function deployContract(contractName, ...args) {
   const contractFactory = await ethers.getContractFactory(contractName)
   const contractInstance = await contractFactory.deploy(...args)
-  await contractInstance.deployTransaction.wait()  // todo wait(2) for real nets
+  await contractInstance.deployTransaction.wait() // todo wait(2) for real nets
   await contractInstance.deployed()
   return contractInstance
 }
@@ -26,9 +26,6 @@ async function deployUpgradableUpala(adminWallet) {
   await upala.deployed()
   return upala
 }
-
-
-
 
 /************
 UPALA MANAGER
@@ -77,33 +74,27 @@ class UpalaManager {
   }
 }
 
-
-
-
 /**************
 DEPLOY SEQUENCE
 ***************/
 
-// deploy sequence for any network 
+// deploy sequence for any network
 // publishes addresses and ABIs if needed to Upala constants
 // todo see production sequence below for live ethereum network
 async function setupProtocol(params) {
-
   // Upala constants
   const wallets = await ethers.getSigners()
   const adminWallet = wallets[0]
   const upalaConstants = new UpalaConstants(await adminWallet.getChainId(), { loadFromDisk: false })
-  
+
   // Deploy Upala
   const upala = await deployUpgradableUpala()
   // const upala = await deployContract('Upala')  // non-upgradable (debugging)
   upalaConstants.addContract('Upala', upala)
-  
 
   // Deploy DAI
   const fakeDai = await deployContract('FakeDai')
   upalaConstants.addContract('DAI', fakeDai)
-  
 
   // Deploy Pool Factory
   const upalaManager = new UpalaManager(adminWallet, { upalaConstants: upalaConstants })
@@ -113,9 +104,9 @@ async function setupProtocol(params) {
   upalaConstants.addABI('SignedScoresPool', (await artifacts.readArtifact('SignedScoresPool')).abi)
 
   // Save Upala constants if needed (when deploying to production)
-  if (params.hasOwnProperty("isSavingConstants") && params.isSavingConstants == true) {
+  if (params.hasOwnProperty('isSavingConstants') && params.isSavingConstants == true) {
     upalaConstants.save()
-    console.log("Upala-admin: saving Upala constants")
+    console.log('Upala-admin: saving Upala constants')
   }
 
   // Fake DAI giveaway
@@ -128,12 +119,13 @@ async function setupProtocol(params) {
   })
 
   // return the whole environment
-  return { 
-    upalaConstants: upalaConstants, 
+  return {
+    upalaConstants: upalaConstants,
     wallets: wallets,
     upala: upala,
     dai: fakeDai,
-    poolFactory: poolFactory }
+    poolFactory: poolFactory,
+  }
 }
 
 // prototyping production deployment sequence...
@@ -151,7 +143,6 @@ async function productionDeployment(wallet) {
   // updateUpalaConstants
   // store status
 }
-
 
 async function main() {
   // const upala = await hre.ethers.getContractAt("Upala", "0xD74Ce6D4eA2b11BDC0E0A1CbD9156A3FD50c7870")
