@@ -22,7 +22,7 @@ let secrets = { mnemonic: 'test', etherscanKey: 'none', alchemyKey: 'none', infu
 try {
   secrets = require('/Volumes/Secrets/dev/ah-token/Ah-mnemonic.js')
 } catch {
-  console.log('No secrets provided (local developement mode)')
+  console.log('Hardhat.config: No secrets provided (local developement mode)')
 }
 
 export default {

@@ -2,12 +2,12 @@
 // all upala admin functions go here - both for testing and production
 // other scripts (like deploy-to-rinkeby or similar) will use this lib
 
-
 const { UpalaConstants } = require('@upala/constants')
 const { BigNumber, utils } = require('ethers')
-const { upgrades } = require('hardhat')
+const { upgrades, hre } = require('hardhat')
 const chalk = require('chalk')
 const { Cipher } = require('crypto')
+const { concat } = require('ethers/lib/utils')
 
 async function deployContract(contractName, ...args) {
   const contractFactory = await ethers.getContractFactory(contractName)
@@ -27,9 +27,15 @@ async function deployUpgradableUpala(adminWallet) {
   return upala
 }
 
+
+
+
 /************
 UPALA MANAGER
 *************/
+// Manager deals with an already deployed protocol
+// All deploy and initial setup functions are beyond this class
+// Upgrade functionality should be here though
 
 class UpalaManager {
   constructor(adminWallet, overrides) {
@@ -46,6 +52,7 @@ class UpalaManager {
     return this.chainID
   }
 
+  // todo why we need this? What is the use-case?
   async getUpalaConstants() {
     if (!this.upalaConstants) {
       this.upalaConstants = new UpalaConstants(await this.getChainID())
@@ -65,66 +72,73 @@ class UpalaManager {
     const upConsts = await this.getUpalaConstants() // todo introduce initialize function instead
     const upalaContract = await this.getUpalaContract()
     let poolFactory = await deployContract(poolType, upalaContract.address, upConsts.getAddress('DAI'))
-    console.log('poolFactory.address', poolFactory.address)
     await upalaContract.approvePoolFactory(poolFactory.address, 'true').then((tx) => tx.wait())
     return poolFactory
   }
 }
 
-/***************
-TEST ENVIRONMENT 
-****************/
 
-// TODO should live somewhere separate
-async function _setupWallets(fakeDai) {
-  let wallets = await ethers.getSigners()
 
-  // fake DAI giveaway
-  // wallets.map(async (wallet, ix) => {
-  //   if (ix <= 5) {
-  //     console.log("minting 1000 fakeDAI to", wallet.address)
-  //     const tx = await fakeDai.freeDaiToTheWorld(wallet.address, BigNumber.from('1000000000000000000000'))
-  //     await tx.wait(2)
-  //   }
-  // })
-  return wallets
-}
 
-// deploy setupTestEnvironment
-async function setupProtocol(isSavingConstants) {
-  // depoly Upala
-  const upala = await deployUpgradableUpala()
-  // const upala = await deployContract('Upala')
-  console.log("upala", upala.address)
 
-  const fakeDai = await deployContract('FakeDai')
-  console.log("fakeDai", fakeDai.address)
-  const wallets = await _setupWallets(fakeDai)
+/**************
+DEPLOY SEQUENCE
+***************/
 
+// deploy sequence for any network 
+// publishes addresses and ABIs if needed to Upala constants
+// todo see production sequence below for live ethereum network
+async function setupProtocol(params) {
+
+  // Upala constants
+  const wallets = await ethers.getSigners()
   const adminWallet = wallets[0]
   const upalaConstants = new UpalaConstants(await adminWallet.getChainId(), { loadFromDisk: false })
+  
+  // Deploy Upala
+  const upala = await deployUpgradableUpala()
+  // const upala = await deployContract('Upala')  // non-upgradable (debugging)
   upalaConstants.addContract('Upala', upala)
-  upalaConstants.addContract('DAI', fakeDai)
+  
 
-  // managing - adding new Pool Factory (...prototyping production flow)
-  // upalaManager grabs DAI contract from Upala Constants
+  // Deploy DAI
+  const fakeDai = await deployContract('FakeDai')
+  upalaConstants.addContract('DAI', fakeDai)
+  
+
+  // Deploy Pool Factory
   const upalaManager = new UpalaManager(adminWallet, { upalaConstants: upalaConstants })
+  // upalaManager grabs DAI contract from Upala Constants
   const poolFactory = await upalaManager.setUpPoolFactory('SignedScoresPoolFactory')
   upalaConstants.addContract('SignedScoresPoolFactory', poolFactory)
   upalaConstants.addABI('SignedScoresPool', (await artifacts.readArtifact('SignedScoresPool')).abi)
 
-  // save Upala constants if needed (...prototyping production flow)
-  if (isSavingConstants) {
+  // Save Upala constants if needed (when deploying to production)
+  if (params.hasOwnProperty("isSavingConstants") && params.isSavingConstants == true) {
     upalaConstants.save()
+    console.log("Upala-admin: saving Upala constants")
   }
-  return { wallets: wallets } // return all contracts and wallets
+
+  // Fake DAI giveaway
+  wallets.map(async (wallet, ix) => {
+    if (ix <= 5) {
+      // console.log("minted 1000 fakeDAI to", wallet.address)
+      const tx = await fakeDai.freeDaiToTheWorld(wallet.address, BigNumber.from('1000000000000000000000'))
+      await tx.wait(2)
+    }
+  })
+
+  // return the whole environment
+  return { 
+    upalaConstants: upalaConstants, 
+    wallets: wallets,
+    upala: upala,
+    dai: fakeDai,
+    poolFactory: poolFactory }
 }
 
-/*********
-PRODUCTION
-**********/
-
 // prototyping production deployment sequence...
+// todo move to setupProtocol function
 async function productionDeployment(wallet) {
   // try
   const dai = attachToRealDai()
@@ -139,10 +153,14 @@ async function productionDeployment(wallet) {
   // store status
 }
 
+
 async function main() {
   // const upala = await hre.ethers.getContractAt("Upala", "0xD74Ce6D4eA2b11BDC0E0A1CbD9156A3FD50c7870")
   // console.log(await upala.attackWindow())
-  const protocol = await setupProtocol(false)
+  const env = await setupProtocol({ isSavingConstants: false })
+  // console.log("upala", env.upala.address)
+  // console.log("fakeDai", env.dai.address)
+  // console.log("SignedScoresPoolFactory", env.poolFactory.address)
   // console.log(protocol.wallets[0])
 }
 
@@ -152,3 +170,5 @@ main()
     console.error(error)
     process.exit(1)
   })
+
+module.exports = { setupProtocol }

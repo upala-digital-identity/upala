@@ -18,8 +18,9 @@ describe('PROTOCOL MANAGEMENT', function () {
   let wallets
 
   before('setup protocol', async () => {
-    ;[upala, unusedFakeDai, wallets] = await setupProtocol()
-    ;[upalaAdmin, nobody] = wallets
+    let environment = await setupProtocol({ isSavingConstants: false })
+    upala = environment.upala
+    ;[upalaAdmin, nobody] = environment.wallets
   })
 
   it('owner can set attack window', async function () {
@@ -59,8 +60,9 @@ describe('USERS', function () {
   let wallets
   before('setup protocol, register users', async () => {
     //todo beforeEach
-    ;[upala, fakeDai_NotUsedInThisTest, wallets] = await setupProtocol()
-    ;[upalaAdmin, user1, user2, user3, delegate1, delegate2, delegate3, nobody] = wallets
+    let environment = await setupProtocol({ isSavingConstants: false })
+    upala = environment.upala
+    ;[upalaAdmin, user1, user2, user3, delegate1, delegate2, delegate3, nobody] = environment.wallets
 
     // the follwoing two lines are tested first below
     await upala.connect(user2).newIdentity(user1.getAddress())
@@ -178,8 +180,12 @@ describe('POOL FACTORIES', function () {
   let wallets
 
   before('setup protocol', async () => {
-    ;[upala, fakeDai, wallets] = await setupProtocol()
-    ;[upalaAdmin, user1, user2, user3, manager1, manager2, delegate1, delegate2, delegate3, nobody] = wallets
+    let environment = await setupProtocol({ isSavingConstants: false })
+    upala = environment.upala
+    fakeDai = environment.dai
+    ;[upalaAdmin, user1, user2, user3, manager1, manager2, delegate1, delegate2, delegate3, nobody] = environment.wallets
+
+    
     signedScoresPoolFactory = await deployContract('SignedScoresPoolFactory', upala.address, fakeDai.address)
   })
 
