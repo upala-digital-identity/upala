@@ -1,3 +1,10 @@
+// README 
+// This is future work - for Merkle pools
+// Signed score pools don't need that
+
+
+
+
 describe('COMMITMENTS', function () {
   it('a group can issue a commitment', async function () {
     const someHash = utils.formatBytes32String('First commitment!')

@@ -1,16 +1,18 @@
-const { expect } = require('chai')
-const { setupProtocol } = require('../src/upala-admin.js')
+// README 
+// Testing upala.sol with this 
 
 // TODO
 /*
 - make all 'it's work
 - think where before/beforeEach could be placed best (and what they would do)
 - try preserve ordering of tests
-- move pool setup to the upala-admin.js
 - remove unnecessary wallets from tests and all unnecessary code in general
 - add events testing
 - ignore production todos
 */
+
+const { expect } = require('chai')
+const { setupProtocol } = require('../src/upala-admin.js')
 
 describe('PROTOCOL MANAGEMENT', function () {
   let upala
