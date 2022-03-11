@@ -151,11 +151,11 @@ describe('USERS', function () {
     })
 
     it('cannot transfer ownership to a non-delegate (create delegate first)', async function () {
-      // todo fails with "Address is not a delegate for current UpalaId"
+      // todo to.be.revertedWith("Address is not a delegate for current UpalaId")
     })
 
     it('a non-owner cannot transfer ownership', async function () {
-      // todo fails with "Only identity holder can add or remove delegates"
+      // todo to.be.revertedWith("Only identity holder can add or remove delegates")
     })
 
     it('owner can pass ownership to own delegate (change owner address)', async function () {
@@ -185,8 +185,7 @@ describe('POOL FACTORIES', function () {
     fakeDai = environment.dai
     ;[upalaAdmin, user1, user2, user3, manager1, manager2, delegate1, delegate2, delegate3, nobody] =
       environment.wallets
-
-    signedScoresPoolFactory = await deployContract('SignedScoresPoolFactory', upala.address, fakeDai.address)
+    signedScoresPoolFactory = environment.poolFactory
   })
 
   it('owner can manage pool factories', async function () {
@@ -210,14 +209,14 @@ describe('POOL FACTORIES', function () {
 
     // spawn a new pool by the factory
     const tx = await signedScoresPoolFactory.connect(manager1).createPool()
-    const receipt = await tx.wait(1)
-    const newPoolEvent = receipt.events.filter((x) => {
-      return x.event == 'NewPool'
-    })
-    const newPoolAddress = newPoolEvent[0].args.poolAddress
-    const poolContract = (await ethers.getContractFactory('SignedScoresPool')).attach(newPoolAddress)
+    // retrieve new pool address from Upala event (todo - is there an easier way?)
+    const blockNumber = (await tx.wait(1)).blockNumber
+    const eventFilter = upala.filters.NewPool()
+    const events = await upala.queryFilter(eventFilter, blockNumber, blockNumber)
+    const newPoolAddress = events[0].args.poolAddress
 
-    expect(await upala.approvedPools(newPoolAddress)).to.eq(signedScoresPoolFactory.address)
+    const poolContract = (await ethers.getContractFactory('SignedScoresPool')).attach(newPoolAddress)
+    // expect(await upala.approvedPools(newPoolAddress)).to.eq(signedScoresPoolFactory.address)
 
     // try to spawn a pool from a not approved factory
     // await expect(signedScoresPoolFactory2.connect(manager1).createPool()).to.be.revertedWith('Pool factory is not approved')
