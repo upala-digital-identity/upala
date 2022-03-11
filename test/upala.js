@@ -1,5 +1,5 @@
 const { expect } = require('chai')
-const { setupProtocol } = require('../scripts/upala-admin.js')
+const { setupProtocol } = require('../src/upala-admin.js')
 
 // TODO
 /*
