@@ -69,7 +69,7 @@ class UpalaManager {
     const upConsts = await this.getUpalaConstants() // todo introduce initialize function instead
     const upalaContract = await this.getUpalaContract()
     let poolFactory = await deployContract(poolType, upalaContract.address, upConsts.getAddress('DAI'))
-    await upalaContract.approvePoolFactory(poolFactory.address, 'true')  // todo production .then((tx) => tx.wait())
+    await upalaContract.approvePoolFactory(poolFactory.address, 'true') // todo production .then((tx) => tx.wait())
     return poolFactory
   }
 }
@@ -91,12 +91,12 @@ async function setupProtocol(params) {
   const upala = await deployUpgradableUpala()
   // const upala = await deployContract('Upala')  // non-upgradable (debugging)
   upalaConstants.addContract('Upala', upala)
-  console.log("upala", upala.address)
+  console.log('upala', upala.address)
 
   // Deploy DAI
   const fakeDai = await deployContract('FakeDai')
   upalaConstants.addContract('DAI', fakeDai)
-  console.log("fakeDai", fakeDai.address)
+  console.log('fakeDai', fakeDai.address)
 
   // Deploy Pool Factory
   const upalaManager = new UpalaManager(adminWallet, { upalaConstants: upalaConstants })
