@@ -1,5 +1,5 @@
-// README 
-// Testing upala.sol with this 
+// README
+// Testing upala.sol with this
 
 // TODO
 /*
