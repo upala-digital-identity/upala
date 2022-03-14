@@ -19,7 +19,7 @@ describe('MANAGE GROUP', function () {
   let upala
   let unusedFakeDai
   let wallets
-  //const scoreChange = oneETH.mul(42).div(100) 
+  //const scoreChange = oneETH.mul(42).div(100)
   it('group manager can publish new bundle', async function () {
     // todo check that only owner can publish a bundle
     await upala.connect(manager1).publishRoot(someRoot)
@@ -67,7 +67,6 @@ describe('MANAGE GROUP', function () {
 */
 })
 
-
 /*********************
 SCORING AND BOT ATTACK
 **********************/
@@ -95,39 +94,38 @@ describe('SCORING AND BOT ATTACK', function () {
   })
 
   describe('VERIFYING SCORES', function () {
-    
     // strategy
     // persona - use this name to describe Eth address with score
-    // nobody - not registered person 
+    // nobody - not registered person
     // use myScore function to check most of the require conditions
-    // then use userScore to check if dapps can querry scores 
-    // then use attack to check funds distribution 
+    // then use userScore to check if dapps can querry scores
+    // then use attack to check funds distribution
 
     // todo setup protocol
 
-    // An existing score bundle is needed 
-    // try non-existent score bundle 
+    // An existing score bundle is needed
+    // try non-existent score bundle
     // "Provided score bundle does not exist or deleted"
-    
+
     // isOwnerOrDelegate
     // try nobody - get error
     // register UpalaID for the persona
-    // 
+    //
 
     it('can verify own score', async function () {
       //  function verifyMyScore (uint160 groupID, uint160 identityID, address holder, uint8 score, bytes32[] calldata proof) external {
     })
-  
+
     it('cannot approve scores from an arbitrary address', async function () {})
   })
 
   describe('DAPPS VERIFYING SCORES', function () {
     // todo setup protocol
-  
+
     it('DApp can verify user score', async function () {
       // function verifyUserScore (uint160 groupID, uint160 identityID, address holder, uint8 score, bytes32[] calldata proof) external {
     })
-  
+
     it('An address approved by Upala ID owner can approve scores to DApps', async function () {})
   })
 
@@ -151,9 +149,4 @@ describe('SCORING AND BOT ATTACK', function () {
   it('cannot explode using delegate address', async function () {})
 
   it('Upala ID owner can explode (check fees and rewards)', async function () {})
-
-
 })
-
-
-
