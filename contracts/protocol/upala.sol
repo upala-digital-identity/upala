@@ -234,6 +234,8 @@ contract Upala is OwnableUpgradeable{
     /****
     DAPPS
     *****/
+    // Needed for subgraph
+    // todo Probably there's a simpler way to do this 
 
     function registerDApp() external {
         registeredDapps[msg.sender] = true;

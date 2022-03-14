@@ -1,5 +1,15 @@
 pragma solidity ^0.8.0;
 
+/* 
+Every group manages its poool in it's own way.
+The most important obligation of a group is to pay bot rewards.
+
+BundledScoresPool is a pool that allows storing user scores off-chain.
+There are two types of such pool: Signed scores pool and Merkle pool.
+
+Merkle pool is for the nearest future. 
+*/
+
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 import '@openzeppelin/contracts/utils/math/SafeMath.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
@@ -7,13 +17,6 @@ import './i-pool.sol';
 import '../protocol/upala.sol';
 import 'hardhat/console.sol';
 
-/*
-
-Every group to manages its poool in it's own way.
-Or even to share one pool among several groups.
-*/
-
-// The most important obligation of a group is to pay bot rewards.
 contract BundledScoresPool is Ownable {
     using SafeMath for uint256;
 
@@ -104,6 +107,8 @@ contract BundledScoresPool is Ownable {
 
     // tries to withdraw as much as possible 
     // (bots can attack after an announcement)
+    // this is part of management
+    // Merkle pools will require commit-reveal scheme for this
     function _withdrawFromPool(address receiver, uint256 amount) 
         internal 
         onlyOwner
