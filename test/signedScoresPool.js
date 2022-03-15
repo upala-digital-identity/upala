@@ -3,9 +3,12 @@ Testing both Signed scores pool and it's parent BundledScoresPool as
 there's not much difference.
 */
 
+const { ethers } = require('hardhat');
 const { expect } = require('chai')
 const { BigNumber, utils } = require('ethers')
 const { setupProtocol } = require('../src/upala-admin.js')
+const { deployPool, attachToPool, PoolManager } = require('@upala/group-manager')
+
 // const PoolManager = require('@upala/group-manager')
 const poolAbi = require('../artifacts/contracts/pools/signed-scores-pool.sol/SignedScoresPool.json')
 let oneETH = BigNumber.from(10).pow(18)
@@ -17,15 +20,29 @@ MANAGE GROUP
 
 describe('MANAGE GROUP', function () {
   let upala
-  let unusedFakeDai
-  let wallets
-  //const scoreChange = oneETH.mul(42).div(100)
-  it('group manager can publish new bundle', async function () {
-    // todo check that only owner can publish a bundle
-    await upala.connect(manager1).publishRoot(someRoot)
-    expect(await upala.roots(manager1Group, someRoot)).to.eq((await time.latest()).toString())
+  let upalaAdmin, manager1, nobody
+  let signedScoresPool
+  const ZERO_BYTES32 = '0x0000000000000000000000000000000000000000000000000000000000000000'
+
+  before('setup protocol', async () => {
+    let environment = await setupProtocol({ isSavingConstants: false })
+    upala = environment.upala
+    ;[upalaAdmin, manager1, nobody] = environment.wallets
+    signedScoresPool = await deployPool('SignedScoresPool', manager1, environment.upalaConstants)
   })
 
+  //const scoreChange = oneETH.mul(42).div(100)
+  it('group manager can publish new bundle', async function () {
+    let someRoot = ZERO_BYTES32
+    await expect(signedScoresPool.connect(nobody).publishScoreBundleId(someRoot))
+      .to.be.revertedWith('Ownable: caller is not the owner')
+    tx = await signedScoresPool.connect(manager1).publishScoreBundleId(someRoot)
+    let txTimestamp = (await ethers.provider.getBlock(tx.blockNumber)).timestamp;
+    let bundleTimestamp = await signedScoresPool.scoreBundleTimestamp(someRoot)
+    expect(bundleTimestamp).to.eq(txTimestamp)
+  })
+})
+/*
   it('group manager can publish group meta', async function () {
     assert.fail('actual', 'expected', 'Error message')
     // db_url, description, etc. - from future
@@ -65,12 +82,12 @@ describe('MANAGE GROUP', function () {
   // still got access to pool
 })
 */
-})
+
 
 /*********************
 SCORING AND BOT ATTACK
 **********************/
-
+/*
 describe('SCORING AND BOT ATTACK', function () {
   // todo setup protocol
   let upala
@@ -151,3 +168,4 @@ describe('SCORING AND BOT ATTACK', function () {
 
   it('Upala ID owner can explode (check fees and rewards)', async function () {})
 })
+*/
