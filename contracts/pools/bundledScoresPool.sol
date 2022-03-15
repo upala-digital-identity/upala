@@ -251,7 +251,7 @@ contract BundledScoresPool is Ownable {
             "Provided score bundle does not exist or deleted");
 
         require(
-            upala.isOwnerOrDelegate(caller, upalaID) ||
+            upala.isOwnerOrDelegate(caller, upalaID) ||  // todo if throws here, it will not go further (see upala.sol)
             upala.isOwnerOrDelegate(scoreAssignedTo, upalaID),  // a way to validate by address (UIP-22)
             "Not an owner or delegate."
             "Upala ID is exploded,"
@@ -261,7 +261,6 @@ contract BundledScoresPool is Ownable {
         uint256 totalScore = baseScore.mul(score);
         require(_balanceIsAbove(totalScore),
             "Pool balance is lower than the total score");
-
 
         require(isInBundle(scoreAssignedTo, score, bundleId, proof) == true,
             "Can't validate that scoreAssignedTo-score pair is in the bundle");

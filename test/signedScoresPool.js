@@ -49,11 +49,11 @@ describe('MANAGE GROUP', function () {
     expect(1).to.be.equal(2)
   })
 
-  it('group manager can delete bundle at any time', async function () {
+  it('group manager can delete bundle', async function () {
     // todo
   })
 
-  it('group manager can withdraw money from pool at any time', async function () {
+  it('group manager can withdraw money from pool', async function () {
     // todo
   })
 
@@ -94,39 +94,51 @@ describe('SCORING AND BOT ATTACK', function () {
   })
 
   describe('VERIFYING SCORES', function () {
-    // strategy
-    // persona - use this name to describe Eth address with score
-    // nobody - not registered person
+    // strategy:
     // use myScore function to check most of the require conditions
     // then use userScore to check if dapps can querry scores
     // then use attack to check funds distribution
 
-    // todo setup protocol
+    // persona - use this name to describe Eth address with score
+    // nobody - not registered person
 
-    // An existing score bundle is needed
-    // try non-existent score bundle
-    // "Provided score bundle does not exist or deleted"
+    // setup protocol
 
-    // isOwnerOrDelegate
-    // try nobody - get error
+    // try myScore on non-existent score bundle
+    // should throw "Provided score bundle does not exist or deleted"
+    // register a score bundle
+
+    // try myScore on persona address withou UpalaID
+    // should throw
     // register UpalaID for the persona
-    //
 
-    it('can verify own score', async function () {
-      //  function verifyMyScore (uint160 groupID, uint160 identityID, address holder, uint8 score, bytes32[] calldata proof) external {
-    })
+    // try myScore on non-existent persona delegate
+    // should throw 
+    // register persona delegate 
 
-    it('cannot approve scores from an arbitrary address', async function () {})
-  })
+    // try myScore on empty pool 
+    // should throw "Pool balance is lower than the total score"
+    // fund pool 
 
-  describe('DAPPS VERIFYING SCORES', function () {
-    // todo setup protocol
+    // try myScore on random proof
+    // should throw with "Can't validate that scoreAssignedTo-score pair is in the bundle"
+    // create valid proof
 
-    it('DApp can verify user score', async function () {
-      // function verifyUserScore (uint160 groupID, uint160 identityID, address holder, uint8 score, bytes32[] calldata proof) external {
-    })
+    // try myScore with valid proof
+    // assign scores both to UpalaId and delegate address
+    // try checking scores both for UpalaID and delegate address
+    // this should work
+    
+    // try userScore
+    // it('DApp can verify user score by Upala ID or delegate', async function () {
+    // try checking scores both for UpalaID and delegate address
 
-    it('An address approved by Upala ID owner can approve scores to DApps', async function () {})
+    // try attack by UpalaID 
+    // explode by UpalaID 
+    // check reward
+    // check UpalaID is deleted 
+
+    // try attack by delegate address 
   })
 
   it('you can explode, you can explode, you can explode, anyone can exploooooode', async function () {
