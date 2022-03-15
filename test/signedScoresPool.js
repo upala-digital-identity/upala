@@ -98,47 +98,36 @@ describe('SCORING AND BOT ATTACK', function () {
     // use myScore function to check most of the require conditions
     // then use userScore to check if dapps can querry scores
     // then use attack to check funds distribution
-
     // persona - use this name to describe Eth address with score
     // nobody - not registered person
-
     // setup protocol
-
     // try myScore on non-existent score bundle
     // should throw "Provided score bundle does not exist or deleted"
     // register a score bundle
-
     // try myScore on persona address withou UpalaID
     // should throw
     // register UpalaID for the persona
-
     // try myScore on non-existent persona delegate
-    // should throw 
-    // register persona delegate 
-
-    // try myScore on empty pool 
+    // should throw
+    // register persona delegate
+    // try myScore on empty pool
     // should throw "Pool balance is lower than the total score"
-    // fund pool 
-
+    // fund pool
     // try myScore on random proof
     // should throw with "Can't validate that scoreAssignedTo-score pair is in the bundle"
     // create valid proof
-
     // try myScore with valid proof
     // assign scores both to UpalaId and delegate address
     // try checking scores both for UpalaID and delegate address
     // this should work
-    
     // try userScore
     // it('DApp can verify user score by Upala ID or delegate', async function () {
     // try checking scores both for UpalaID and delegate address
-
-    // try attack by UpalaID 
-    // explode by UpalaID 
+    // try attack by UpalaID
+    // explode by UpalaID
     // check reward
-    // check UpalaID is deleted 
-
-    // try attack by delegate address 
+    // check UpalaID is deleted
+    // try attack by delegate address
   })
 
   it('you can explode, you can explode, you can explode, anyone can exploooooode', async function () {
