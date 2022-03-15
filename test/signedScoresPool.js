@@ -3,7 +3,7 @@ Testing both Signed scores pool and it's parent BundledScoresPool as
 there's not much difference.
 */
 
-const { ethers } = require('hardhat');
+const { ethers } = require('hardhat')
 const { expect } = require('chai')
 const { BigNumber, utils } = require('ethers')
 const { setupProtocol } = require('../src/upala-admin.js')
@@ -34,10 +34,11 @@ describe('MANAGE GROUP', function () {
   //const scoreChange = oneETH.mul(42).div(100)
   it('group manager can publish new bundle', async function () {
     let someRoot = ZERO_BYTES32
-    await expect(signedScoresPool.connect(nobody).publishScoreBundleId(someRoot))
-      .to.be.revertedWith('Ownable: caller is not the owner')
+    await expect(signedScoresPool.connect(nobody).publishScoreBundleId(someRoot)).to.be.revertedWith(
+      'Ownable: caller is not the owner'
+    )
     tx = await signedScoresPool.connect(manager1).publishScoreBundleId(someRoot)
-    let txTimestamp = (await ethers.provider.getBlock(tx.blockNumber)).timestamp;
+    let txTimestamp = (await ethers.provider.getBlock(tx.blockNumber)).timestamp
     let bundleTimestamp = await signedScoresPool.scoreBundleTimestamp(someRoot)
     expect(bundleTimestamp).to.eq(txTimestamp)
   })
@@ -82,7 +83,6 @@ describe('MANAGE GROUP', function () {
   // still got access to pool
 })
 */
-
 
 /*********************
 SCORING AND BOT ATTACK
