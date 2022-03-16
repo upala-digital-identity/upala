@@ -246,13 +246,14 @@ contract BundledScoresPool is Ownable {
         bytes32 bundleId,           // bundle hash (root if using Merkle pool)
         bytes memory proof    // a proof that verifies user score is in bundle
     ) private view returns (uint256) {
+        require(baseScore >0, "Pool baseScore is 0");
 
         require(scoreBundleTimestamp[bundleId] > 0, 
             "Provided score bundle does not exist or deleted");
-
-        if (scoreAssignedTo == upalaID || scoreAssignedTo == caller) {
-            upala.isOwnerOrDelegate(caller, upalaID);
-        } else {  // scoreAssignedTo is caller delegate
+        
+        // check UpalaID
+        upala.isOwnerOrDelegate(caller, upalaID);
+        if (scoreAssignedTo != upalaID && scoreAssignedTo != caller) {
             upala.isOwnerOrDelegate(scoreAssignedTo, upalaID);
         }
         
