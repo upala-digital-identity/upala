@@ -15,7 +15,7 @@ const poolAbi = require('../artifacts/contracts/pools/signed-scores-pool.sol/Sig
 let oneETH = BigNumber.from(10).pow(18)
 //const scoreChange = oneETH.mul(42).div(100)
 const ZERO_BYTES32 = '0x0000000000000000000000000000000000000000000000000000000000000000'
-const RANDOM_SCORE_42 = 42  // do not use 42 anywhere else
+const RANDOM_SCORE_42 = 42 // do not use 42 anywhere else
 const RANDOM_ADDRESS = '0x0c2788f417685706f61414e4Cb6F5f672eA79731'
 /***********
 MANAGE GROUP
@@ -85,12 +85,12 @@ describe('MANAGE GROUP', function () {
 /*********************
 SCORING AND BOT ATTACK
 **********************/
-  // strategy:
-  // use myScore function to check most of the require conditions
-  // then use userScore to check if dapps can querry scores
-  // then use attack to check funds distribution
-  // persona - use this name to describe Eth address with score
-  // nobody - not registered person
+// strategy:
+// use myScore function to check most of the require conditions
+// then use userScore to check if dapps can querry scores
+// then use attack to check funds distribution
+// persona - use this name to describe Eth address with score
+// nobody - not registered person
 describe('SCORING AND BOT ATTACK', function () {
   let upalaAdmin, manager1, nobody
   let persona1id
@@ -108,29 +108,23 @@ describe('SCORING AND BOT ATTACK', function () {
   })
 
   it('cannot verify scores over non-existent score bundle', async function () {
-    await expect(signedScoresPool.connect(nobody).myScore(
-      RANDOM_ADDRESS,
-      RANDOM_ADDRESS,
-      RANDOM_SCORE_42,
-      ZERO_BYTES32,
-      ZERO_BYTES32
-    )).to.be.revertedWith(
-      'Provided score bundle does not exist or deleted'
-    )
+    await expect(
+      signedScoresPool
+        .connect(nobody)
+        .myScore(RANDOM_ADDRESS, RANDOM_ADDRESS, RANDOM_SCORE_42, ZERO_BYTES32, ZERO_BYTES32)
+    ).to.be.revertedWith('Provided score bundle does not exist or deleted')
   })
 
   it('cannot verify scores without UpalaID', async function () {
-    // no UpalaID at all 
-    await expect(signedScoresPool.connect(nobody).myScore(
-      RANDOM_ADDRESS,
-      RANDOM_ADDRESS,
-      RANDOM_SCORE_42,
-      emptyScoreBundle,
-      ZERO_BYTES32
-    )).to.be.revertedWith(
-      'Upala: No such id, not an owner or not a delegate of the id'  // todo better 'No Upala ID'?
+    // no UpalaID at all
+    await expect(
+      signedScoresPool
+        .connect(nobody)
+        .myScore(RANDOM_ADDRESS, RANDOM_ADDRESS, RANDOM_SCORE_42, emptyScoreBundle, ZERO_BYTES32)
+    ).to.be.revertedWith(
+      'Upala: No such id, not an owner or not a delegate of the id' // todo better 'No Upala ID'?
     )
-    // todo existing UpalaID but not an owner 
+    // todo existing UpalaID but not an owner
     // await expect(signedScoresPool.connect(nobody).myScore(
     //   RANDOM_ADDRESS,
     //   RANDOM_ADDRESS,
@@ -141,33 +135,31 @@ describe('SCORING AND BOT ATTACK', function () {
     //   'Upala: No such id, not an owner or not a delegate of the id'  // todo better 'No Upala ID'?
     // )
     // existing UpalaID and valid owner but score assigned to non-existant delegate
-
   })
 
-
-    // register UpalaID for the persona
-    // try myScore on non-existent persona delegate
-    // 
-    // should throw
-    // register persona delegate
-    // try myScore on empty pool
-    // should throw "Pool balance is lower than the total score"
-    // fund pool
-    // try myScore on random proof
-    // should throw with "Can't validate that scoreAssignedTo-score pair is in the bundle"
-    // create valid proof
-    // try myScore with valid proof
-    // assign scores both to UpalaId and delegate address
-    // try checking scores both for UpalaID and delegate address
-    // this should work
-    // try userScore
-    // it('DApp can verify user score by Upala ID or delegate', async function () {
-    // try checking scores both for UpalaID and delegate address
-    // try attack by UpalaID
-    // explode by UpalaID
-    // check reward
-    // check UpalaID is deleted
-    // try attack by delegate address
+  // register UpalaID for the persona
+  // try myScore on non-existent persona delegate
+  //
+  // should throw
+  // register persona delegate
+  // try myScore on empty pool
+  // should throw "Pool balance is lower than the total score"
+  // fund pool
+  // try myScore on random proof
+  // should throw with "Can't validate that scoreAssignedTo-score pair is in the bundle"
+  // create valid proof
+  // try myScore with valid proof
+  // assign scores both to UpalaId and delegate address
+  // try checking scores both for UpalaID and delegate address
+  // this should work
+  // try userScore
+  // it('DApp can verify user score by Upala ID or delegate', async function () {
+  // try checking scores both for UpalaID and delegate address
+  // try attack by UpalaID
+  // explode by UpalaID
+  // check reward
+  // check UpalaID is deleted
+  // try attack by delegate address
 })
 /*
 describe('SCORING AND BOT ATTACK', function () {
