@@ -214,9 +214,9 @@ contract Upala is OwnableUpgradeable{
         returns (bool) 
     {
         require(identity == delegateToIdentity[ownerOrDelegate],
-            "the address is not an owner or delegate of the id");
+            "Upala: No such id, not an owner or not a delegate of the id");
         require (identityOwner[identity] != EXPLODED,
-            "The id is already exploded");
+            "Upala: The id is already exploded");
         return true;
     }
 

@@ -12,28 +12,25 @@ const { deployPool, attachToPool, PoolManager } = require('@upala/group-manager'
 // const PoolManager = require('@upala/group-manager')
 const poolAbi = require('../artifacts/contracts/pools/signed-scores-pool.sol/SignedScoresPool.json')
 let oneETH = BigNumber.from(10).pow(18)
-console.log('GROUP')
+//const scoreChange = oneETH.mul(42).div(100)
 
 /***********
 MANAGE GROUP
 ************/
 
 describe('MANAGE GROUP', function () {
-  let upala
   let upalaAdmin, manager1, nobody
   let signedScoresPool
   const ZERO_BYTES32 = '0x0000000000000000000000000000000000000000000000000000000000000000'
+  let someRoot = ZERO_BYTES32
 
   before('setup protocol', async () => {
     let environment = await setupProtocol({ isSavingConstants: false })
-    upala = environment.upala
     ;[upalaAdmin, manager1, nobody] = environment.wallets
     signedScoresPool = await deployPool('SignedScoresPool', manager1, environment.upalaConstants)
   })
 
-  //const scoreChange = oneETH.mul(42).div(100)
   it('group manager can publish new bundle', async function () {
-    let someRoot = ZERO_BYTES32
     await expect(signedScoresPool.connect(nobody).publishScoreBundleId(someRoot)).to.be.revertedWith(
       'Ownable: caller is not the owner'
     )
