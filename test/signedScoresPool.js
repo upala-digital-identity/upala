@@ -101,7 +101,7 @@ describe('SCORING AND BOT ATTACK', function () {
   before('setup protocol, register users', async () => {
     let env = await setupProtocol({ isSavingConstants: false })
     ;[upalaAdmin, manager1, persona1, delegate11, nobody] = env.wallets
-    // deploy zeroBaseScorePool 
+    // deploy zeroBaseScorePool
     zeroBaseScorePool = await deployPool('SignedScoresPool', manager1, env.upalaConstants)
     // deploy Pool and set baseScore
     signedScoresPool = await deployPool('SignedScoresPool', manager1, env.upalaConstants)
@@ -132,24 +132,21 @@ describe('SCORING AND BOT ATTACK', function () {
   })
 
   it('cannot verify scores without valid UpalaID or delegate', async function () {
-    let badInput = [  // [caller, upalaID, scoreAssignedTo]
-      [nobody, RANDOM_ADDRESS, RANDOM_ADDRESS],  // 000 no UpalaID at all
+    let badInput = [
+      // [caller, upalaID, scoreAssignedTo]
+      [nobody, RANDOM_ADDRESS, RANDOM_ADDRESS], // 000 no UpalaID at all
       [nobody, RANDOM_ADDRESS, persona1.address], // 001
-      [nobody, persona1id, RANDOM_ADDRESS],  // 010 existing UpalaID, but called by nobody
-      [nobody, persona1id, persona1.address],  // 011 existing UpalaID, existing delegate, but called by nobody
-      [persona1, RANDOM_ADDRESS, RANDOM_ADDRESS],  // 100 no UpalaID at all
+      [nobody, persona1id, RANDOM_ADDRESS], // 010 existing UpalaID, but called by nobody
+      [nobody, persona1id, persona1.address], // 011 existing UpalaID, existing delegate, but called by nobody
+      [persona1, RANDOM_ADDRESS, RANDOM_ADDRESS], // 100 no UpalaID at all
       [persona1, RANDOM_ADDRESS, persona1.address], // 101
-      [persona1, persona1id, RANDOM_ADDRESS],  // 110 existing UpalaID, valid owner but score assigned to non-existant delegate
+      [persona1, persona1id, RANDOM_ADDRESS], // 110 existing UpalaID, valid owner but score assigned to non-existant delegate
       // [persona1, persona1id, persona1.address],  // 111 valid
     ]
-    for(const args of badInput) {
+    for (const args of badInput) {
       await expect(
-        signedScoresPool
-          .connect(args[0])
-          .myScore(args[1], args[2], RANDOM_SCORE_42, emptyScoreBundle, ZERO_BYTES32)
-      ).to.be.revertedWith(
-        'Upala: No such id, not an owner or not a delegate of the id'
-      )
+        signedScoresPool.connect(args[0]).myScore(args[1], args[2], RANDOM_SCORE_42, emptyScoreBundle, ZERO_BYTES32)
+      ).to.be.revertedWith('Upala: No such id, not an owner or not a delegate of the id')
     }
   })
 
@@ -157,18 +154,14 @@ describe('SCORING AND BOT ATTACK', function () {
   // try myScore on empty pool
   it('should throw if pool has insufficient funds', async function () {
     let validScoreAssignedTo = [persona1.address, persona1id, delegate11.address]
-    for(const scoreAssignedTo of validScoreAssignedTo) {
+    for (const scoreAssignedTo of validScoreAssignedTo) {
       await expect(
         signedScoresPool
           .connect(persona1)
           .myScore(persona1id, scoreAssignedTo, RANDOM_SCORE_42, emptyScoreBundle, ZERO_BYTES32)
-      ).to.be.revertedWith(
-        'Pool balance is lower than the total score'
-      )
-      }
+      ).to.be.revertedWith('Pool balance is lower than the total score')
+    }
   })
-  
-
 
   // fund pool
   // try myScore on random proof
