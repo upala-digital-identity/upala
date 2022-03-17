@@ -98,7 +98,7 @@ describe('SCORING AND BOT ATTACK', function () {
   let upala, fakeDAI
   let signedScoresPool
   let emptyScoreBundle = '0x0000000000000000000000000000000000000000000000000000000000000001'
-  let env 
+  let env
 
   beforeEach('setup protocol, register users', async () => {
     env = await setupProtocol({ isSavingConstants: false })
@@ -106,7 +106,7 @@ describe('SCORING AND BOT ATTACK', function () {
     upala = env.upala
     fakeDAI = env.dai
   })
-/*
+  /*
   it('cannot verify scores with zero baseScore', async function () {
     zeroBaseScorePool = await deployPool('SignedScoresPool', manager1, env.upalaConstants)
     await expect(
@@ -193,10 +193,11 @@ describe('SCORING AND BOT ATTACK', function () {
     await upala.connect(persona1).approveDelegate(delegate11.address)
     // fill the pool
     await fakeDAI.connect(manager1).freeDaiToTheWorld(signedScoresPool.address, RANDOM_SCORE_42)
-    // sign user 
+    // sign user
     const message = utils.solidityKeccak256(
-      ['address', 'uint8', 'bytes32'], 
-      [persona1id, RANDOM_SCORE_42, emptyScoreBundle])
+      ['address', 'uint8', 'bytes32'],
+      [persona1id, RANDOM_SCORE_42, emptyScoreBundle]
+    )
     let proof = await manager1.signMessage(message)
     let signer = await signedScoresPool.hack_recover(message, proof)
     expect(signer).to.be.equal(manager1.address)
@@ -204,8 +205,8 @@ describe('SCORING AND BOT ATTACK', function () {
     //   signedScoresPool
     //     .connect(persona1)
     //     .myScore(persona1id, persona1id, RANDOM_SCORE_42, emptyScoreBundle, proof)
-    // ).to.be.revertedWith('Can\'t validate that scoreAssignedTo-score pair is in the bundle') 
-  
+    // ).to.be.revertedWith('Can\'t validate that scoreAssignedTo-score pair is in the bundle')
+
     // const TEST_MESSAGE = web3.utils.sha3('Human')
     // // Create the signature
     // // web3 adds "\x19Ethereum Signed Message:\n32" to the hashed message
@@ -216,7 +217,7 @@ describe('SCORING AND BOT ATTACK', function () {
     // const recovered = await signedScoresPool.hack_recover(TEST_MESSAGE, signature)
     // expect(recovered).to.equal(manager1.address)
   })
-  
+
   // it('you can explode, you can explode, you can explode, anyone can exploooooode', async function () {
   //   ///function attack(uint160 groupID, uint160 identityID, uint8 score, bytes32[] calldata proof)
 
