@@ -12,6 +12,7 @@ const { newIdentity } = require('@upala/unique-human')
 
 // const PoolManager = require('@upala/group-manager')
 const poolAbi = require('../artifacts/contracts/pools/signed-scores-pool.sol/SignedScoresPool.json')
+const exp = require('constants')
 let oneETH = BigNumber.from(10).pow(18)
 //const scoreChange = oneETH.mul(42).div(100)
 const ZERO_BYTES32 = '0x0000000000000000000000000000000000000000000000000000000000000000'
@@ -92,30 +93,22 @@ SCORING AND BOT ATTACK
 // persona - use this name to describe Eth address with score
 // nobody - not registered person
 describe('SCORING AND BOT ATTACK', function () {
-  let manager1, persona1, delegate11, nobody
+  let upalaAdmin, manager1, persona1, delegate11, nobody
   let persona1id
-  let upala
+  let upala, fakeDAI
   let signedScoresPool
   let emptyScoreBundle = '0x0000000000000000000000000000000000000000000000000000000000000001'
+  let env 
 
-  before('setup protocol, register users', async () => {
-    let env = await setupProtocol({ isSavingConstants: false })
+  beforeEach('setup protocol, register users', async () => {
+    env = await setupProtocol({ isSavingConstants: false })
     ;[upalaAdmin, manager1, persona1, delegate11, nobody] = env.wallets
-    // deploy zeroBaseScorePool
-    zeroBaseScorePool = await deployPool('SignedScoresPool', manager1, env.upalaConstants)
-    // deploy Pool and set baseScore
-    signedScoresPool = await deployPool('SignedScoresPool', manager1, env.upalaConstants)
-    await signedScoresPool.connect(manager1).setBaseScore(1)
-    // register empty score bundle
-    await signedScoresPool.connect(manager1).publishScoreBundleId(emptyScoreBundle)
-    // register persona1 id
-    persona1id = await newIdentity(persona1.address, persona1, env.upalaConstants)
-    // register persona1 delegate
     upala = env.upala
-    await upala.connect(persona1).approveDelegate(delegate11.address)
+    fakeDAI = env.dai
   })
-
+/*
   it('cannot verify scores with zero baseScore', async function () {
+    zeroBaseScorePool = await deployPool('SignedScoresPool', manager1, env.upalaConstants)
     await expect(
       zeroBaseScorePool
         .connect(nobody)
@@ -123,7 +116,11 @@ describe('SCORING AND BOT ATTACK', function () {
     ).to.be.revertedWith('Pool baseScore is 0')
   })
 
+  // publish random score bundle
   it('cannot verify scores over non-existent score bundle', async function () {
+    signedScoresPool = await deployPool('SignedScoresPool', manager1, env.upalaConstants)
+    await signedScoresPool.connect(manager1).setBaseScore(1)
+    
     await expect(
       signedScoresPool
         .connect(nobody)
@@ -131,7 +128,16 @@ describe('SCORING AND BOT ATTACK', function () {
     ).to.be.revertedWith('Provided score bundle does not exist or deleted')
   })
 
+  // register UpalaID and delegate
   it('cannot verify scores without valid UpalaID or delegate', async function () {
+    // deploy Pool and set baseScore
+    signedScoresPool = await deployPool('SignedScoresPool', manager1, env.upalaConstants)
+    await signedScoresPool.connect(manager1).setBaseScore(1)
+    // register empty score bundle
+    await signedScoresPool.connect(manager1).publishScoreBundleId(emptyScoreBundle)
+    // register persona1 id
+    persona1id = await newIdentity(persona1.address, persona1, env.upalaConstants)
+
     let badInput = [
       // [caller, upalaID, scoreAssignedTo]
       [nobody, RANDOM_ADDRESS, RANDOM_ADDRESS], // 000 no UpalaID at all
@@ -150,9 +156,18 @@ describe('SCORING AND BOT ATTACK', function () {
     }
   })
 
-  // register persona delegate
-  // try myScore on empty pool
+  // register persona delegate, try myScore on empty pool
   it('should throw if pool has insufficient funds', async function () {
+    // deploy Pool and set baseScore
+    signedScoresPool = await deployPool('SignedScoresPool', manager1, env.upalaConstants)
+    await signedScoresPool.connect(manager1).setBaseScore(1)
+    // register empty score bundle
+    await signedScoresPool.connect(manager1).publishScoreBundleId(emptyScoreBundle)
+    // register persona1 id
+    persona1id = await newIdentity(persona1.address, persona1, env.upalaConstants)
+    // register persona1 delegate
+    await upala.connect(persona1).approveDelegate(delegate11.address)
+
     let validScoreAssignedTo = [persona1.address, persona1id, delegate11.address]
     for (const scoreAssignedTo of validScoreAssignedTo) {
       await expect(
@@ -162,10 +177,61 @@ describe('SCORING AND BOT ATTACK', function () {
       ).to.be.revertedWith('Pool balance is lower than the total score')
     }
   })
-
+*/
   // fund pool
   // try myScore on random proof
-  // should throw with "Can't validate that scoreAssignedTo-score pair is in the bundle"
+  // try myScore on empty pool
+  it('should throw with invalid proof', async function () {
+    // deploy Pool and set baseScore
+    signedScoresPool = await deployPool('SignedScoresPool', manager1, env.upalaConstants)
+    await signedScoresPool.connect(manager1).setBaseScore(1)
+    // register empty score bundle
+    await signedScoresPool.connect(manager1).publishScoreBundleId(emptyScoreBundle)
+    // register persona1 id
+    persona1id = await newIdentity(persona1.address, persona1, env.upalaConstants)
+    // register persona1 delegate
+    await upala.connect(persona1).approveDelegate(delegate11.address)
+    // fill the pool
+    await fakeDAI.connect(manager1).freeDaiToTheWorld(signedScoresPool.address, RANDOM_SCORE_42)
+    // sign user 
+    const message = utils.solidityKeccak256(
+      ['address', 'uint8', 'bytes32'], 
+      [persona1id, RANDOM_SCORE_42, emptyScoreBundle])
+    let proof = await manager1.signMessage(message)
+    let signer = await signedScoresPool.hack_recover(message, proof)
+    expect(signer).to.be.equal(manager1.address)
+    // await expect(
+    //   signedScoresPool
+    //     .connect(persona1)
+    //     .myScore(persona1id, persona1id, RANDOM_SCORE_42, emptyScoreBundle, proof)
+    // ).to.be.revertedWith('Can\'t validate that scoreAssignedTo-score pair is in the bundle') 
+  
+    // const TEST_MESSAGE = web3.utils.sha3('Human')
+    // // Create the signature
+    // // web3 adds "\x19Ethereum Signed Message:\n32" to the hashed message
+    // let signature
+    // // signature = await web3.eth.sign(TEST_MESSAGE, manager1.address)
+    // signature = await manager1.signMessage(TEST_MESSAGE)
+    // // Recover the signer address from the generated message and signature.
+    // const recovered = await signedScoresPool.hack_recover(TEST_MESSAGE, signature)
+    // expect(recovered).to.equal(manager1.address)
+  })
+  
+  // it('you can explode, you can explode, you can explode, anyone can exploooooode', async function () {
+  //   ///function attack(uint160 groupID, uint160 identityID, uint8 score, bytes32[] calldata proof)
+
+  //   /// hack
+
+  //   const TEST_MESSAGE = web3.utils.sha3('Human')
+  //   // Create the signature
+  //   // web3 adds "\x19Ethereum Signed Message:\n32" to the hashed message
+  //   const signature = await web3.eth.sign(TEST_MESSAGE, manager1.address)
+
+  //   // Recover the signer address from the generated message and signature.
+  //   const recovered = await signedScoresPool.hack_recover(TEST_MESSAGE, signature)
+  //   expect(recovered).to.equal(manager1.address)
+  // })
+
   // create valid proof
   // try myScore with valid proof
   // assign scores both to UpalaId and delegate address
@@ -198,20 +264,7 @@ describe('SCORING AND BOT ATTACK', function () {
 
   })
 
-  it('you can explode, you can explode, you can explode, anyone can exploooooode', async function () {
-    ///function attack(uint160 groupID, uint160 identityID, uint8 score, bytes32[] calldata proof)
 
-    /// hack
-
-    const TEST_MESSAGE = web3.utils.sha3('Human')
-    // Create the signature
-    // web3 adds "\x19Ethereum Signed Message:\n32" to the hashed message
-    const signature = await web3.eth.sign(TEST_MESSAGE, manager1.address)
-
-    // Recover the signer address from the generated message and signature.
-    const recovered = await signedScoresPool.hack_recover(TEST_MESSAGE, signature)
-    expect(recovered).to.equal(manager1.address)
-  })
 
   it('cannot explode from an arbitrary address', async function () {})
 

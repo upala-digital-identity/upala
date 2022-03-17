@@ -1,6 +1,6 @@
 pragma solidity ^0.8.0;
 
-import 'contracts/pools/bundledScoresPool.sol';
+import '../pools/bundledScoresPool.sol';
 import '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';
 
 // production todo create IPool
