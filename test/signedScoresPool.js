@@ -219,10 +219,8 @@ describe('SCORING AND BOT ATTACK', function () {
     //     .myScore(persona1id, persona1id, RANDOM_SCORE_42, emptyScoreBundle, proof)).toNumber()
 
     await expect(
-      signedScoresPool
-        .connect(persona1)
-        .myScore(persona1id, persona1id, 41, emptyScoreBundle, proof)
-    ).to.be.revertedWith('Can\'t validate that scoreAssignedTo-score pair is in the bundle')
+      signedScoresPool.connect(persona1).myScore(persona1id, persona1id, 41, emptyScoreBundle, proof)
+    ).to.be.revertedWith("Can't validate that scoreAssignedTo-score pair is in the bundle")
   })
 
   // leaving it here for now, because it is not clear how it works
