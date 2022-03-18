@@ -16,6 +16,7 @@ const exp = require('constants')
 let oneETH = BigNumber.from(10).pow(18)
 //const scoreChange = oneETH.mul(42).div(100)
 const ZERO_BYTES32 = '0x0000000000000000000000000000000000000000000000000000000000000000'
+const emptyScoreBundle = '0x0000000000000000000000000000000000000000000000000000000000000001'
 const RANDOM_SCORE_42 = 42 // do not use 42 anywhere else
 const RANDOM_ADDRESS = '0x0c2788f417685706f61414e4Cb6F5f672eA79731'
 /***********
@@ -97,7 +98,6 @@ describe('SCORING AND BOT ATTACK', function () {
   let persona1id
   let upala, fakeDAI
   let signedScoresPool
-  let emptyScoreBundle = '0x0000000000000000000000000000000000000000000000000000000000000001'
   let env
 
   beforeEach('setup protocol, register users', async () => {
@@ -178,6 +178,20 @@ describe('SCORING AND BOT ATTACK', function () {
     }
   })
 */
+
+  // quick way to check the right soup that makes recover work correclty
+  it('signes and recovers address correctly', async function () {
+    const message = utils.solidityKeccak256(
+      ['address', 'uint8', 'bytes32'],
+      [RANDOM_ADDRESS, RANDOM_SCORE_42, ZERO_BYTES32]
+    )
+    // note the arrayify function here!!!
+    let proof = await manager1.signMessage(ethers.utils.arrayify(message))
+    signedScoresPool = await deployPool('SignedScoresPool', manager1, env.upalaConstants)
+    let signer = await signedScoresPool.hack_recover(message, proof)
+    expect(signer).to.be.equal(manager1.address)
+  })
+
   // fund pool
   // try myScore on random proof
   // try myScore on empty pool
@@ -198,46 +212,36 @@ describe('SCORING AND BOT ATTACK', function () {
       ['address', 'uint8', 'bytes32'],
       [persona1id, RANDOM_SCORE_42, emptyScoreBundle]
     )
-    let proof = await manager1.signMessage(message)
-    let signer = await signedScoresPool.hack_recover(message, proof)
-    expect(signer).to.be.equal(manager1.address)
-    // await expect(
-    //   signedScoresPool
-    //     .connect(persona1)
-    //     .myScore(persona1id, persona1id, RANDOM_SCORE_42, emptyScoreBundle, proof)
-    // ).to.be.revertedWith('Can\'t validate that scoreAssignedTo-score pair is in the bundle')
+    let proof = await manager1.signMessage(ethers.utils.arrayify(message))
 
-    // const TEST_MESSAGE = web3.utils.sha3('Human')
-    // // Create the signature
-    // // web3 adds "\x19Ethereum Signed Message:\n32" to the hashed message
-    // let signature
-    // // signature = await web3.eth.sign(TEST_MESSAGE, manager1.address)
-    // signature = await manager1.signMessage(TEST_MESSAGE)
-    // // Recover the signer address from the generated message and signature.
-    // const recovered = await signedScoresPool.hack_recover(TEST_MESSAGE, signature)
-    // expect(recovered).to.equal(manager1.address)
+    // (await signedScoresPool
+    //     .connect(persona1)
+    //     .myScore(persona1id, persona1id, RANDOM_SCORE_42, emptyScoreBundle, proof)).toNumber()
+
+    await expect(
+      signedScoresPool
+        .connect(persona1)
+        .myScore(persona1id, persona1id, 41, emptyScoreBundle, proof)
+    ).to.be.revertedWith('Can\'t validate that scoreAssignedTo-score pair is in the bundle')
   })
 
-  // it('you can explode, you can explode, you can explode, anyone can exploooooode', async function () {
-  //   ///function attack(uint160 groupID, uint160 identityID, uint8 score, bytes32[] calldata proof)
-
-  //   /// hack
-
-  //   const TEST_MESSAGE = web3.utils.sha3('Human')
-  //   // Create the signature
-  //   // web3 adds "\x19Ethereum Signed Message:\n32" to the hashed message
-  //   const signature = await web3.eth.sign(TEST_MESSAGE, manager1.address)
-
-  //   // Recover the signer address from the generated message and signature.
-  //   const recovered = await signedScoresPool.hack_recover(TEST_MESSAGE, signature)
-  //   expect(recovered).to.equal(manager1.address)
-  // })
+  // leaving it here for now, because it is not clear how it works
+  it('you can explode, you can explode, you can explode, anyone can exploooooode', async function () {
+    const TEST_MESSAGE = web3.utils.sha3('Human')
+    // Create the signature
+    // web3 adds "\x19Ethereum Signed Message:\n32" to the hashed message
+    const signature = await web3.eth.sign(TEST_MESSAGE, manager1.address)
+    // Recover the signer address from the generated message and signature.
+    const recovered = await signedScoresPool.hack_recover(TEST_MESSAGE, signature)
+    expect(recovered).to.equal(manager1.address)
+  })
 
   // create valid proof
   // try myScore with valid proof
   // assign scores both to UpalaId and delegate address
   // try checking scores both for UpalaID and delegate address
   // this should work
+
   // try userScore
   // it('DApp can verify user score by Upala ID or delegate', async function () {
   // try checking scores both for UpalaID and delegate address
@@ -248,24 +252,6 @@ describe('SCORING AND BOT ATTACK', function () {
   // try attack by delegate address
 })
 /*
-describe('SCORING AND BOT ATTACK', function () {
-  before('register users', async () => {
-    ;[upala, fakeDai, wallets] = await setupProtocol()
-    ;[upalaAdmin, manager1] = wallets.slice(0, 2)
-    ;[signedScoresPoolFactory, signedScoresPool] = await setUpPoolFactoryAndPool(
-      upala,
-      fakeDai,
-      'SignedScoresPoolFactory',
-      upalaAdmin,
-      manager1
-    )
-  })
-
-
-
-  })
-
-
 
   it('cannot explode from an arbitrary address', async function () {})
 
