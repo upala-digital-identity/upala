@@ -73,12 +73,19 @@ contract SignedScoresPool is BundledScoresPool {
         bytes memory signature
     ) internal view override returns (bool) {
         return(
-            keccak256(abi.encodePacked(intraBundleUserID, score, bundleId))
-                .toEthSignedMessageHash()
-                .recover(signature) == owner());
+            recoverEthSigned(
+                keccak256(abi.encodePacked(intraBundleUserID, score, bundleId)),
+                signature
+            ) == owner()
+        );
     }
 
-    function hack_recover(bytes32 message, bytes calldata signature) external view returns (address) {
+    function recoverEthSigned(bytes32 message, bytes memory signature) internal view returns (address) {
         return message.toEthSignedMessageHash().recover(signature);
+    }
+    
+    // is used for testing only (yep, a bit dirty, but trying to move fast)
+    function testRecover(bytes32 message, bytes calldata signature) external view returns (address) {
+        return recoverEthSigned(message, signature);
     }
 }

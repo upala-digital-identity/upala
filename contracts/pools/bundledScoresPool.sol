@@ -225,9 +225,7 @@ contract BundledScoresPool is Ownable {
         uint8 score,
         bytes32 bundleId,
         bytes calldata proof
-    ) external {
-        console.log('hey');
-
+    ) external returns (uint256) {
         // calculate reward (and validity)
         uint256 reward = _userScore(msg.sender, upalaID, scoreAssignedTo, score, bundleId, proof);
 
@@ -236,6 +234,9 @@ contract BundledScoresPool is Ownable {
 
         // payout 💸
         _payBotReward(msg.sender, reward);
+
+        // protecting bot rights. letting bots use smart contracts easily
+        return(reward);
     }
 
     function _userScore(
