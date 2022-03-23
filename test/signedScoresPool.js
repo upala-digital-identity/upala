@@ -17,7 +17,9 @@ let oneETH = BigNumber.from(10).pow(18)
 //const scoreChange = oneETH.mul(42).div(100)
 const ZERO_BYTES32 = '0x0000000000000000000000000000000000000000000000000000000000000000'
 const emptyScoreBundle = '0x0000000000000000000000000000000000000000000000000000000000000001'
-const RANDOM_SCORE_42 = 42 // do not use 42 anywhere else
+const USER_RATING_42 = 42 // do not use 42 anywhere else
+const BASE_SCORE = ethers.utils.parseEther("2.5")
+const TOTAL_SCORE = BASE_SCORE.mul(USER_RATING_42)
 const RANDOM_ADDRESS = '0x0c2788f417685706f61414e4Cb6F5f672eA79731'
 /***********
 MANAGE GROUP
@@ -43,37 +45,37 @@ describe('MANAGE GROUP', function () {
     expect(bundleTimestamp).to.eq(txTimestamp)
   })
 })
+*/
+  // it('group manager can publish group meta', async function () {
+  //   assert.fail('actual', 'expected', 'Error message')
+  //   // db_url, description, etc. - from future
+  // })
 
-  it('group manager can publish group meta', async function () {
-    assert.fail('actual', 'expected', 'Error message')
-    // db_url, description, etc. - from future
-  })
+  // it('group manager can set base score', async function () {
+  //   // initializing Upala manager
+  //   let env = await setupProtocol({ isSavingConstants: false })
+  //   upala = env.upala
+  //   ;[upalaAdmin, nobody] = env.wallets
 
-  it('group manager can set base score', async function () {
-    // initializing Upala manager
-    let env = await setupProtocol({ isSavingConstants: false })
-    upala = env.upala
-    ;[upalaAdmin, nobody] = env.wallets
+  //   // inititalizing pool poolManagerWallet
+  //   // var poolManager = new PoolManager({
+  //   //   wallet: poolManagerWallet,
+  //   //   overrideAddresses: upalaManager.getAddresses(),
+  //   // })
+  //   // console.log('decrease')
+  //   // console.log(await poolManager.deployPool('SignedScoresPool'))
+  //   // const hash = events[0].args[0];
 
-    // inititalizing pool poolManagerWallet
-    // var poolManager = new PoolManager({
-    //   wallet: poolManagerWallet,
-    //   overrideAddresses: upalaManager.getAddresses(),
-    // })
-    // console.log('decrease')
-    // console.log(await poolManager.deployPool('SignedScoresPool'))
-    // const hash = events[0].args[0];
+  //   expect(1).to.be.equal(2)
+  // })
 
-    expect(1).to.be.equal(2)
-  })
+  // it('group manager can delete bundle', async function () {
+  //   // todo
+  // })
 
-  it('group manager can delete bundle', async function () {
-    // todo
-  })
-
-  it('group manager can withdraw money from pool', async function () {
-    // todo
-  })
+  // it('group manager can withdraw money from pool', async function () {
+  //   // todo
+  // })
 
   /*
   it('OWNERSHIP', function () {
@@ -82,7 +84,6 @@ describe('MANAGE GROUP', function () {
   // old manager can now manage new group
   // still got access to pool
 })
-*/
 
 /*********************
 SCORING AND BOT ATTACK
@@ -106,13 +107,13 @@ describe('SCORING AND BOT ATTACK', function () {
     upala = env.upala
     fakeDAI = env.dai
   })
-  /*
+/*
   it('cannot verify scores with zero baseScore', async function () {
     zeroBaseScorePool = await deployPool('SignedScoresPool', manager1, env.upalaConstants)
     await expect(
       zeroBaseScorePool
         .connect(nobody)
-        .myScore(RANDOM_ADDRESS, RANDOM_ADDRESS, RANDOM_SCORE_42, ZERO_BYTES32, ZERO_BYTES32)
+        .myScore(RANDOM_ADDRESS, RANDOM_ADDRESS, USER_RATING_42, ZERO_BYTES32, ZERO_BYTES32)
     ).to.be.revertedWith('Pool baseScore is 0')
   })
 
@@ -124,7 +125,7 @@ describe('SCORING AND BOT ATTACK', function () {
     await expect(
       signedScoresPool
         .connect(nobody)
-        .myScore(RANDOM_ADDRESS, RANDOM_ADDRESS, RANDOM_SCORE_42, ZERO_BYTES32, ZERO_BYTES32)
+        .myScore(RANDOM_ADDRESS, RANDOM_ADDRESS, USER_RATING_42, ZERO_BYTES32, ZERO_BYTES32)
     ).to.be.revertedWith('Provided score bundle does not exist or deleted')
   })
 
@@ -151,7 +152,7 @@ describe('SCORING AND BOT ATTACK', function () {
     ]
     for (const args of badInput) {
       await expect(
-        signedScoresPool.connect(args[0]).myScore(args[1], args[2], RANDOM_SCORE_42, emptyScoreBundle, ZERO_BYTES32)
+        signedScoresPool.connect(args[0]).myScore(args[1], args[2], USER_RATING_42, emptyScoreBundle, ZERO_BYTES32)
       ).to.be.revertedWith('Upala: No such id, not an owner or not a delegate of the id')
     }
   })
@@ -173,7 +174,7 @@ describe('SCORING AND BOT ATTACK', function () {
       await expect(
         signedScoresPool
           .connect(persona1)
-          .myScore(persona1id, scoreAssignedTo, RANDOM_SCORE_42, emptyScoreBundle, ZERO_BYTES32)
+          .myScore(persona1id, scoreAssignedTo, USER_RATING_42, emptyScoreBundle, ZERO_BYTES32)
       ).to.be.revertedWith('Pool balance is lower than the total score')
     }
   })
@@ -183,11 +184,11 @@ describe('SCORING AND BOT ATTACK', function () {
   it('signes and recovers address correctly', async function () {
     const message = utils.solidityKeccak256(
       ['address', 'uint8', 'bytes32'],
-      [RANDOM_ADDRESS, RANDOM_SCORE_42, ZERO_BYTES32]
+      [RANDOM_ADDRESS, USER_RATING_42, ZERO_BYTES32]
     )
     const wrongMessage = utils.solidityKeccak256(
       ['address', 'uint8', 'bytes32'],
-      [RANDOM_ADDRESS, RANDOM_SCORE_42 + 1, ZERO_BYTES32]
+      [RANDOM_ADDRESS, USER_RATING_42 + 1, ZERO_BYTES32]
     )
     // note the arrayify function here!!!
     let proof = await manager1.signMessage(ethers.utils.arrayify(message))
@@ -211,41 +212,42 @@ describe('SCORING AND BOT ATTACK', function () {
   it('you can explode, you can explode, anyone can exploooooode', async function () {
     // deploy Pool and set baseScore
     signedScoresPool = await deployPool('SignedScoresPool', manager1, env.upalaConstants)
-    await signedScoresPool.connect(manager1).setBaseScore(1)
+    
+    await signedScoresPool.connect(manager1).setBaseScore(BASE_SCORE)
     // register empty score bundle
     await signedScoresPool.connect(manager1).publishScoreBundleId(emptyScoreBundle)
     // register persona1 id
     persona1id = await newIdentity(persona1.address, persona1, env.upalaConstants)
 
     // fill the pool
-    await fakeDAI.connect(manager1).freeDaiToTheWorld(signedScoresPool.address, RANDOM_SCORE_42)
+    await fakeDAI.connect(manager1).freeDaiToTheWorld(signedScoresPool.address, BASE_SCORE.mul(USER_RATING_42))
 
     // sign user
     let proof = await manager1.signMessage(
       ethers.utils.arrayify(
-        utils.solidityKeccak256(['address', 'uint8', 'bytes32'], [persona1id, RANDOM_SCORE_42, emptyScoreBundle])
+        utils.solidityKeccak256(['address', 'uint8', 'bytes32'], [persona1id, USER_RATING_42, emptyScoreBundle])
       )
     )
     // check valid proof requirement - no state change
     await expect(
-      signedScoresPool.connect(persona1).myScore(persona1id, persona1id, RANDOM_SCORE_42 - 1, emptyScoreBundle, proof)
+      signedScoresPool.connect(persona1).myScore(persona1id, persona1id, USER_RATING_42 - 1, emptyScoreBundle, proof)
     ).to.be.revertedWith("Can't validate that scoreAssignedTo-score pair is in the bundle")
     // check myScore
     expect(
       (
         await signedScoresPool
           .connect(persona1)
-          .myScore(persona1id, persona1id, RANDOM_SCORE_42, emptyScoreBundle, proof)
-      ).toNumber()
-    ).to.be.equal(RANDOM_SCORE_42)
+          .myScore(persona1id, persona1id, USER_RATING_42, emptyScoreBundle, proof)
+      )
+    ).to.be.equal(BASE_SCORE.mul(USER_RATING_42))
     // check useScore (a dapp call) - no state change
     expect(
       (
         await signedScoresPool
           .connect(dapp)
-          .userScore(persona1.address, persona1id, persona1id, RANDOM_SCORE_42, emptyScoreBundle, proof)
-      ).toNumber()
-    ).to.be.equal(RANDOM_SCORE_42)
+          .userScore(persona1.address, persona1id, persona1id, USER_RATING_42, emptyScoreBundle, proof)
+      )
+    ).to.be.equal(BASE_SCORE.mul(USER_RATING_42))
 
     // bot vs managers check
     // assign a score by address (a platform action)
@@ -253,24 +255,33 @@ describe('SCORING AND BOT ATTACK', function () {
       ethers.utils.arrayify(
         utils.solidityKeccak256(
           ['address', 'uint8', 'bytes32'],
-          [delegate11.address, RANDOM_SCORE_42, emptyScoreBundle]
+          [delegate11.address, USER_RATING_42, emptyScoreBundle]
         )
       )
     )
     // bot actions
     // 1. register UpalaID (no matter on which address, so using persona1 from above)
     // 2. register persona1 delegate (use address with score)
-    expect((await fakeDAI.balanceOf(signedScoresPool.address)).toNumber()).to.be.equal(RANDOM_SCORE_42)
-    console.log('fakeDai: ', (await fakeDAI.balanceOf(signedScoresPool.address)).toNumber())
     await upala.connect(persona1).approveDelegate(delegate11.address)
+    // before
+    let poolBalBefore = await fakeDAI.balanceOf(signedScoresPool.address)
+    let botBalBefore = await fakeDAI.balanceOf(persona1.address)
+    let upalaBalBefore = await fakeDAI.balanceOf(await upala.treasury())
+    // explode
     await signedScoresPool
       .connect(persona1)
-      .attack(persona1id, delegate11.address, RANDOM_SCORE_42, emptyScoreBundle, delegateProof)
-    // check reward
-    expect((await fakeDAI.balanceOf(signedScoresPool.address)).toNumber()).to.be.equal(0)
-    // console.log("fakeDai: ", (await fakeDAI.balanceOf(persona1.address)).toNumber())
-    // expect((await fakeDAI.balanceOf(persona1.address)).toNumber())
-    //     .to.be.equal(RANDOM_SCORE_42)
+      .attack(persona1id, delegate11.address, USER_RATING_42, emptyScoreBundle, delegateProof)
+    // after
+    let poolBalAfter = await fakeDAI.balanceOf(signedScoresPool.address)
+    let botBalAfter = await fakeDAI.balanceOf(persona1.address)
+    let upalaBalAfter = await fakeDAI.balanceOf(await upala.treasury())
+
+    let totalScore = BASE_SCORE.mul(USER_RATING_42)
+    let fee = totalScore.mul(await upala.explosionFeePercent()).div(100)
+    let reward = totalScore.sub(fee)
+    expect(poolBalBefore.sub(poolBalAfter)).to.be.equal(totalScore)  // pool balance decreased
+    expect(botBalAfter.sub(botBalBefore)).to.be.equal(reward)  // bot gets reward
+    expect(upalaBalAfter.sub(upalaBalBefore)).to.be.equal(fee) // upala collects fee 
 
     // check UpalaID is deleted
   })
