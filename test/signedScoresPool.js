@@ -266,15 +266,27 @@ describe('SCORING AND BOT ATTACK', function () {
     let poolBalAfter = await fakeDAI.balanceOf(signedScoresPool.address)
     let botBalAfter = await fakeDAI.balanceOf(persona1.address)
     let upalaBalAfter = await fakeDAI.balanceOf(await upala.treasury())
-
+    // check rewards
     let totalScore = BASE_SCORE.mul(USER_RATING_42)
     let fee = totalScore.mul(await upala.explosionFeePercent()).div(100)
     let reward = totalScore.sub(fee)
     expect(poolBalBefore.sub(poolBalAfter)).to.be.equal(totalScore) // pool balance decreased
     expect(botBalAfter.sub(botBalBefore)).to.be.equal(reward) // bot gets reward
     expect(upalaBalAfter.sub(upalaBalBefore)).to.be.equal(fee) // upala collects fee
-
-    // check UpalaID is deleted
+    // try expolding again
+    let validScoreAssignedTo = [persona1.address, persona1id, delegate11.address]
+    for (const scoreAssignedTo of validScoreAssignedTo) {
+      let prooof = await manager1.signMessage(
+        ethers.utils.arrayify(
+          utils.solidityKeccak256(['address', 'uint8', 'bytes32'], [scoreAssignedTo, USER_RATING_42, emptyScoreBundle])
+        )
+      )
+      await expect(
+        signedScoresPool
+          .connect(persona1)
+          .myScore(persona1id, scoreAssignedTo, USER_RATING_42, emptyScoreBundle, prooof)
+      ).to.be.revertedWith('Upala: The id is already exploded')
+    }
   })
 
   // leaving it here for now, because it is not clear how it works

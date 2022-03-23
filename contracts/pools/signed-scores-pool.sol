@@ -4,6 +4,7 @@ import '../pools/bundledScoresPool.sol';
 import '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';
 
 // production todo create IPool
+// production todo import vs inheritance check
 
 contract SignedScoresPoolFactory {  // naming convention poolType + 'Factory'
     Upala public upala;
