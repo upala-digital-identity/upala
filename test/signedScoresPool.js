@@ -18,7 +18,7 @@ let oneETH = BigNumber.from(10).pow(18)
 const ZERO_BYTES32 = '0x0000000000000000000000000000000000000000000000000000000000000000'
 const emptyScoreBundle = '0x0000000000000000000000000000000000000000000000000000000000000001'
 const USER_RATING_42 = 42 // do not use 42 anywhere else
-const BASE_SCORE = ethers.utils.parseEther("2.5")
+const BASE_SCORE = ethers.utils.parseEther('2.5')
 const TOTAL_SCORE = BASE_SCORE.mul(USER_RATING_42)
 const RANDOM_ADDRESS = '0x0c2788f417685706f61414e4Cb6F5f672eA79731'
 /***********
@@ -46,38 +46,38 @@ describe('MANAGE GROUP', function () {
   })
 })
 */
-  // it('group manager can publish group meta', async function () {
-  //   assert.fail('actual', 'expected', 'Error message')
-  //   // db_url, description, etc. - from future
-  // })
+// it('group manager can publish group meta', async function () {
+//   assert.fail('actual', 'expected', 'Error message')
+//   // db_url, description, etc. - from future
+// })
 
-  // it('group manager can set base score', async function () {
-  //   // initializing Upala manager
-  //   let env = await setupProtocol({ isSavingConstants: false })
-  //   upala = env.upala
-  //   ;[upalaAdmin, nobody] = env.wallets
+// it('group manager can set base score', async function () {
+//   // initializing Upala manager
+//   let env = await setupProtocol({ isSavingConstants: false })
+//   upala = env.upala
+//   ;[upalaAdmin, nobody] = env.wallets
 
-  //   // inititalizing pool poolManagerWallet
-  //   // var poolManager = new PoolManager({
-  //   //   wallet: poolManagerWallet,
-  //   //   overrideAddresses: upalaManager.getAddresses(),
-  //   // })
-  //   // console.log('decrease')
-  //   // console.log(await poolManager.deployPool('SignedScoresPool'))
-  //   // const hash = events[0].args[0];
+//   // inititalizing pool poolManagerWallet
+//   // var poolManager = new PoolManager({
+//   //   wallet: poolManagerWallet,
+//   //   overrideAddresses: upalaManager.getAddresses(),
+//   // })
+//   // console.log('decrease')
+//   // console.log(await poolManager.deployPool('SignedScoresPool'))
+//   // const hash = events[0].args[0];
 
-  //   expect(1).to.be.equal(2)
-  // })
+//   expect(1).to.be.equal(2)
+// })
 
-  // it('group manager can delete bundle', async function () {
-  //   // todo
-  // })
+// it('group manager can delete bundle', async function () {
+//   // todo
+// })
 
-  // it('group manager can withdraw money from pool', async function () {
-  //   // todo
-  // })
+// it('group manager can withdraw money from pool', async function () {
+//   // todo
+// })
 
-  /*
+/*
   it('OWNERSHIP', function () {
   // can setGroupManager
   // only owner can setGroupManager
@@ -107,7 +107,7 @@ describe('SCORING AND BOT ATTACK', function () {
     upala = env.upala
     fakeDAI = env.dai
   })
-/*
+  /*
   it('cannot verify scores with zero baseScore', async function () {
     zeroBaseScorePool = await deployPool('SignedScoresPool', manager1, env.upalaConstants)
     await expect(
@@ -212,7 +212,7 @@ describe('SCORING AND BOT ATTACK', function () {
   it('you can explode, you can explode, anyone can exploooooode', async function () {
     // deploy Pool and set baseScore
     signedScoresPool = await deployPool('SignedScoresPool', manager1, env.upalaConstants)
-    
+
     await signedScoresPool.connect(manager1).setBaseScore(BASE_SCORE)
     // register empty score bundle
     await signedScoresPool.connect(manager1).publishScoreBundleId(emptyScoreBundle)
@@ -234,29 +234,20 @@ describe('SCORING AND BOT ATTACK', function () {
     ).to.be.revertedWith("Can't validate that scoreAssignedTo-score pair is in the bundle")
     // check myScore
     expect(
-      (
-        await signedScoresPool
-          .connect(persona1)
-          .myScore(persona1id, persona1id, USER_RATING_42, emptyScoreBundle, proof)
-      )
+      await signedScoresPool.connect(persona1).myScore(persona1id, persona1id, USER_RATING_42, emptyScoreBundle, proof)
     ).to.be.equal(BASE_SCORE.mul(USER_RATING_42))
     // check useScore (a dapp call) - no state change
     expect(
-      (
-        await signedScoresPool
-          .connect(dapp)
-          .userScore(persona1.address, persona1id, persona1id, USER_RATING_42, emptyScoreBundle, proof)
-      )
+      await signedScoresPool
+        .connect(dapp)
+        .userScore(persona1.address, persona1id, persona1id, USER_RATING_42, emptyScoreBundle, proof)
     ).to.be.equal(BASE_SCORE.mul(USER_RATING_42))
 
     // bot vs managers check
     // assign a score by address (a platform action)
     let delegateProof = await manager1.signMessage(
       ethers.utils.arrayify(
-        utils.solidityKeccak256(
-          ['address', 'uint8', 'bytes32'],
-          [delegate11.address, USER_RATING_42, emptyScoreBundle]
-        )
+        utils.solidityKeccak256(['address', 'uint8', 'bytes32'], [delegate11.address, USER_RATING_42, emptyScoreBundle])
       )
     )
     // bot actions
@@ -279,9 +270,9 @@ describe('SCORING AND BOT ATTACK', function () {
     let totalScore = BASE_SCORE.mul(USER_RATING_42)
     let fee = totalScore.mul(await upala.explosionFeePercent()).div(100)
     let reward = totalScore.sub(fee)
-    expect(poolBalBefore.sub(poolBalAfter)).to.be.equal(totalScore)  // pool balance decreased
-    expect(botBalAfter.sub(botBalBefore)).to.be.equal(reward)  // bot gets reward
-    expect(upalaBalAfter.sub(upalaBalBefore)).to.be.equal(fee) // upala collects fee 
+    expect(poolBalBefore.sub(poolBalAfter)).to.be.equal(totalScore) // pool balance decreased
+    expect(botBalAfter.sub(botBalBefore)).to.be.equal(reward) // bot gets reward
+    expect(upalaBalAfter.sub(upalaBalBefore)).to.be.equal(fee) // upala collects fee
 
     // check UpalaID is deleted
   })
