@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.6.0;
+pragma solidity ^0.8.0;
 
-import "../libraries/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 // import "../libraries/openzeppelin-contracts/contracts/cryptography/MerkleProof.sol";
 
 contract MerkleDistributor {

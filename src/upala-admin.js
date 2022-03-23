@@ -92,7 +92,7 @@ async function setupProtocol(params) {
   console.log('upala', upala.address)
 
   // Deploy DAI
-  const fakeDai = await deployContract('FakeDai')
+  const fakeDai = await deployContract('FakeDai', 'FakeDai', 'DAI')
   upalaConstants.addContract('DAI', fakeDai)
   console.log('fakeDai', fakeDai.address)
 

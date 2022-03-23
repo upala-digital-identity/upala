@@ -22,7 +22,7 @@ const RANDOM_ADDRESS = '0x0c2788f417685706f61414e4Cb6F5f672eA79731'
 /***********
 MANAGE GROUP
 ************/
-
+/*
 describe('MANAGE GROUP', function () {
   let upalaAdmin, manager1, nobody
   let signedScoresPool
@@ -43,7 +43,7 @@ describe('MANAGE GROUP', function () {
     expect(bundleTimestamp).to.eq(txTimestamp)
   })
 })
-/*
+
   it('group manager can publish group meta', async function () {
     assert.fail('actual', 'expected', 'Error message')
     // db_url, description, etc. - from future
@@ -177,7 +177,7 @@ describe('SCORING AND BOT ATTACK', function () {
       ).to.be.revertedWith('Pool balance is lower than the total score')
     }
   })
-*/
+
 
   // quick way to check the right soup that makes recover work correclty
   it('signes and recovers address correctly', async function () {
@@ -203,7 +203,7 @@ describe('SCORING AND BOT ATTACK', function () {
     signer = await signedScoresPool.testRecover(message, wrongProof)
     expect(signer).to.not.equal(manager1.address)
   })
-
+*/
   // fund pool
   // try myScore on random proof
   // try valid proof
@@ -219,6 +219,7 @@ describe('SCORING AND BOT ATTACK', function () {
 
     // fill the pool
     await fakeDAI.connect(manager1).freeDaiToTheWorld(signedScoresPool.address, RANDOM_SCORE_42)
+    
     // sign user
     let proof = await manager1.signMessage(
       ethers.utils.arrayify(
@@ -259,16 +260,19 @@ describe('SCORING AND BOT ATTACK', function () {
     // bot actions
     // 1. register UpalaID (no matter on which address, so using persona1 from above)
     // 2. register persona1 delegate (use address with score)
-    // expect ((await fakeDAI.balanceOf(signedScoresPool.address)).toNumber())
-    //     .to.be.equal(RANDOM_SCORE_42)
+    expect((await fakeDAI.balanceOf(signedScoresPool.address)).toNumber())
+        .to.be.equal(RANDOM_SCORE_42)
+    console.log("fakeDai: ", (await fakeDAI.balanceOf(signedScoresPool.address)).toNumber())
     await upala.connect(persona1).approveDelegate(delegate11.address)
     await signedScoresPool
       .connect(persona1)
       .attack(persona1id, delegate11.address, RANDOM_SCORE_42, emptyScoreBundle, delegateProof)
     // check reward
     expect((await fakeDAI.balanceOf(signedScoresPool.address)).toNumber()).to.be.equal(0)
-    // expect ((await fakeDAI.balanceOf(persona1.address)).toNumber())
+    // console.log("fakeDai: ", (await fakeDAI.balanceOf(persona1.address)).toNumber())
+    // expect((await fakeDAI.balanceOf(persona1.address)).toNumber())
     //     .to.be.equal(RANDOM_SCORE_42)
+
 
     // check UpalaID is deleted
   })

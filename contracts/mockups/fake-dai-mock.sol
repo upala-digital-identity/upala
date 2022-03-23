@@ -1,10 +1,12 @@
-pragma solidity ^0.6.0;
+pragma solidity ^0.8.0;
 
-import "../libraries/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract FakeDai is ERC20 {
 
-    // s
+    constructor (string memory name_, string memory symbol_) ERC20(name_, symbol_) public {
+    }
+
     function freeDaiToTheWorld(address anyAccount, uint256 anyAmount) external {
         _mint(anyAccount, anyAmount);
     }
