@@ -219,7 +219,7 @@ describe('SCORING AND BOT ATTACK', function () {
 
     // fill the pool
     await fakeDAI.connect(manager1).freeDaiToTheWorld(signedScoresPool.address, RANDOM_SCORE_42)
-    
+
     // sign user
     let proof = await manager1.signMessage(
       ethers.utils.arrayify(
@@ -260,9 +260,8 @@ describe('SCORING AND BOT ATTACK', function () {
     // bot actions
     // 1. register UpalaID (no matter on which address, so using persona1 from above)
     // 2. register persona1 delegate (use address with score)
-    expect((await fakeDAI.balanceOf(signedScoresPool.address)).toNumber())
-        .to.be.equal(RANDOM_SCORE_42)
-    console.log("fakeDai: ", (await fakeDAI.balanceOf(signedScoresPool.address)).toNumber())
+    expect((await fakeDAI.balanceOf(signedScoresPool.address)).toNumber()).to.be.equal(RANDOM_SCORE_42)
+    console.log('fakeDai: ', (await fakeDAI.balanceOf(signedScoresPool.address)).toNumber())
     await upala.connect(persona1).approveDelegate(delegate11.address)
     await signedScoresPool
       .connect(persona1)
@@ -272,7 +271,6 @@ describe('SCORING AND BOT ATTACK', function () {
     // console.log("fakeDai: ", (await fakeDAI.balanceOf(persona1.address)).toNumber())
     // expect((await fakeDAI.balanceOf(persona1.address)).toNumber())
     //     .to.be.equal(RANDOM_SCORE_42)
-
 
     // check UpalaID is deleted
   })
