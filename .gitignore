@@ -12,3 +12,5 @@ node_modules/
 build/
 wrangler.toml
 **/.DS_Store
+local-db-mock/
+score-exp-mock/

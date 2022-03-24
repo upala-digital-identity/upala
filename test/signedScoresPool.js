@@ -3,6 +3,7 @@ Testing both Signed scores pool and it's parent BundledScoresPool as
 there's not much difference.
 */
 
+const fs = require('fs')
 const { ethers } = require('hardhat')
 const { expect } = require('chai')
 const { BigNumber, utils } = require('ethers')
@@ -10,7 +11,6 @@ const { setupProtocol } = require('../src/upala-admin.js')
 const { deployPool, attachToPool, PoolManager } = require('@upala/group-manager')
 const { newIdentity } = require('@upala/unique-human')
 
-// const PoolManager = require('@upala/group-manager')
 const poolAbi = require('../artifacts/contracts/pools/signed-scores-pool.sol/SignedScoresPool.json')
 const exp = require('constants')
 let oneETH = BigNumber.from(10).pow(18)
@@ -24,7 +24,7 @@ const RANDOM_ADDRESS = '0x0c2788f417685706f61414e4Cb6F5f672eA79731'
 /***********
 MANAGE GROUP
 ************/
-/*
+
 describe('MANAGE GROUP', function () {
   let upalaAdmin, manager1, nobody
   let signedScoresPool
@@ -45,29 +45,13 @@ describe('MANAGE GROUP', function () {
     expect(bundleTimestamp).to.eq(txTimestamp)
   })
 })
-*/
+
 // it('group manager can publish group meta', async function () {
 //   assert.fail('actual', 'expected', 'Error message')
 //   // db_url, description, etc. - from future
 // })
 
-// it('group manager can set base score', async function () {
-//   // initializing Upala manager
-//   let env = await setupProtocol({ isSavingConstants: false })
-//   upala = env.upala
-//   ;[upalaAdmin, nobody] = env.wallets
 
-//   // inititalizing pool poolManagerWallet
-//   // var poolManager = new PoolManager({
-//   //   wallet: poolManagerWallet,
-//   //   overrideAddresses: upalaManager.getAddresses(),
-//   // })
-//   // console.log('decrease')
-//   // console.log(await poolManager.deployPool('SignedScoresPool'))
-//   // const hash = events[0].args[0];
-
-//   expect(1).to.be.equal(2)
-// })
 
 // it('group manager can delete bundle', async function () {
 //   // todo
@@ -94,6 +78,7 @@ SCORING AND BOT ATTACK
 // then use attack to check funds distribution
 // persona - use this name to describe Eth address with score
 // nobody - not registered person
+/*
 describe('SCORING AND BOT ATTACK', function () {
   let upalaAdmin, manager1, persona1, delegate11, dapp, nobody
   let persona1id
@@ -101,13 +86,13 @@ describe('SCORING AND BOT ATTACK', function () {
   let signedScoresPool
   let env
 
-  beforeEach('setup protocol, register users', async () => {
+  beforeEach('setup protocol', async () => {
     env = await setupProtocol({ isSavingConstants: false })
     ;[upalaAdmin, manager1, persona1, delegate11, dapp, nobody] = env.wallets
     upala = env.upala
     fakeDAI = env.dai
   })
-  /*
+  
   it('cannot verify scores with zero baseScore', async function () {
     zeroBaseScorePool = await deployPool('SignedScoresPool', manager1, env.upalaConstants)
     await expect(
@@ -204,7 +189,7 @@ describe('SCORING AND BOT ATTACK', function () {
     signer = await signedScoresPool.testRecover(message, wrongProof)
     expect(signer).to.not.equal(manager1.address)
   })
-*/
+
   // fund pool
   // try myScore on random proof
   // try valid proof
@@ -300,4 +285,62 @@ describe('SCORING AND BOT ATTACK', function () {
   //   const recovered = await signedScoresPool.testRecover(TEST_MESSAGE, signature)
   //   expect(recovered).to.equal(manager1.address)
   // })
+})
+*/
+describe('POOL MANAGER', function () {
+  let upalaAdmin, manager1, persona1, delegate11, persona2, nobody
+  let upala, fakeDAI
+  let signedScoresPool
+  let env
+
+  beforeEach('setup protocol', async () => {
+    env = await setupProtocol({ isSavingConstants: false })
+    ;[upalaAdmin, manager1, persona1, delegate11, persona2, nobody] = env.wallets
+    upala = env.upala
+    fakeDAI = env.dai
+  })
+
+  // quick check that main featrures of group manager work
+  it('group manager can set base score', async function () {
+    // deploy pool
+    signedScoresPool = await deployPool('SignedScoresPool', manager1, env.upalaConstants)
+    // fill the pool
+    await fakeDAI.connect(manager1).freeDaiToTheWorld(signedScoresPool.address, BASE_SCORE.mul(USER_RATING_42 + 1))
+    // set base score
+    let localDBdir = 'local-db-mock'
+    let scoreExplorerDBdir = 'score-exp-mock'
+    if (fs.existsSync(localDBdir)) {fs.rmSync(localDBdir, { recursive: true, force: true })}
+    if (fs.existsSync(scoreExplorerDBdir)) {fs.rmSync(scoreExplorerDBdir, { recursive: true, force: true })}
+    
+    let poolManager = new PoolManager(signedScoresPool, localDBdir, scoreExplorerDBdir)
+    
+    await poolManager.setBaseScore(BASE_SCORE)
+    // register users
+    let users = 
+    [
+      { "address": persona1.address, "score": USER_RATING_42 },
+      { "address": persona2.address, "score": USER_RATING_42 + 1 }
+    ]    
+    let subBundle = await poolManager.publishNew(users)
+    // persona1
+    let persona1id = await newIdentity(persona1.address, persona1, env.upalaConstants)
+    expect(
+      await signedScoresPool.connect(persona1).myScore(
+        persona1id, 
+        persona1.address, 
+        USER_RATING_42, 
+        subBundle.public.bundleID,
+        subBundle.public.signedUsers[0].signature)
+    ).to.be.equal(BASE_SCORE.mul(USER_RATING_42))
+    // persona2
+    let persona2id = await newIdentity(persona2.address, persona2, env.upalaConstants)
+    expect(
+      await signedScoresPool.connect(persona2).myScore(
+        persona2id, 
+        persona2.address, 
+        USER_RATING_42 + 1, 
+        subBundle.public.bundleID,
+        subBundle.public.signedUsers[1].signature)
+    ).to.be.equal(BASE_SCORE.mul(USER_RATING_42 + 1))
+  })
 })
