@@ -51,8 +51,6 @@ describe('MANAGE GROUP', function () {
 //   // db_url, description, etc. - from future
 // })
 
-
-
 // it('group manager can delete bundle', async function () {
 //   // todo
 // })
@@ -309,38 +307,47 @@ describe('POOL MANAGER', function () {
     // set base score
     let localDBdir = 'local-db-mock'
     let scoreExplorerDBdir = 'score-exp-mock'
-    if (fs.existsSync(localDBdir)) {fs.rmSync(localDBdir, { recursive: true, force: true })}
-    if (fs.existsSync(scoreExplorerDBdir)) {fs.rmSync(scoreExplorerDBdir, { recursive: true, force: true })}
-    
+    if (fs.existsSync(localDBdir)) {
+      fs.rmSync(localDBdir, { recursive: true, force: true })
+    }
+    if (fs.existsSync(scoreExplorerDBdir)) {
+      fs.rmSync(scoreExplorerDBdir, { recursive: true, force: true })
+    }
+
     let poolManager = new PoolManager(signedScoresPool, localDBdir, scoreExplorerDBdir)
-    
+
     await poolManager.setBaseScore(BASE_SCORE)
     // register users
-    let users = 
-    [
-      { "address": persona1.address, "score": USER_RATING_42 },
-      { "address": persona2.address, "score": USER_RATING_42 + 1 }
-    ]    
+    let users = [
+      { address: persona1.address, score: USER_RATING_42 },
+      { address: persona2.address, score: USER_RATING_42 + 1 },
+    ]
     let subBundle = await poolManager.publishNew(users)
     // persona1
     let persona1id = await newIdentity(persona1.address, persona1, env.upalaConstants)
     expect(
-      await signedScoresPool.connect(persona1).myScore(
-        persona1id, 
-        persona1.address, 
-        USER_RATING_42, 
-        subBundle.public.bundleID,
-        subBundle.public.signedUsers[0].signature)
+      await signedScoresPool
+        .connect(persona1)
+        .myScore(
+          persona1id,
+          persona1.address,
+          USER_RATING_42,
+          subBundle.public.bundleID,
+          subBundle.public.signedUsers[0].signature
+        )
     ).to.be.equal(BASE_SCORE.mul(USER_RATING_42))
     // persona2
     let persona2id = await newIdentity(persona2.address, persona2, env.upalaConstants)
     expect(
-      await signedScoresPool.connect(persona2).myScore(
-        persona2id, 
-        persona2.address, 
-        USER_RATING_42 + 1, 
-        subBundle.public.bundleID,
-        subBundle.public.signedUsers[1].signature)
+      await signedScoresPool
+        .connect(persona2)
+        .myScore(
+          persona2id,
+          persona2.address,
+          USER_RATING_42 + 1,
+          subBundle.public.bundleID,
+          subBundle.public.signedUsers[1].signature
+        )
     ).to.be.equal(BASE_SCORE.mul(USER_RATING_42 + 1))
   })
 })
