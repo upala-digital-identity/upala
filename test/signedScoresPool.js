@@ -6,20 +6,16 @@ there's not much difference.
 const fs = require('fs')
 const { ethers } = require('hardhat')
 const { expect } = require('chai')
-const { BigNumber, utils } = require('ethers')
+const { utils } = require('ethers')
 const { setupProtocol } = require('../src/upala-admin.js')
-const { deployPool, attachToPool, PoolManager } = require('@upala/group-manager')
+const { deployPool, PoolManager } = require('@upala/group-manager')
 const { newIdentity } = require('@upala/unique-human')
 
-const poolAbi = require('../artifacts/contracts/pools/signed-scores-pool.sol/SignedScoresPool.json')
-const exp = require('constants')
-let oneETH = BigNumber.from(10).pow(18)
 //const scoreChange = oneETH.mul(42).div(100)
 const ZERO_BYTES32 = '0x0000000000000000000000000000000000000000000000000000000000000000'
-const emptyScoreBundle = '0x0000000000000000000000000000000000000000000000000000000000000001'
+const A_SCORE_BUNDLE = '0x0000000000000000000000000000000000000000000000000000000000000001'
 const USER_RATING_42 = 42 // do not use 42 anywhere else
 const BASE_SCORE = ethers.utils.parseEther('2.5')
-const TOTAL_SCORE = BASE_SCORE.mul(USER_RATING_42)
 const RANDOM_ADDRESS = '0x0c2788f417685706f61414e4Cb6F5f672eA79731'
 
 /***********
@@ -54,7 +50,7 @@ describe('MANAGE GROUP', function () {
     )
 
     // delete bundle
-    await expect(signedScoresPool.connect(manager1).deleteScoreBundleId(emptyScoreBundle)).to.be.revertedWith(
+    await expect(signedScoresPool.connect(manager1).deleteScoreBundleId(A_SCORE_BUNDLE)).to.be.revertedWith(
       "Score bundle id does't exists"
     )
     await expect(signedScoresPool.connect(nobody).deleteScoreBundleId(ZERO_BYTES32)).to.be.revertedWith(
@@ -166,7 +162,7 @@ describe('SCORING AND BOT ATTACK', function () {
     signedScoresPool = await deployPool('SignedScoresPool', manager1, env.upalaConstants)
     await signedScoresPool.connect(manager1).setBaseScore(1)
     // register empty score bundle
-    await signedScoresPool.connect(manager1).publishScoreBundleId(emptyScoreBundle)
+    await signedScoresPool.connect(manager1).publishScoreBundleId(A_SCORE_BUNDLE)
     // register persona1 id
     persona1id = await newIdentity(persona1.address, persona1, env.upalaConstants)
 
@@ -183,7 +179,7 @@ describe('SCORING AND BOT ATTACK', function () {
     ]
     for (const args of badInput) {
       await expect(
-        signedScoresPool.connect(args[0]).myScore(args[1], args[2], USER_RATING_42, emptyScoreBundle, ZERO_BYTES32)
+        signedScoresPool.connect(args[0]).myScore(args[1], args[2], USER_RATING_42, A_SCORE_BUNDLE, ZERO_BYTES32)
       ).to.be.revertedWith('Upala: No such id, not an owner or not a delegate of the id')
     }
   })
@@ -194,7 +190,7 @@ describe('SCORING AND BOT ATTACK', function () {
     signedScoresPool = await deployPool('SignedScoresPool', manager1, env.upalaConstants)
     await signedScoresPool.connect(manager1).setBaseScore(1)
     // register empty score bundle
-    await signedScoresPool.connect(manager1).publishScoreBundleId(emptyScoreBundle)
+    await signedScoresPool.connect(manager1).publishScoreBundleId(A_SCORE_BUNDLE)
     // register persona1 id
     persona1id = await newIdentity(persona1.address, persona1, env.upalaConstants)
     // register persona1 delegate
@@ -205,7 +201,7 @@ describe('SCORING AND BOT ATTACK', function () {
       await expect(
         signedScoresPool
           .connect(persona1)
-          .myScore(persona1id, scoreAssignedTo, USER_RATING_42, emptyScoreBundle, ZERO_BYTES32)
+          .myScore(persona1id, scoreAssignedTo, USER_RATING_42, A_SCORE_BUNDLE, ZERO_BYTES32)
       ).to.be.revertedWith('Pool balance is lower than the total score')
     }
   })
@@ -245,7 +241,7 @@ describe('SCORING AND BOT ATTACK', function () {
 
     await signedScoresPool.connect(manager1).setBaseScore(BASE_SCORE)
     // register empty score bundle
-    await signedScoresPool.connect(manager1).publishScoreBundleId(emptyScoreBundle)
+    await signedScoresPool.connect(manager1).publishScoreBundleId(A_SCORE_BUNDLE)
     // register persona1 id
     persona1id = await newIdentity(persona1.address, persona1, env.upalaConstants)
 
@@ -255,29 +251,29 @@ describe('SCORING AND BOT ATTACK', function () {
     // sign user
     let proof = await manager1.signMessage(
       ethers.utils.arrayify(
-        utils.solidityKeccak256(['address', 'uint8', 'bytes32'], [persona1id, USER_RATING_42, emptyScoreBundle])
+        utils.solidityKeccak256(['address', 'uint8', 'bytes32'], [persona1id, USER_RATING_42, A_SCORE_BUNDLE])
       )
     )
     // check valid proof requirement - no state change
     await expect(
-      signedScoresPool.connect(persona1).myScore(persona1id, persona1id, USER_RATING_42 - 1, emptyScoreBundle, proof)
+      signedScoresPool.connect(persona1).myScore(persona1id, persona1id, USER_RATING_42 - 1, A_SCORE_BUNDLE, proof)
     ).to.be.revertedWith("Can't validate that scoreAssignedTo-score pair is in the bundle")
     // check myScore
     expect(
-      await signedScoresPool.connect(persona1).myScore(persona1id, persona1id, USER_RATING_42, emptyScoreBundle, proof)
+      await signedScoresPool.connect(persona1).myScore(persona1id, persona1id, USER_RATING_42, A_SCORE_BUNDLE, proof)
     ).to.be.equal(BASE_SCORE.mul(USER_RATING_42))
     // check useScore (a dapp call) - no state change
     expect(
       await signedScoresPool
         .connect(dapp)
-        .userScore(persona1.address, persona1id, persona1id, USER_RATING_42, emptyScoreBundle, proof)
+        .userScore(persona1.address, persona1id, persona1id, USER_RATING_42, A_SCORE_BUNDLE, proof)
     ).to.be.equal(BASE_SCORE.mul(USER_RATING_42))
 
     // bot vs managers check
     // assign a score by address (a platform action)
     let delegateProof = await manager1.signMessage(
       ethers.utils.arrayify(
-        utils.solidityKeccak256(['address', 'uint8', 'bytes32'], [delegate11.address, USER_RATING_42, emptyScoreBundle])
+        utils.solidityKeccak256(['address', 'uint8', 'bytes32'], [delegate11.address, USER_RATING_42, A_SCORE_BUNDLE])
       )
     )
     // bot actions
@@ -291,7 +287,7 @@ describe('SCORING AND BOT ATTACK', function () {
     // explode
     await signedScoresPool
       .connect(persona1)
-      .attack(persona1id, delegate11.address, USER_RATING_42, emptyScoreBundle, delegateProof)
+      .attack(persona1id, delegate11.address, USER_RATING_42, A_SCORE_BUNDLE, delegateProof)
     // after
     let poolBalAfter = await fakeDAI.balanceOf(signedScoresPool.address)
     let botBalAfter = await fakeDAI.balanceOf(persona1.address)
@@ -308,13 +304,13 @@ describe('SCORING AND BOT ATTACK', function () {
     for (const scoreAssignedTo of validScoreAssignedTo) {
       let prooof = await manager1.signMessage(
         ethers.utils.arrayify(
-          utils.solidityKeccak256(['address', 'uint8', 'bytes32'], [scoreAssignedTo, USER_RATING_42, emptyScoreBundle])
+          utils.solidityKeccak256(['address', 'uint8', 'bytes32'], [scoreAssignedTo, USER_RATING_42, A_SCORE_BUNDLE])
         )
       )
       await expect(
         signedScoresPool
           .connect(persona1)
-          .myScore(persona1id, scoreAssignedTo, USER_RATING_42, emptyScoreBundle, prooof)
+          .myScore(persona1id, scoreAssignedTo, USER_RATING_42, A_SCORE_BUNDLE, prooof)
       ).to.be.revertedWith('Upala: The id is already exploded')
     }
   })
