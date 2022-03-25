@@ -308,9 +308,7 @@ describe('SCORING AND BOT ATTACK', function () {
         )
       )
       await expect(
-        signedScoresPool
-          .connect(persona1)
-          .myScore(persona1id, scoreAssignedTo, USER_RATING_42, A_SCORE_BUNDLE, prooof)
+        signedScoresPool.connect(persona1).myScore(persona1id, scoreAssignedTo, USER_RATING_42, A_SCORE_BUNDLE, prooof)
       ).to.be.revertedWith('Upala: The id is already exploded')
     }
   })
