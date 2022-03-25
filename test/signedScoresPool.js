@@ -21,21 +21,25 @@ const USER_RATING_42 = 42 // do not use 42 anywhere else
 const BASE_SCORE = ethers.utils.parseEther('2.5')
 const TOTAL_SCORE = BASE_SCORE.mul(USER_RATING_42)
 const RANDOM_ADDRESS = '0x0c2788f417685706f61414e4Cb6F5f672eA79731'
+
 /***********
 MANAGE GROUP
 ************/
 
 describe('MANAGE GROUP', function () {
-  let upalaAdmin, manager1, nobody
+  let upalaAdmin, manager1, manager2, nobody
   let signedScoresPool
+  let fakeDAI
 
   before('setup protocol', async () => {
     let env = await setupProtocol({ isSavingConstants: false })
-    ;[upalaAdmin, manager1, nobody] = env.wallets
+    ;[upalaAdmin, manager1, manager2, nobody] = env.wallets
+    fakeDAI = env.dai
     signedScoresPool = await deployPool('SignedScoresPool', manager1, env.upalaConstants)
   })
 
-  it('group manager can publish new bundle', async function () {
+  it('group manager can publish and delete bundle', async function () {
+    // publish
     await expect(signedScoresPool.connect(nobody).publishScoreBundleId(ZERO_BYTES32)).to.be.revertedWith(
       'Ownable: caller is not the owner'
     )
@@ -43,28 +47,72 @@ describe('MANAGE GROUP', function () {
     let txTimestamp = (await ethers.provider.getBlock(tx.blockNumber)).timestamp
     let bundleTimestamp = await signedScoresPool.scoreBundleTimestamp(ZERO_BYTES32)
     expect(bundleTimestamp).to.eq(txTimestamp)
+    
+    // cannot publish again 
+    await expect(signedScoresPool.connect(manager1).publishScoreBundleId(ZERO_BYTES32)).to.be.revertedWith(
+      'Score bundle id already exists'
+    )
+
+    // delete bundle
+    await expect(signedScoresPool.connect(manager1).deleteScoreBundleId(emptyScoreBundle)).to.be.revertedWith(
+      'Score bundle id does\'t exists'
+    )
+    await expect(signedScoresPool.connect(nobody).deleteScoreBundleId(ZERO_BYTES32)).to.be.revertedWith(
+      'Ownable: caller is not the owner'
+    )
+    tx = await signedScoresPool.connect(manager1).deleteScoreBundleId(ZERO_BYTES32)
+    let deletedBundleTimestamp = await signedScoresPool.scoreBundleTimestamp(ZERO_BYTES32)
+    expect(deletedBundleTimestamp).to.eq(0)
   })
-})
 
-// it('group manager can publish group meta', async function () {
-//   assert.fail('actual', 'expected', 'Error message')
-//   // db_url, description, etc. - from future
-// })
+  it('group manager can publish group meta', async function () {
+    let newMeta = "If you are reading this you are the resistance"
+    await expect(signedScoresPool.connect(nobody).updateMetadata(newMeta)).to.be.revertedWith(
+      'Ownable: caller is not the owner'
+    )
+    await signedScoresPool.connect(manager1).updateMetadata(newMeta)
+    expect(await signedScoresPool.metaData()).to.be.equal(newMeta)
+  })
 
-// it('group manager can delete bundle', async function () {
-//   // todo
-// })
+  it('group manager can withdraw money from pool', async function () {
+    // fill the pool
+    let totalFunding = ethers.utils.parseEther('234')
+    await fakeDAI.connect(nobody).freeDaiToTheWorld(signedScoresPool.address, totalFunding)
+    let poolBalBefore = await fakeDAI.balanceOf(signedScoresPool.address)
+    let manager1BalBefore = await fakeDAI.balanceOf(manager1.address)
+    await expect(signedScoresPool.connect(nobody).withdrawFromPool(manager1.address, poolBalBefore)).to.be.revertedWith(
+      'Ownable: caller is not the owner'
+    )
 
-// it('group manager can withdraw money from pool', async function () {
-//   // todo
-// })
+    // try withdraw part of the pool funds
+    let smallWithdrawal = ethers.utils.parseEther('2')
+    await signedScoresPool.connect(manager1).withdrawFromPool(manager1.address, smallWithdrawal)
+    let poolBalAfter = await fakeDAI.balanceOf(signedScoresPool.address)
+    let manager1BalAfter = await fakeDAI.balanceOf(manager1.address)
+    expect(smallWithdrawal).to.be.equal(poolBalBefore.sub(poolBalAfter))
+    expect(smallWithdrawal).to.be.equal(manager1BalAfter.sub(manager1BalBefore))
+    
+    // try withdraw more than there is in the pool 
+    let exceedingWithdrawal = poolBalBefore.mul(2)
+    await signedScoresPool.connect(manager1).withdrawFromPool(manager1.address, exceedingWithdrawal)
+    let poolBalAfterAfter = await fakeDAI.balanceOf(signedScoresPool.address)
+    let manager1BalAfterAfter = await fakeDAI.balanceOf(manager1.address)
+    expect(poolBalAfterAfter).to.be.equal(0)
+    expect(manager1BalAfterAfter).to.be.equal(poolBalBefore.add(manager1BalBefore))
+  })
 
-/*
-  it('OWNERSHIP', function () {
-  // can setGroupManager
-  // only owner can setGroupManager
-  // old manager can now manage new group
-  // still got access to pool
+  it('group manager can change owner', async function () {
+    await expect(signedScoresPool.connect(nobody).transferOwnership(manager2.address)).to.be.revertedWith(
+      'Ownable: caller is not the owner'
+    )
+    await signedScoresPool.connect(manager1).transferOwnership(manager2.address)
+    expect(await signedScoresPool.owner()).to.be.equal(manager2.address)
+    await expect(signedScoresPool.connect(manager1).transferOwnership(manager1.address)).to.be.revertedWith(
+      'Ownable: caller is not the owner'
+    )
+    await signedScoresPool.connect(manager2).transferOwnership(manager1.address)
+    expect(await signedScoresPool.owner()).to.be.equal(manager1.address)
+  })
 })
 
 /*********************
@@ -76,7 +124,7 @@ SCORING AND BOT ATTACK
 // then use attack to check funds distribution
 // persona - use this name to describe Eth address with score
 // nobody - not registered person
-/*
+
 describe('SCORING AND BOT ATTACK', function () {
   let upalaAdmin, manager1, persona1, delegate11, dapp, nobody
   let persona1id
@@ -284,7 +332,7 @@ describe('SCORING AND BOT ATTACK', function () {
   //   expect(recovered).to.equal(manager1.address)
   // })
 })
-*/
+
 describe('POOL MANAGER', function () {
   let upalaAdmin, manager1, persona1, delegate11, persona2, nobody
   let upala, fakeDAI

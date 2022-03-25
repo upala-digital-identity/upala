@@ -100,7 +100,9 @@ contract BundledScoresPool is Ownable {
     function _deleteScoreBundleId(bytes32 scoreBundleId) 
         internal 
         onlyOwner
-    {
+    { 
+        require(scoreBundleTimestamp[scoreBundleId] != 0, 
+            'Score bundle id does\'t exists');
         delete scoreBundleTimestamp[scoreBundleId];
         ScoreBundleIdDeleted(scoreBundleId);
     }
@@ -176,7 +178,7 @@ contract BundledScoresPool is Ownable {
     GETTER FUNCTIONS
     ***************/
 
-    function getScoreBundleIdTimestamp(bytes32 scoreBundleId) external returns (uint256) {
+    function getScoreBundleIdTimestamp(bytes32 scoreBundleId) external view returns (uint256) {
         return scoreBundleTimestamp[scoreBundleId];
     }
 
