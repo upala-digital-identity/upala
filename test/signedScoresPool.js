@@ -47,15 +47,15 @@ describe('MANAGE GROUP', function () {
     let txTimestamp = (await ethers.provider.getBlock(tx.blockNumber)).timestamp
     let bundleTimestamp = await signedScoresPool.scoreBundleTimestamp(ZERO_BYTES32)
     expect(bundleTimestamp).to.eq(txTimestamp)
-    
-    // cannot publish again 
+
+    // cannot publish again
     await expect(signedScoresPool.connect(manager1).publishScoreBundleId(ZERO_BYTES32)).to.be.revertedWith(
       'Score bundle id already exists'
     )
 
     // delete bundle
     await expect(signedScoresPool.connect(manager1).deleteScoreBundleId(emptyScoreBundle)).to.be.revertedWith(
-      'Score bundle id does\'t exists'
+      "Score bundle id does't exists"
     )
     await expect(signedScoresPool.connect(nobody).deleteScoreBundleId(ZERO_BYTES32)).to.be.revertedWith(
       'Ownable: caller is not the owner'
@@ -66,7 +66,7 @@ describe('MANAGE GROUP', function () {
   })
 
   it('group manager can publish group meta', async function () {
-    let newMeta = "If you are reading this you are the resistance"
+    let newMeta = 'If you are reading this you are the resistance'
     await expect(signedScoresPool.connect(nobody).updateMetadata(newMeta)).to.be.revertedWith(
       'Ownable: caller is not the owner'
     )
@@ -91,8 +91,8 @@ describe('MANAGE GROUP', function () {
     let manager1BalAfter = await fakeDAI.balanceOf(manager1.address)
     expect(smallWithdrawal).to.be.equal(poolBalBefore.sub(poolBalAfter))
     expect(smallWithdrawal).to.be.equal(manager1BalAfter.sub(manager1BalBefore))
-    
-    // try withdraw more than there is in the pool 
+
+    // try withdraw more than there is in the pool
     let exceedingWithdrawal = poolBalBefore.mul(2)
     await signedScoresPool.connect(manager1).withdrawFromPool(manager1.address, exceedingWithdrawal)
     let poolBalAfterAfter = await fakeDAI.balanceOf(signedScoresPool.address)
@@ -138,7 +138,7 @@ describe('SCORING AND BOT ATTACK', function () {
     upala = env.upala
     fakeDAI = env.dai
   })
-  
+
   it('cannot verify scores with zero baseScore', async function () {
     zeroBaseScorePool = await deployPool('SignedScoresPool', manager1, env.upalaConstants)
     await expect(
@@ -152,7 +152,7 @@ describe('SCORING AND BOT ATTACK', function () {
   it('cannot verify scores over non-existent score bundle', async function () {
     signedScoresPool = await deployPool('SignedScoresPool', manager1, env.upalaConstants)
     await signedScoresPool.connect(manager1).setBaseScore(1)
-    
+
     await expect(
       signedScoresPool
         .connect(nobody)
@@ -209,7 +209,6 @@ describe('SCORING AND BOT ATTACK', function () {
       ).to.be.revertedWith('Pool balance is lower than the total score')
     }
   })
-
 
   // quick way to check the right soup that makes recover work correclty
   it('signes and recovers address correctly', async function () {
