@@ -34,6 +34,8 @@ contract Upala is OwnableUpgradeable{
     // Addresses that can use the associated id (delegates and oner).
     // Also used to retrieve id by address
     mapping(address => address) delegateToIdentity;
+    // candidates are used in pairing delegates and UpalaID (UIP-23)
+    mapping(address => address) candidateDelegateToIdentity;
     // assigned as identity holder after ID explosion
     address EXPLODED; 
 
@@ -123,19 +125,47 @@ contract Upala is OwnableUpgradeable{
         _;
     }
 
-    // Creates delegate for the UpalaId.
+    // UIP-23
+    // must be called by an address receiving delegation prior to delegation
+    // to cancel use 0x0 address for UpalaId
+    function approveDelegation(address upalaId) external {
+        require(delegateToIdentity[msg.sender] == address(0x0), 
+            "Already a delegate");
+        candidateDelegateToIdentity[msg.sender] = upalaId;
+    }
+
+    // Creates delegate for the UpalaId. // todo delegate hijack
     function approveDelegate(address delegate) external onlyIdOwner {
         require (delegate != address(0x0),
             "Cannot use an empty addess");
+        require (delegate != msg.sender,
+            "Cannot approve oneself as delegate");
         address upalaId = delegateToIdentity[msg.sender];
+        require(candidateDelegateToIdentity[delegate] == upalaId,
+            "Delegatee must confirm delegation first");
         delegateToIdentity[delegate] = upalaId;
+        delete candidateDelegateToIdentity[delegate];
         NewDelegateStatus(upalaId, delegate, true);
+    }
+
+    // Stop being a delegate (called by delegate)
+    function stopDelegation() external {
+        address upalaId = delegateToIdentity[msg.sender];
+        require(upalaId != address(0x0),
+            "Must be a delegate");  // what about exploded?
+        address idOwner = identityOwner[upalaId];
+        require(idOwner != msg.sender, 
+            "Cannot remove identity owner");
+        delete delegateToIdentity[msg.sender];
+        NewDelegateStatus(upalaId, msg.sender, false);
     }
 
     // Removes delegate for the UpalaId. 
     function removeDelegate(address delegate) external onlyIdOwner {
         require(delegate != msg.sender, 
             "Cannot remove oneself");
+        require(delegateToIdentity[msg.sender] == delegateToIdentity[delegate],
+            "UpalaId must be same for delegate and id owner");
         delete delegateToIdentity[delegate];
         NewDelegateStatus(delegateToIdentity[msg.sender], delegate, false);
     }

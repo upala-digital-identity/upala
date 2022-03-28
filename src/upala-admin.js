@@ -89,12 +89,12 @@ async function setupProtocol(params) {
   const upala = await deployUpgradableUpala()
   // const upala = await deployContract('Upala')  // non-upgradable (debugging)
   upalaConstants.addContract('Upala', upala)
-  console.log('upala', upala.address)
+  // console.log('upala', upala.address)
 
   // Deploy DAI
   const fakeDai = await deployContract('FakeDai', 'FakeDai', 'DAI')
   upalaConstants.addContract('DAI', fakeDai)
-  console.log('fakeDai', fakeDai.address)
+  // console.log('fakeDai', fakeDai.address)
 
   // Deploy Pool Factory
   const upalaManager = new UpalaManager(adminWallet, { upalaConstants: upalaConstants })
@@ -109,14 +109,14 @@ async function setupProtocol(params) {
     console.log('Upala-admin: saving Upala constants')
   }
 
-  // Fake DAI giveaway
-  wallets.map(async (wallet, ix) => {
-    if (ix <= 5) {
-      // console.log("minted 1000 fakeDAI to", wallet.address)
-      const tx = await fakeDai.freeDaiToTheWorld(wallet.address, BigNumber.from('1000000000000000000000'))
-      await tx.wait(2)
-    }
-  })
+  // Fake DAI giveaway (deprecate if not used in upala.js tests)
+  // wallets.map(async (wallet, ix) => {
+  //   if (ix <= 5) {
+  //     // console.log("minted 1000 fakeDAI to", wallet.address)
+  //     const tx = await fakeDai.freeDaiToTheWorld(wallet.address, BigNumber.from('1000000000000000000000'))
+  //     await tx.wait(2)
+  //   }
+  // })
 
   // return the whole environment
   return {

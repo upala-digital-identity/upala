@@ -256,17 +256,10 @@ contract BundledScoresPool is Ownable {
         
         // check UpalaID
         upala.isOwnerOrDelegate(caller, upalaID);
+        // a way to validate by address (UIP-22):
         if (scoreAssignedTo != upalaID && scoreAssignedTo != caller) {
             upala.isOwnerOrDelegate(scoreAssignedTo, upalaID);
         }
-        
-        // require(
-        //     upala.isOwnerOrDelegate(caller, upalaID) ||  // todo if throws here, it will not go further (see upala.sol)
-        //     upala.isOwnerOrDelegate(scoreAssignedTo, upalaID),  // a way to validate by address (UIP-22)
-        //     "Not an owner or delegate."
-        //     "Upala ID is exploded,"
-        //     "or score bearing address is not associated with Upala ID");
-        //     // todo or Upala ID is not created yet (if we remove it from this contract)
 
         uint256 totalScore = baseScore.mul(score);
         require(_balanceIsAbove(totalScore),
