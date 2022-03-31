@@ -41,10 +41,10 @@ await poolManager.setBaseScore(BASE_SCORE)
 let localDBdir = 'local-db-mock'
 let scoreExplorerDBdir = 'score-exp-mock'
 if (fs.existsSync(localDBdir)) {
-    fs.rmSync(localDBdir, { recursive: true, force: true })
+  fs.rmSync(localDBdir, { recursive: true, force: true })
 }
 if (fs.existsSync(scoreExplorerDBdir)) {
-    fs.rmSync(scoreExplorerDBdir, { recursive: true, force: true })
+  fs.rmSync(scoreExplorerDBdir, { recursive: true, force: true })
 }
 
 // publish 2 score bundles
@@ -52,18 +52,18 @@ await poolManager.setBaseScore(BASE_SCORE)
 // register users
 // todo let persona2 be one of the addresses under bot-manager control
 let users1 = [
-    { address: persona1.address, score: USER_RATING_42 },
-    { address: persona2.address, score: USER_RATING_42 + 1 },
+  { address: persona1.address, score: USER_RATING_42 },
+  { address: persona2.address, score: USER_RATING_42 + 1 },
 ]
 let users2 = [
-    { address: persona3.address, score: USER_RATING_42 + 2 },
-    { address: persona4.address, score: USER_RATING_42 + 3 },
+  { address: persona3.address, score: USER_RATING_42 + 2 },
+  { address: persona4.address, score: USER_RATING_42 + 3 },
 ]
 let subBundle1 = await poolManager.publishNew(users1)
 let subBundle2 = await poolManager.publishNew(users2)
 
 // delete bundle
-await poolManager.deleteScoreBundleId(subBundle2) 
+await poolManager.deleteScoreBundleId(subBundle2)
 
 // USER ACTIONS
 // create id
