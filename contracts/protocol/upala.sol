@@ -128,14 +128,14 @@ contract Upala is OwnableUpgradeable{
     // UIP-23
     // must be called by an address receiving delegation prior to delegation
     // to cancel use 0x0 address for UpalaId
-    function approveDelegation(address upalaId) external {
+    function approveDelegation(address upalaId) external {   // askDelegation
         require(delegateToIdentity[msg.sender] == address(0x0), 
             "Already a delegate");
         candidateDelegateToIdentity[msg.sender] = upalaId;
     }
 
     // Creates delegate for the UpalaId. // todo delegate hijack
-    function approveDelegate(address delegate) external onlyIdOwner {
+    function approveDelegate(address delegate) external onlyIdOwner {  // newDelegate // setDelegate
         require (delegate != address(0x0),
             "Cannot use an empty addess");
         require (delegate != msg.sender,
@@ -149,7 +149,7 @@ contract Upala is OwnableUpgradeable{
     }
 
     // Stop being a delegate (called by delegate)
-    function stopDelegation() external {
+    function stopDelegation() external {  // dropDelegation
         address upalaId = delegateToIdentity[msg.sender];
         require(upalaId != address(0x0),
             "Must be a delegate");  // what about exploded?

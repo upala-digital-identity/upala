@@ -6,9 +6,10 @@
 // Should cover all cases from Requirements for the subgraph -
 // https://github.com/upala-digital-identity/subgraph-schema
 
+// Bot manager testing 
+// Same script is used to test bot manager cli locally
 const fs = require('fs')
 const { ethers } = require('hardhat')
-const { expect } = require('chai')
 const { utils } = require('ethers')
 const { setupProtocol } = require('../src/upala-admin.js')
 const { deployPool, PoolManager } = require('@upala/group-manager')
@@ -18,11 +19,13 @@ const ZERO_BYTES32 = '0x00000000000000000000000000000000000000000000000000000000
 const A_SCORE_BUNDLE = '0x0000000000000000000000000000000000000000000000000000000000000001'
 const USER_RATING_42 = 42 // do not use 42 anywhere else
 const BASE_SCORE = ethers.utils.parseEther('2.5')
-const RANDOM_ADDRESS = '0x0c2788f417685706f61414e4Cb6F5f672eA79731'
+// using address from bot-manager
+const BOT_ADDRESS = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266'
+const BOT_RATING = '41'
 
 async function main() {
   // GROUP MANAGER ACTIONS
-  let env = await setupProtocol({ isSavingConstants: false })
+  let env = await setupProtocol({ isSavingConstants: true })
   let upalaAdmin, manager1, persona1, persona2, persona3, persona4, delegate11, dapp, nobody
   ;[upalaAdmin, manager1, persona1, persona2, persona3, persona4, delegate11, dapp, nobody] = env.wallets
 
@@ -55,7 +58,7 @@ async function main() {
   // todo let persona2 be one of the addresses under bot-manager control
   let users1 = [
     { address: persona1.address, score: USER_RATING_42 },
-    { address: persona2.address, score: USER_RATING_42 + 1 },
+    { address: BOT_ADDRESS, score: BOT_RATING },
   ]
   let users2 = [
     { address: persona3.address, score: USER_RATING_42 + 2 },
@@ -81,6 +84,14 @@ async function main() {
 
   // DAPPS ACTIONS
   // register dapp
+
+  console.log(
+      'Bot attack payload example: ',
+      '\npoolAddress: ', signedScoresPool.address,
+      '\nscoreAssignedTo: ', subBundle1.public.signedUsers[1].address,
+      '\nscore: ', subBundle1.public.signedUsers[1].score,
+      '\nbundleId: ', subBundle1.public.bundleID,
+      '\nproof: ', subBundle1.public.signedUsers[1].signature)
 }
 
 main()

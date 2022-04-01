@@ -241,6 +241,7 @@ contract BundledScoresPool is Ownable {
         return(reward);
     }
 
+    // todo rename score to rating!!! 
     function _userScore(
         address caller,    // user address that shoots the verification call
         address upalaID,            // user Upala ID
