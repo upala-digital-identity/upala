@@ -6,7 +6,7 @@
 // Should cover all cases from Requirements for the subgraph -
 // https://github.com/upala-digital-identity/subgraph-schema
 
-// Bot manager testing 
+// Bot manager testing
 // Same script is used to test bot manager cli locally
 const fs = require('fs')
 const { ethers } = require('hardhat')
@@ -86,12 +86,18 @@ async function main() {
   // register dapp
 
   console.log(
-      'Bot attack payload example: ',
-      '\npoolAddress: ', signedScoresPool.address,
-      '\nscoreAssignedTo: ', subBundle1.public.signedUsers[1].address,
-      '\nscore: ', subBundle1.public.signedUsers[1].score,
-      '\nbundleId: ', subBundle1.public.bundleID,
-      '\nproof: ', subBundle1.public.signedUsers[1].signature)
+    'Bot attack payload example: ',
+    '\npoolAddress: ',
+    signedScoresPool.address,
+    '\nscoreAssignedTo: ',
+    subBundle1.public.signedUsers[1].address,
+    '\nscore: ',
+    subBundle1.public.signedUsers[1].score,
+    '\nbundleId: ',
+    subBundle1.public.bundleID,
+    '\nproof: ',
+    subBundle1.public.signedUsers[1].signature
+  )
 }
 
 main()
