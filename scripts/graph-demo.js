@@ -31,8 +31,8 @@ async function main() {
   let fakeDAI = env.dai
   await manager1.sendTransaction({
     to: BOT_ADDRESS,
-    value: ethers.utils.parseEther("1.0")
-    });
+    value: ethers.utils.parseEther('1.0'),
+  })
   // create pool
   let signedScoresPool = await deployPool('SignedScoresPool', manager1, env.upalaConstants)
   // transfer DAI to pool address
