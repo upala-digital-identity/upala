@@ -15,27 +15,28 @@ const { setupProtocol } = require('../src/upala-admin.js')
 const { deployPool, PoolManager } = require('@upala/group-manager')
 const { newIdentity } = require('@upala/unique-human')
 
-const ZERO_BYTES32 = '0x0000000000000000000000000000000000000000000000000000000000000000'
-const A_SCORE_BUNDLE = '0x0000000000000000000000000000000000000000000000000000000000000001'
 const USER_RATING_42 = 42 // do not use 42 anywhere else
-const BASE_SCORE = ethers.utils.parseEther('2.5')
+const BASE_SCORE = ethers.utils.parseEther('2')
 // using address from bot-manager
-const BOT_ADDRESS = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266'
-const BOT_RATING = '41'
+const BOT_ADDRESS = '0x1633092577b6e789863E8284d3db1393259e5D08'
+const BOT_RATING = '50'
+const POOL_FUNDING = ethers.utils.parseEther('1000')
 
 async function main() {
-  // GROUP MANAGER ACTIONS
+  // SETUP ENVIRONMENT
   let env = await setupProtocol({ isSavingConstants: true })
   let upalaAdmin, manager1, persona1, persona2, persona3, persona4, delegate11, dapp, nobody
   ;[upalaAdmin, manager1, persona1, persona2, persona3, persona4, delegate11, dapp, nobody] = env.wallets
-
   let upala = env.upala
   let fakeDAI = env.dai
-
+  await manager1.sendTransaction({
+    to: BOT_ADDRESS,
+    value: ethers.utils.parseEther("1.0")
+    });
   // create pool
   let signedScoresPool = await deployPool('SignedScoresPool', manager1, env.upalaConstants)
   // transfer DAI to pool address
-  await fakeDAI.connect(manager1).freeDaiToTheWorld(signedScoresPool.address, BASE_SCORE.mul(USER_RATING_42))
+  await fakeDAI.connect(manager1).freeDaiToTheWorld(signedScoresPool.address, POOL_FUNDING)
 
   // INIT POOL MANAGER
   // a hack to keep project dir clean
