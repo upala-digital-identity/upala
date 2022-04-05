@@ -28,21 +28,21 @@ async function main() {
   let env = await setupProtocol({ isSavingConstants: true })
   let upalaAdmin, manager1, persona1, persona2, persona3, persona4, delegate11, dapp, nobody
   ;[upalaAdmin, manager1, persona1, persona2, persona3, persona4, delegate11, dapp, nobody] = env.wallets
-  
+
   console.log(
     chalk.green.bold('\nAddresses: '),
     chalk.green('\nupalaAdmin: '),
     upalaAdmin.address,
     chalk.green('\nmanager1: '),
-    manager1.address,
+    manager1.address
   )
 
   let upala = env.upala
   let fakeDAI = env.dai
-//   await manager1.sendTransaction({
-//     to: BOT_ADDRESS,
-//     value: ethers.utils.parseEther("0.001")
-//     });
+  //   await manager1.sendTransaction({
+  //     to: BOT_ADDRESS,
+  //     value: ethers.utils.parseEther("0.001")
+  //     });
   // create pool
   let signedScoresPool = await deployPool('SignedScoresPool', manager1, env.upalaConstants)
   // transfer DAI to pool address

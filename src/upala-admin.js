@@ -10,7 +10,7 @@ const chalk = require('chalk')
 async function deployContract(contractName, ...args) {
   const contractFactory = await ethers.getContractFactory(contractName)
   const contractInstance = await contractFactory.deploy(...args)
-  const chainId = (await ethers.getDefaultProvider().getNetwork()).chainId;
+  const chainId = (await ethers.getDefaultProvider().getNetwork()).chainId
   await contractInstance.deployTransaction.wait(numConfirmations(chainId))
   await contractInstance.deployed()
   return contractInstance
@@ -21,7 +21,7 @@ async function deployUpgradableUpala(adminWallet) {
   // const chainChainID = await adminWallet.getChainId()
   const Upala = await ethers.getContractFactory('Upala')
   let upala = await upgrades.deployProxy(Upala, [], { gasPrice: utils.parseUnits('1.3', 'gwei') })
-  const chainId = (await ethers.getDefaultProvider().getNetwork()).chainId;
+  const chainId = (await ethers.getDefaultProvider().getNetwork()).chainId
   await upala.deployTransaction.wait(numConfirmations(chainId))
   await upala.deployed()
   return upala
@@ -70,7 +70,7 @@ class UpalaManager {
     const upalaContract = await this.getUpalaContract()
     let poolFactory = await deployContract(poolType, upalaContract.address, upConsts.getAddress('DAI'))
     let tx = await upalaContract.approvePoolFactory(poolFactory.address, 'true')
-    const chainId = (await ethers.getDefaultProvider().getNetwork()).chainId;
+    const chainId = (await ethers.getDefaultProvider().getNetwork()).chainId
     await tx.wait(numConfirmations(chainId))
     return poolFactory
   }
