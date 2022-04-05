@@ -2,7 +2,7 @@
 // all upala admin functions go here - both for testing and production
 // other scripts (like deploy-to-rinkeby or similar) will use this lib
 
-const { UpalaConstants } = require('@upala/constants')
+const { UpalaConstants, numConfirmations } = require('@upala/constants')
 const { BigNumber, utils } = require('ethers')
 const { upgrades, hre } = require('hardhat')
 const chalk = require('chalk')
@@ -10,7 +10,8 @@ const chalk = require('chalk')
 async function deployContract(contractName, ...args) {
   const contractFactory = await ethers.getContractFactory(contractName)
   const contractInstance = await contractFactory.deploy(...args)
-  await contractInstance.deployTransaction.wait() // todo wait(2) for real nets
+  const chainId = (await ethers.getDefaultProvider().getNetwork()).chainId;
+  await contractInstance.deployTransaction.wait(numConfirmations(chainId))
   await contractInstance.deployed()
   return contractInstance
 }
@@ -20,7 +21,8 @@ async function deployUpgradableUpala(adminWallet) {
   // const chainChainID = await adminWallet.getChainId()
   const Upala = await ethers.getContractFactory('Upala')
   let upala = await upgrades.deployProxy(Upala, [], { gasPrice: utils.parseUnits('1.3', 'gwei') })
-  await upala.deployTransaction.wait() // todo wait(2) for real nets
+  const chainId = (await ethers.getDefaultProvider().getNetwork()).chainId;
+  await upala.deployTransaction.wait(numConfirmations(chainId))
   await upala.deployed()
   return upala
 }
@@ -67,7 +69,9 @@ class UpalaManager {
     const upConsts = await this.getUpalaConstants() // todo introduce initialize function instead
     const upalaContract = await this.getUpalaContract()
     let poolFactory = await deployContract(poolType, upalaContract.address, upConsts.getAddress('DAI'))
-    await upalaContract.approvePoolFactory(poolFactory.address, 'true') // todo production .then((tx) => tx.wait())
+    let tx = await upalaContract.approvePoolFactory(poolFactory.address, 'true')
+    const chainId = (await ethers.getDefaultProvider().getNetwork()).chainId;
+    await tx.wait(numConfirmations(chainId))
     return poolFactory
   }
 }
@@ -82,6 +86,7 @@ DEPLOY SEQUENCE
 async function setupProtocol(params) {
   // Upala constants
   const wallets = await ethers.getSigners()
+  // const otherWallets = await hre.ethers.getSigners();
   const adminWallet = wallets[0]
   const upalaConstants = new UpalaConstants(await adminWallet.getChainId(), { loadFromDisk: false })
 

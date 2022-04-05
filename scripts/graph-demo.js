@@ -9,6 +9,7 @@
 // Bot manager testing
 // Same script is used to test bot manager cli locally
 const fs = require('fs')
+const chalk = require('chalk')
 const { ethers } = require('hardhat')
 const { utils } = require('ethers')
 const { setupProtocol } = require('../src/upala-admin.js')
@@ -27,12 +28,21 @@ async function main() {
   let env = await setupProtocol({ isSavingConstants: true })
   let upalaAdmin, manager1, persona1, persona2, persona3, persona4, delegate11, dapp, nobody
   ;[upalaAdmin, manager1, persona1, persona2, persona3, persona4, delegate11, dapp, nobody] = env.wallets
+  
+  console.log(
+    chalk.green.bold('\nAddresses: '),
+    chalk.green('\nupalaAdmin: '),
+    upalaAdmin.address,
+    chalk.green('\nmanager1: '),
+    manager1.address,
+  )
+
   let upala = env.upala
   let fakeDAI = env.dai
-  await manager1.sendTransaction({
-    to: BOT_ADDRESS,
-    value: ethers.utils.parseEther("1.0")
-    });
+//   await manager1.sendTransaction({
+//     to: BOT_ADDRESS,
+//     value: ethers.utils.parseEther("0.001")
+//     });
   // create pool
   let signedScoresPool = await deployPool('SignedScoresPool', manager1, env.upalaConstants)
   // transfer DAI to pool address
@@ -58,18 +68,18 @@ async function main() {
   // register users
   // todo let persona2 be one of the addresses under bot-manager control
   let users1 = [
-    { address: persona1.address, score: USER_RATING_42 },
-    { address: BOT_ADDRESS, score: BOT_RATING },
-  ]
-  let users2 = [
     { address: persona3.address, score: USER_RATING_42 + 2 },
     { address: persona4.address, score: USER_RATING_42 + 3 },
+  ]
+  let users2 = [
+    { address: persona1.address, score: USER_RATING_42 },
+    { address: BOT_ADDRESS, score: BOT_RATING },
   ]
   let subBundle1 = await poolManager1.publishNew(users1)
   let subBundle2 = await poolManager2.publishNew(users2)
 
   // delete bundle
-  await poolManager1.deleteScoreBundleId(subBundle2.public.bundleID)
+  await poolManager1.deleteScoreBundleId(subBundle1.public.bundleID)
   // todo create another pool
 
   // USER ACTIONS
@@ -87,17 +97,17 @@ async function main() {
   // register dapp
 
   console.log(
-    'Bot attack payload example: ',
-    '\npoolAddress: ',
+    chalk.green.bold('\nBot attack payload example: '),
+    chalk.green('\npoolAddress: '),
     signedScoresPool.address,
-    '\nscoreAssignedTo: ',
-    subBundle1.public.signedUsers[1].address,
-    '\nscore: ',
-    subBundle1.public.signedUsers[1].score,
-    '\nbundleId: ',
-    subBundle1.public.bundleID,
-    '\nproof: ',
-    subBundle1.public.signedUsers[1].signature
+    chalk.green('\nscoreAssignedTo: '),
+    subBundle2.public.signedUsers[1].address,
+    chalk.green('\nscore: '),
+    subBundle2.public.signedUsers[1].score,
+    chalk.green('\nbundleId: '),
+    subBundle2.public.bundleID,
+    chalk.green('\nproof: '),
+    subBundle2.public.signedUsers[1].signature
   )
 }
 
