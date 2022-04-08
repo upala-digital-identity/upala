@@ -1,15 +1,7 @@
-// Script to test subgraph
-// The subgraph itself is in this repo - https://github.com/upala-digital-identity/subgraph
-// As of March 10 2022 the draft subgraph is already deployed to graph studio
-// and tired to Rinkeby contract.
-// This script will test that all info gets into graph properly.
-// Should cover all cases from Requirements for the subgraph -
-// https://github.com/upala-digital-identity/subgraph-schema
-
 // Bot manager testing
-// Same script is used to test bot manager cli locally
+// copied from graph-demo (remove unnecessary stuff)
 
-// npx hardhat run scripts/graph-demo.js --network rinkeby
+// npx hardhat run scripts/bot-demo.js --network rinkeby
 const fs = require('fs')
 const chalk = require('chalk')
 const { ethers } = require('hardhat')
@@ -27,33 +19,29 @@ const BOT_RATING = '50'
 const POOL_FUNDING = ethers.utils.parseEther('1000')
 
 async function main() {
+  // SETUP ENVIRONMENT
+  let env = await setupProtocol({ isSavingConstants: true })
   let upalaAdmin, manager1, persona1, persona2, persona3, persona4, delegate11, dapp, nobody
+  ;[upalaAdmin, manager1, persona1, persona2, persona3, persona4, delegate11, dapp, nobody] = env.wallets
 
-  // SETUP ENVIRONMENT (comment if loading from disk)
-  // let env = await setupProtocol({ isSavingConstants: false })
-  // ;[upalaAdmin, manager1, persona1, persona2, persona3, persona4, delegate11, dapp, nobody] = env.wallets
-  // let upala = env.upala
-  // let fakeDAI = env.dai
-  // let upalaConstants = env.upalaConstants
-
-  // LOAD ENVIRONMENT FROM UPALA CONSTANTS (comment if deploying anew)
-  ;[upalaAdmin, manager1, persona1, persona2, persona3, persona4, delegate11, dapp, nobody] = await ethers.getSigners()
-  let upalaConstants = new UpalaConstants(await upalaAdmin.getChainId())
-  let upala = upalaConstants.getContract('Upala', upalaAdmin)
-  let fakeDAI = upalaConstants.getContract('DAI', upalaAdmin)
-  
   console.log(
     chalk.green.bold('\nAddresses: '),
     chalk.green('\nupalaAdmin: '),
     upalaAdmin.address,
     chalk.green('\nmanager1: '),
-    manager1.address,
-    chalk.green('\nupala:'),
-    upala.address
+    manager1.address
   )
 
+  let upala = env.upala
+  let fakeDAI = env.dai
+  console.log(chalk.green('upala:'), upala.address)
+
+  //   await manager1.sendTransaction({
+  //     to: BOT_ADDRESS,
+  //     value: ethers.utils.parseEther("0.001")
+  //     });
   // create pool
-  let signedScoresPool = await deployPool('SignedScoresPool', manager1, upalaConstants)
+  let signedScoresPool = await deployPool('SignedScoresPool', manager1, env.upalaConstants)
   console.log(chalk.green('signedScoresPool:'), signedScoresPool.address)
   // transfer DAI to pool address
   await fakeDAI.connect(manager1).freeDaiToTheWorld(signedScoresPool.address, POOL_FUNDING)
@@ -99,9 +87,9 @@ async function main() {
 
   // USER ACTIONS
   // create id
-  let persona1id = await newIdentity(persona1.address, persona1, upalaConstants)
+  let persona1id = await newIdentity(persona1.address, persona1, env.upalaConstants)
   console.log(chalk.green('persona1id'), persona1id)
-  let persona2id = await newIdentity(persona2.address, persona2, upalaConstants)
+  let persona2id = await newIdentity(persona2.address, persona2, env.upalaConstants)
   console.log(chalk.green('persona2id'), persona2id)
 
   // // register persona1 delegate
