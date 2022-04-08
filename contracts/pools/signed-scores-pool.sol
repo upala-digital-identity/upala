@@ -21,7 +21,7 @@ contract SignedScoresPoolFactory {  // naming convention poolType + 'Factory'
         address newPoolAddress = address(
             new SignedScoresPool(upalaAddress, approvedTokenAddress, msg.sender));
 
-        require(upala.registerPool(newPoolAddress) == true, 
+        require(upala.registerPool(newPoolAddress, msg.sender) == true, 
             'Cannot approve new pool on Upala');
         return newPoolAddress;
     }

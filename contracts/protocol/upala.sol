@@ -66,7 +66,7 @@ contract Upala is OwnableUpgradeable{
 
     // used to register new pools in graph
     // helps define pool ABI by factory address
-    event NewPool(address poolAddress, address factory);
+    event NewPool(address poolAddress, address poolManager, address factory);
     event NewPoolFactoryStatus(address poolFactory, bool isApproved);
 
     // Dapps
@@ -215,14 +215,14 @@ contract Upala is OwnableUpgradeable{
     }
 
     // pool factories can register pools they generate
-    function registerPool(address newPool) 
+    function registerPool(address newPool, address poolManager) 
         external 
         onlyApprovedPoolFactory 
         returns(bool) 
     {
         // msg.sender is an approved pool factory address
         poolParent[newPool] = msg.sender;
-        emit NewPool(newPool, msg.sender);
+        emit NewPool(newPool, poolManager, msg.sender);
         return true;
     }
 
