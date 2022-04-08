@@ -27,21 +27,29 @@ const BOT_RATING = '50'
 const POOL_FUNDING = ethers.utils.parseEther('1000')
 
 async function main() {
-  let upalaAdmin, manager1, persona1, persona2, persona3, persona4, delegate11, dapp, nobody
+  let upalaAdmin,
+    manager1,
+    persona1,
+    persona2,
+    persona3,
+    persona4,
+    delegate11,
+    dapp,
+    nobody
 
-  // SETUP ENVIRONMENT (comment if loading from disk)
-  // let env = await setupProtocol({ isSavingConstants: false })
-  // ;[upalaAdmin, manager1, persona1, persona2, persona3, persona4, delegate11, dapp, nobody] = env.wallets
-  // let upala = env.upala
-  // let fakeDAI = env.dai
-  // let upalaConstants = env.upalaConstants
+    // SETUP ENVIRONMENT (comment if loading from disk)
+    // let env = await setupProtocol({ isSavingConstants: false })
+    // ;[upalaAdmin, manager1, persona1, persona2, persona3, persona4, delegate11, dapp, nobody] = env.wallets
+    // let upala = env.upala
+    // let fakeDAI = env.dai
+    // let upalaConstants = env.upalaConstants
 
-  // LOAD ENVIRONMENT FROM UPALA CONSTANTS (comment if deploying anew)
+    // LOAD ENVIRONMENT FROM UPALA CONSTANTS (comment if deploying anew)
   ;[upalaAdmin, manager1, persona1, persona2, persona3, persona4, delegate11, dapp, nobody] = await ethers.getSigners()
   let upalaConstants = new UpalaConstants(await upalaAdmin.getChainId())
   let upala = upalaConstants.getContract('Upala', upalaAdmin)
   let fakeDAI = upalaConstants.getContract('DAI', upalaAdmin)
-  
+
   console.log(
     chalk.green.bold('\nAddresses: '),
     chalk.green('\nupalaAdmin: '),
