@@ -47,7 +47,7 @@ contract BundledScoresPool is Ownable {
 
     event MetaDataUpdate(string metadata);
     event NewScoreBundleId(bytes32 newScoreBundleId, uint256 timestamp);
-    event ScoreBundleIdDeleted(bytes32 newScoreBundleId);
+    event ScoreBundleIdDeleted(bytes32 scoreBundleId);
     event NewBaseScore(uint256 newBaseScore);
 
     constructor(
