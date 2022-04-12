@@ -60,9 +60,10 @@ contract Upala is OwnableUpgradeable{
 
     // Identity management
     event NewIdentity(address upalaId, address owner);
-    event NewDelegate(address upalaId, address delegate, bool isApproved);
+    event NewCandidateDelegate(address upalaId, address delegate);
+    event NewDelegate(address upalaId, address delegate);
     event DelegateDeleted(address upalaId, address delegate);
-    event NewIdentityOwner(address upalaId, address owner);
+    event NewIdentityOwner(address upalaId, address oldOwner, address newOwner);
     event Exploded(address upalaId);
 
     // Keeps track of new pools in graph
@@ -133,7 +134,7 @@ contract Upala is OwnableUpgradeable{
         require(delegateToIdentity[msg.sender] == address(0x0), 
             "Already a delegate");
         candidateDelegateToIdentity[msg.sender] = upalaId;
-        NewDelegate(upalaId, msg.sender, false);
+        NewCandidateDelegate(upalaId, msg.sender);
     }
 
     // Creates delegate for the UpalaId. // todo delegate hijack
@@ -147,7 +148,7 @@ contract Upala is OwnableUpgradeable{
             "Delegatee must confirm delegation first");
         delegateToIdentity[delegate] = upalaId;
         delete candidateDelegateToIdentity[delegate];
-        NewDelegate(upalaId, delegate, true);
+        NewDelegate(upalaId, delegate);
     }
 
     // Stop being a delegate (called by delegate)
@@ -179,7 +180,7 @@ contract Upala is OwnableUpgradeable{
         require (delegateToIdentity[newIdentityOwner] == upalaId, 
             "Address is not a delegate for current UpalaId");
         identityOwner[upalaId] = newIdentityOwner;
-        NewIdentityOwner(upalaId, newIdentityOwner);
+        NewIdentityOwner(upalaId, msg.sender, newIdentityOwner);
     }
     
     // production todo may be required by regulators

@@ -105,6 +105,10 @@ async function main() {
   console.log(chalk.green('subBundle1 deleted'))
   // todo create another pool
 
+  // change owner
+  // update metadata
+  // more delegates to test reverse lookup
+
   // USER ACTIONS
   // create id
   let persona1id = await newIdentity(persona1.address, persona1, upalaConstants)
@@ -121,7 +125,8 @@ async function main() {
   await tx.wait(numConfirmations(await delegate11.getChainId()))
   console.log(chalk.green('persona1 approved delegate11 as delegate'))
 
-  // change owner
+
+
 
   // DAPPS ACTIONS
   // register dapp
