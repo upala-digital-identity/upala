@@ -125,9 +125,6 @@ async function main() {
   await tx.wait(numConfirmations(await delegate11.getChainId()))
   console.log(chalk.green('persona1 approved delegate11 as delegate'))
 
-
-
-
   // DAPPS ACTIONS
   // register dapp
 
