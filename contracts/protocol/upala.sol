@@ -60,11 +60,12 @@ contract Upala is OwnableUpgradeable{
 
     // Identity management
     event NewIdentity(address upalaId, address owner);
-    event NewDelegateStatus(address upalaId, address delegate, bool isApproved);
+    event NewDelegate(address upalaId, address delegate, bool isApproved);
+    event DelegateDeleted(address upalaId, address delegate);
     event NewIdentityOwner(address upalaId, address owner);
     event Exploded(address upalaId);
 
-    // used to register new pools in graph
+    // Keeps track of new pools in graph
     // helps define pool ABI by factory address
     event NewPool(address poolAddress, address poolManager, address factory);
     event NewPoolFactoryStatus(address poolFactory, bool isApproved);
@@ -132,6 +133,7 @@ contract Upala is OwnableUpgradeable{
         require(delegateToIdentity[msg.sender] == address(0x0), 
             "Already a delegate");
         candidateDelegateToIdentity[msg.sender] = upalaId;
+        NewDelegate(upalaId, msg.sender, false);
     }
 
     // Creates delegate for the UpalaId. // todo delegate hijack
@@ -145,7 +147,7 @@ contract Upala is OwnableUpgradeable{
             "Delegatee must confirm delegation first");
         delegateToIdentity[delegate] = upalaId;
         delete candidateDelegateToIdentity[delegate];
-        NewDelegateStatus(upalaId, delegate, true);
+        NewDelegate(upalaId, delegate, true);
     }
 
     // Stop being a delegate (called by delegate)
@@ -157,7 +159,7 @@ contract Upala is OwnableUpgradeable{
         require(idOwner != msg.sender, 
             "Cannot remove identity owner");
         delete delegateToIdentity[msg.sender];
-        NewDelegateStatus(upalaId, msg.sender, false);
+        DelegateDeleted(upalaId, msg.sender);
     }
 
     // Removes delegate for the UpalaId. 
@@ -167,7 +169,7 @@ contract Upala is OwnableUpgradeable{
         require(delegateToIdentity[msg.sender] == delegateToIdentity[delegate],
             "UpalaId must be same for delegate and id owner");
         delete delegateToIdentity[delegate];
-        NewDelegateStatus(delegateToIdentity[msg.sender], delegate, false);
+        DelegateDeleted(delegateToIdentity[msg.sender], delegate);
     }
     
     // Sets new UpalaId owner. Only allows to transfer ownership to an 
