@@ -91,18 +91,22 @@ contract Upala is OwnableUpgradeable{
         // __Ownable_init_unchained();  // ... with this line 
         __Ownable_init();
         // defaults
-        console.log("sdfsdf");
         explosionFeePercent = 3;
         treasury = owner();
         attackWindow = 30 minutes;
         executionWindow = 1 hours;
         // Hex to ASCII = exploded
-        EXPLODED = address(0x0000000000000000000000006578706c6f646564);  
+        EXPLODED = address(0x0000000000000000000000006578706c6f646564);
+        // emit events for subgraph
+        NewAttackWindow(attackWindow);
+        NewExecutionWindow(executionWindow);
+        NewExplosionFeePercent(explosionFeePercent);
+        NewTreasury(treasury);
     }
 
     /****
     USERS
-    *****/
+    *****/  
 
     // Creates UpalaId
     // Upala ID can be assigned to an address by a third party
@@ -268,7 +272,8 @@ contract Upala is OwnableUpgradeable{
     DAPPS
     *****/
     // Needed for subgraph
-    // todo Probably there's a simpler way to do this 
+    // Subgraph creates templates to monitor DApps
+    // Tracks which pool the DApp approves of
 
     function registerDApp() external {
         registeredDapps[msg.sender] = true;
