@@ -10,7 +10,7 @@ const chalk = require('chalk')
 async function deployContract(contractName, ...args) {
   const contractFactory = await ethers.getContractFactory(contractName)
   const contractInstance = await contractFactory.deploy(...args)
-  const chainId = await(await ethers.getSigner()).getChainId()
+  const chainId = await (await ethers.getSigner()).getChainId()
   await contractInstance.deployTransaction.wait(numConfirmations(chainId))
   await contractInstance.deployed()
   return contractInstance
@@ -18,7 +18,7 @@ async function deployContract(contractName, ...args) {
 
 // UPALA deployer
 async function deployUpgradableUpala() {
-  const chainId = await(await ethers.getSigner()).getChainId()
+  const chainId = await (await ethers.getSigner()).getChainId()
   let numConf = numConfirmations(chainId)
   const Upala = await ethers.getContractFactory('Upala')
   let upala = await upgrades.deployProxy(Upala, [], { gasPrice: utils.parseUnits('1.3', 'gwei') })
@@ -112,7 +112,6 @@ async function setupProtocol(params) {
     upalaConstants.save()
     console.log('Upala-admin: saving Upala constants')
   }
-
 
   // return the whole environment
   return {

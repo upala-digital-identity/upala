@@ -37,15 +37,15 @@ async function main() {
     dapp,
     nobody
 
-  // BEGIN. SETUP ENVIRONMENT (comment if loading from upala constants)
-  // let env = await setupProtocol({ isSavingConstants: false })
-  // ;[upalaAdmin, manager1, persona1, persona2, persona3, persona4, delegate11, dapp, nobody] = env.wallets
-  // let upala = env.upala
-  // let fakeDAI = env.dai
-  // let upalaConstants = env.upalaConstants
-  // END
+    // BEGIN. SETUP ENVIRONMENT (comment if loading from upala constants)
+    // let env = await setupProtocol({ isSavingConstants: false })
+    // ;[upalaAdmin, manager1, persona1, persona2, persona3, persona4, delegate11, dapp, nobody] = env.wallets
+    // let upala = env.upala
+    // let fakeDAI = env.dai
+    // let upalaConstants = env.upalaConstants
+    // END
 
-  // BEGIN. LOAD ENVIRONMENT FROM UPALA CONSTANTS (comment if deploying anew)
+    // BEGIN. LOAD ENVIRONMENT FROM UPALA CONSTANTS (comment if deploying anew)
   ;[upalaAdmin, manager1, persona1, persona2, persona3, persona4, delegate11, dapp, nobody] = await ethers.getSigners()
   let upalaConstants = new UpalaConstants(await upalaAdmin.getChainId())
   let upala = upalaConstants.getContract('Upala', upalaAdmin)
@@ -59,15 +59,11 @@ async function main() {
     chalk.green('\nupala:'),
     upala.address,
     chalk.green('\nDAI:'),
-    fakeDAI.address,
+    fakeDAI.address
   )
 
   // create pool
-  console.log(
-    chalk.green.bold('\nPool: '),
-    chalk.green('\nmanager1: '),
-    manager1.address
-  )
+  console.log(chalk.green.bold('\nPool: '), chalk.green('\nmanager1: '), manager1.address)
   let signedScoresPool = await deployPool('SignedScoresPool', manager1, upalaConstants)
   console.log(chalk.green('signedScoresPool:'), signedScoresPool.address)
   // transfer DAI to pool address
@@ -123,7 +119,7 @@ async function main() {
     chalk.green('\npersona1: '),
     persona1.address,
     chalk.green('\ndelegate11: '),
-    delegate11.address,
+    delegate11.address
   )
   let persona1id = await newIdentity(persona1.address, persona1, upalaConstants)
   console.log(chalk.green('persona1id'), persona1id)
@@ -138,9 +134,6 @@ async function main() {
   tx = await upala.connect(persona1).approveDelegate(delegate11.address)
   await tx.wait(numConfirmations(await delegate11.getChainId()))
   console.log(chalk.gray('persona1 approved delegate11 as delegate'))
-
-
-
 
   // DAPPS ACTIONS
   // register dapp
