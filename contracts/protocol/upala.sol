@@ -1,15 +1,14 @@
 pragma solidity ^0.8.0;
 
-// import "./i-upala.sol";
+// import "./i-upala.sol"; // todo finalize interface
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "../pools/i-pool-factory.sol";
 import "../pools/i-pool.sol";
-import "hardhat/console.sol";
-
 
 // The Upala ledger (protocol)
-contract Upala is OwnableUpgradeable{
+contract Upala is OwnableUpgradeable, PausableUpgradeable {
     using SafeMath for uint256;
 
     /*******
@@ -110,7 +109,7 @@ contract Upala is OwnableUpgradeable{
 
     // Creates UpalaId
     // Upala ID can be assigned to an address by a third party
-    function newIdentity(address newIdentityOwner) external returns (address) {
+    function newIdentity(address newIdentityOwner) external whenNotPaused returns (address) {
         require (newIdentityOwner != address(0x0),
             "Cannot use an empty addess");
         require (delegateToIdentity[newIdentityOwner] == address(0x0), 
@@ -134,7 +133,7 @@ contract Upala is OwnableUpgradeable{
     // UIP-23
     // must be called by an address receiving delegation prior to delegation
     // to cancel use 0x0 address for UpalaId
-    function approveDelegation(address upalaId) external {   // askDelegation
+    function approveDelegation(address upalaId) external whenNotPaused {   // askDelegation
         require(delegateToIdentity[msg.sender] == address(0x0), 
             "Already a delegate");
         candidateDelegateToIdentity[msg.sender] = upalaId;
@@ -142,7 +141,7 @@ contract Upala is OwnableUpgradeable{
     }
 
     // Creates delegate for the UpalaId. // todo delegate hijack
-    function approveDelegate(address delegate) external onlyIdOwner {  // newDelegate // setDelegate
+    function approveDelegate(address delegate) external onlyIdOwner whenNotPaused {  // newDelegate // setDelegate
         require (delegate != address(0x0),
             "Cannot use an empty addess");
         require (delegate != msg.sender,
@@ -156,7 +155,7 @@ contract Upala is OwnableUpgradeable{
     }
 
     // Stop being a delegate (called by delegate)
-    function stopDelegation() external {  // dropDelegation
+    function stopDelegation() external whenNotPaused {  // dropDelegation
         address upalaId = delegateToIdentity[msg.sender];
         require(upalaId != address(0x0),
             "Must be a delegate");  // what about exploded?
@@ -168,7 +167,7 @@ contract Upala is OwnableUpgradeable{
     }
 
     // Removes delegate for the UpalaId. 
-    function removeDelegate(address delegate) external onlyIdOwner {
+    function removeDelegate(address delegate) external onlyIdOwner whenNotPaused {
         require(delegate != msg.sender, 
             "Cannot remove oneself");
         require(delegateToIdentity[msg.sender] == delegateToIdentity[delegate],
@@ -179,7 +178,7 @@ contract Upala is OwnableUpgradeable{
     
     // Sets new UpalaId owner. Only allows to transfer ownership to an 
     // existing delegate (owner is a speial case of delegate)
-    function setIdentityOwner(address newIdentityOwner) external onlyIdOwner {
+    function setIdentityOwner(address newIdentityOwner) external onlyIdOwner whenNotPaused {
         address upalaId = delegateToIdentity[msg.sender];
         require (delegateToIdentity[newIdentityOwner] == upalaId, 
             "Address is not a delegate for current UpalaId");
@@ -224,7 +223,8 @@ contract Upala is OwnableUpgradeable{
     // pool factories can register pools they generate
     function registerPool(address newPool, address poolManager) 
         external 
-        onlyApprovedPoolFactory 
+        onlyApprovedPoolFactory
+        whenNotPaused
         returns(bool) 
     {
         // msg.sender is an approved pool factory address
@@ -237,7 +237,7 @@ contract Upala is OwnableUpgradeable{
     // (both creation of new pools and permissions of existing ones)
     function approvePoolFactory(address poolFactory, bool isApproved) 
         external 
-        onlyOwner 
+        onlyOwner
     {
         approvedPoolFactories[poolFactory] = isApproved;
         NewPoolFactoryStatus(poolFactory, isApproved);
@@ -260,7 +260,8 @@ contract Upala is OwnableUpgradeable{
     // explodes ID
     function explode(address identity) 
         external 
-        onlyApprovedPool 
+        onlyApprovedPool
+        whenNotPaused
         returns(bool)
     {
         identityOwner[identity] = EXPLODED;
@@ -275,12 +276,12 @@ contract Upala is OwnableUpgradeable{
     // Subgraph creates templates to monitor DApps
     // Tracks which pool the DApp approves of
 
-    function registerDApp() external {
+    function registerDApp() external whenNotPaused {
         registeredDapps[msg.sender] = true;
         NewDAppStatus(msg.sender, true);
     }
 
-    function unRegisterDApp() external {
+    function unRegisterDApp() external whenNotPaused {
         require(registeredDapps[msg.sender] == true,
             "DApp is not registered");
         delete registeredDapps[msg.sender];
@@ -294,7 +295,6 @@ contract Upala is OwnableUpgradeable{
     // Note. When decreasing attackWindow or executionWindow make sure to let 
     // all group managers to know in advance as it affects commits life.
     function setAttackWindow(uint256 newWindow) onlyOwner external {
-        console.log("setAttackWindow");  // production todo remove
         attackWindow = newWindow;
         NewAttackWindow(newWindow);
     }
