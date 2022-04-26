@@ -17,14 +17,14 @@ Update Upala policy:
 */
 
 async function main() {
-  
   const wallets = await ethers.getSigners()
   const chainId = await wallets[0].getChainId()
 
   const env = await setupProtocol({
     daiAdress: getDaiAddress(chainId),
     isVerbose: true,
-    isSavingConstants: true })
+    isSavingConstants: true,
+  })
   // ;[upalaAdmin, manager1, persona1, persona2, persona3, persona4, delegate11, dapp, nobody] = env.wallets
   // let upala = env.upala
   // let fakeDAI = env.dai
@@ -36,7 +36,6 @@ async function main() {
   // let fakeDAI = env.dai
   // let upalaConstants = env.upalaConstants
 
-  
   // console.log("upala", env.upala.address)
   // console.log("fakeDai", env.dai.address)
   // console.log("SignedScoresPoolFactory", env.poolFactory.address)

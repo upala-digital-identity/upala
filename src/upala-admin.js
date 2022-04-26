@@ -21,7 +21,7 @@ async function deployUpgradableUpala() {
   const chainId = await (await ethers.getSigner()).getChainId()
   let numConf = numConfirmations(chainId)
   const Upala = await ethers.getContractFactory('Upala')
-  let upala = await upgrades.deployProxy(Upala, [], { 
+  let upala = await upgrades.deployProxy(Upala, [], {
     kind: 'uups',
     // gasPrice: utils.parseUnits('1.3', 'gwei') // todo gas price!!!
   })
@@ -98,10 +98,7 @@ async function setupProtocol(params) {
   let chainID = await adminWallet.getChainId()
   const upalaConstants = new UpalaConstants(chainID, { loadFromDisk: false })
   if (verbose) {
-    console.log(
-      "chainID:", chainID,
-      "admin address:", adminWallet.address
-    )
+    console.log('chainID:', chainID, 'admin address:', adminWallet.address)
   }
 
   // Deploy Upala
@@ -109,9 +106,7 @@ async function setupProtocol(params) {
   // const upala = await deployContract('Upala')  // non-upgradable (debugging)
   upalaConstants.addContract('Upala', upala)
   if (verbose) {
-    console.log(
-      "Upala:", upala.address
-    )
+    console.log('Upala:', upala.address)
   }
 
   // Deploy DAI
@@ -124,9 +119,7 @@ async function setupProtocol(params) {
   upalaConstants.addContract('DAI', dai)
   // todo check if dai works correctly
   if (verbose) {
-    console.log(
-      "DAI:", dai.address
-    )
+    console.log('DAI:', dai.address)
   }
 
   // Deploy Pool Factory
@@ -136,9 +129,7 @@ async function setupProtocol(params) {
   upalaConstants.addContract('SignedScoresPoolFactory', poolFactory)
   upalaConstants.addABI('SignedScoresPool', (await artifacts.readArtifact('SignedScoresPool')).abi)
   if (verbose) {
-    console.log(
-      "poolFactory:", poolFactory.address
-    )
+    console.log('poolFactory:', poolFactory.address)
   }
 
   // Save Upala constants if needed (when deploying to production)
