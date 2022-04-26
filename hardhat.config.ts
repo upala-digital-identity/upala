@@ -4,7 +4,6 @@ import '@nomiclabs/hardhat-truffle5'
 import '@openzeppelin/hardhat-upgrades'
 import '@nomiclabs/hardhat-web3'
 import '@nomiclabs/hardhat-etherscan'
-// const os = require('os');
 
 // This is a sample Buidler task. To learn how to create your own go to
 // https://buidler.dev/guides/create-task.html
@@ -73,13 +72,12 @@ export default {
   solidity: {
     compilers: [
       {
-        version: '0.6.6',
-      },
-      {
         version: '0.8.0',
       },
+      {
+        version: '0.8.2',
+      },
     ],
-    // version: '0.8.0',
     settings: {
       optimizer: {
         enabled: true,

@@ -1,4 +1,4 @@
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.2;
 
 import "../protocol/upala.sol";
 // import "../pools/i-pool.sol"; // production todo create IPool
@@ -67,6 +67,10 @@ contract usingUpala {
     function register(address upalaAddress) internal {
         Upala(upalaAddress).registerDApp();
     }
+
+    // todo unregister dapp 
+
+    // todo setUpalaAddress - just in case... 
 }
 
 contract UBIExampleDApp is usingUpala {  // gotHumans requiringHumans 

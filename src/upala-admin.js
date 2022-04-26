@@ -21,7 +21,10 @@ async function deployUpgradableUpala() {
   const chainId = await (await ethers.getSigner()).getChainId()
   let numConf = numConfirmations(chainId)
   const Upala = await ethers.getContractFactory('Upala')
-  let upala = await upgrades.deployProxy(Upala, [], { gasPrice: utils.parseUnits('1.3', 'gwei') })
+  let upala = await upgrades.deployProxy(Upala, [], { 
+    kind: 'uups',
+    // gasPrice: utils.parseUnits('1.3', 'gwei') // todo gas price!!!
+  })
   await upala.deployTransaction.wait(numConf)
   await upala.deployed()
   return upala
@@ -83,22 +86,48 @@ DEPLOY SEQUENCE
 // publishes addresses and ABIs if needed to Upala constants
 // todo see production sequence below for live ethereum network
 async function setupProtocol(params) {
+  let verbose = false
+  if (params.hasOwnProperty('isVerbose') && params.isVerbose == true) {
+    verbose = true
+  }
+
   // Upala constants
   const wallets = await ethers.getSigners()
   // const otherWallets = await hre.ethers.getSigners();
   const adminWallet = wallets[0]
-  const upalaConstants = new UpalaConstants(await adminWallet.getChainId(), { loadFromDisk: false })
+  let chainID = await adminWallet.getChainId()
+  const upalaConstants = new UpalaConstants(chainID, { loadFromDisk: false })
+  if (verbose) {
+    console.log(
+      "chainID:", chainID,
+      "admin address:", adminWallet.address
+    )
+  }
 
   // Deploy Upala
   const upala = await deployUpgradableUpala()
   // const upala = await deployContract('Upala')  // non-upgradable (debugging)
   upalaConstants.addContract('Upala', upala)
-  // console.log('upala', upala.address)
+  if (verbose) {
+    console.log(
+      "Upala:", upala.address
+    )
+  }
 
   // Deploy DAI
-  const fakeDai = await deployContract('FakeDai', 'FakeDai', 'DAI')
-  upalaConstants.addContract('DAI', fakeDai)
-  // console.log('fakeDai', fakeDai.address)
+  let dai
+  if (params.hasOwnProperty('daiAdress') && params.daiAdress != null) {
+    dai = upalaConstants.getContract('DAI', adminWallet, params.daiAdress)
+  } else {
+    dai = await deployContract('FakeDai', 'FakeDai', 'DAI')
+  }
+  upalaConstants.addContract('DAI', dai)
+  // todo check if dai works correctly
+  if (verbose) {
+    console.log(
+      "DAI:", dai.address
+    )
+  }
 
   // Deploy Pool Factory
   const upalaManager = new UpalaManager(adminWallet, { upalaConstants: upalaConstants })
@@ -106,6 +135,11 @@ async function setupProtocol(params) {
   const poolFactory = await upalaManager.setUpPoolFactory('SignedScoresPoolFactory')
   upalaConstants.addContract('SignedScoresPoolFactory', poolFactory)
   upalaConstants.addABI('SignedScoresPool', (await artifacts.readArtifact('SignedScoresPool')).abi)
+  if (verbose) {
+    console.log(
+      "poolFactory:", poolFactory.address
+    )
+  }
 
   // Save Upala constants if needed (when deploying to production)
   if (params.hasOwnProperty('isSavingConstants') && params.isSavingConstants == true) {
@@ -118,7 +152,7 @@ async function setupProtocol(params) {
     upalaConstants: upalaConstants,
     wallets: wallets,
     upala: upala,
-    dai: fakeDai,
+    dai: dai,
     poolFactory: poolFactory,
   }
 }
@@ -131,7 +165,7 @@ async function productionDeployment(wallet) {
   const adminWallet = wallet
   const upala = await _deployUpgradableUpala()
   // <<-- deploy poolFactory
-  const poolFactory = await setUpPoolFactory('SignedScoresPoolFactory', upala, fakeDai)
+  const poolFactory = await setUpPoolFactory('SignedScoresPoolFactory', upala, dai)
   //save constants
   // catch
   // finally

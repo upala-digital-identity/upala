@@ -1,4 +1,4 @@
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.2;
 
 /* 
 Every group manages its poool in it's own way.

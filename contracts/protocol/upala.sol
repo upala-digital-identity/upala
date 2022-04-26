@@ -1,14 +1,15 @@
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.2;
 
 // import "./i-upala.sol"; // todo finalize interface
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+import "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 import "../pools/i-pool-factory.sol";
 import "../pools/i-pool.sol";
 
 // The Upala ledger (protocol)
-contract Upala is OwnableUpgradeable, PausableUpgradeable {
+contract Upala is UUPSUpgradeable, OwnableUpgradeable, PausableUpgradeable {
     using SafeMath for uint256;
 
     /*******
@@ -314,6 +315,11 @@ contract Upala is OwnableUpgradeable, PausableUpgradeable {
         treasury = newTreasury;
         NewTreasury(newTreasury);
     }
+    /************
+    UPGRADABILITY
+    *************/
+    //requirement of UUPSUpgradeable contract 
+    function _authorizeUpgrade(address) internal override onlyOwner {}
 
     /******
     GETTERS
