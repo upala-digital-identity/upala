@@ -1,16 +1,17 @@
 pragma solidity ^0.8.2;
 
 // import "./i-upala.sol"; // todo finalize interface
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
-import "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "../pools/i-pool-factory.sol";
 import "../pools/i-pool.sol";
 
 // The Upala ledger (protocol)
-contract Upala is UUPSUpgradeable, OwnableUpgradeable, PausableUpgradeable {
-    using SafeMath for uint256;
+contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUpgradeable {
+    using SafeMathUpgradeable for uint256;
 
     /*******
     SETTINGS
@@ -84,12 +85,14 @@ contract Upala is UUPSUpgradeable, OwnableUpgradeable, PausableUpgradeable {
     CONSTRUCTOR
     ***********/
 
-    function initialize () external {
+    function initialize () external initializer {
         // todo (is this a good production practice?) 
         // https://forum.openzeppelin.com/t/how-to-use-ownable-with-upgradeable-contract/3336/4
         // __Context_init_unchained();  // todo why it breaks? ask OZ
         // __Ownable_init_unchained();  // ... with this line 
+        __UUPSUpgradeable_init();   
         __Ownable_init();
+        __Pausable_init();
         // defaults
         explosionFeePercent = 3;
         treasury = owner();
@@ -315,6 +318,15 @@ contract Upala is UUPSUpgradeable, OwnableUpgradeable, PausableUpgradeable {
         treasury = newTreasury;
         NewTreasury(newTreasury);
     }
+
+    function pause() onlyOwner external {
+        _pause();
+    }
+
+    function unpause() onlyOwner external {
+        _unpause();
+    }
+
     /************
     UPGRADABILITY
     *************/
