@@ -18,14 +18,14 @@ task('accounts', 'Prints the list of accounts', async (args, hre) => {
 
 // store your secrets in a secure (cyphered) directory.
 // uses defaults when secrets vault locked (for local developement)
-let secrets = { 
-  mnemonic: 'test', 
-  etherscanKey: 'none', 
-  alchemyKey: 'none', 
+let secrets = {
+  mnemonic: 'test',
+  etherscanKey: 'none',
+  alchemyKey: 'none',
   infuraKey: 'none',
   defenderApiKey: 'none',
-  defenderApiSecret: 'none'
- }
+  defenderApiSecret: 'none',
+}
 try {
   secrets = require('/Volumes/Secrets/dev/ah-token/Ah-mnemonic.js')
 } catch {
@@ -35,7 +35,7 @@ try {
 export default {
   defaultNetwork: 'localhost',
   defender: {
-    apiKey: secrets.defenderApiKey,  //todo think of moving secrets to env process.env.API_KEY
+    apiKey: secrets.defenderApiKey, //todo think of moving secrets to env process.env.API_KEY
     apiSecret: secrets.defenderApiSecret,
   },
   networks: {
