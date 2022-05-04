@@ -86,11 +86,8 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
     ***********/
 
     function initialize () external initializer {
-        // todo (is this a good production practice?) 
-        // https://forum.openzeppelin.com/t/how-to-use-ownable-with-upgradeable-contract/3336/4
-        // __Context_init_unchained();  // todo why it breaks? ask OZ
-        // __Ownable_init_unchained();  // ... with this line 
-        __UUPSUpgradeable_init();   
+        // initializers
+        __UUPSUpgradeable_init();
         __Ownable_init();
         __Pausable_init();
         // defaults
@@ -98,7 +95,7 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
         treasury = owner();
         attackWindow = 30 minutes;
         executionWindow = 1 hours;
-        // Hex to ASCII = exploded
+        // ASCII to Hex "exploded"
         EXPLODED = address(0x0000000000000000000000006578706c6f646564);
         // emit events for subgraph
         NewAttackWindow(attackWindow);
@@ -109,7 +106,7 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
 
     /****
     USERS
-    *****/  
+    *****/
 
     // Creates UpalaId
     // Upala ID can be assigned to an address by a third party
@@ -162,7 +159,7 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
     function stopDelegation() external whenNotPaused {  // dropDelegation
         address upalaId = delegateToIdentity[msg.sender];
         require(upalaId != address(0x0),
-            "Must be a delegate");  // what about exploded?
+            "Upala: Must be a delegate");  // what about exploded?
         address idOwner = identityOwner[upalaId];
         require(idOwner != msg.sender, 
             "Cannot remove identity owner");

@@ -96,9 +96,10 @@ async function setupProtocol(params) {
   // const otherWallets = await hre.ethers.getSigners();
   const adminWallet = wallets[0]
   let chainID = await adminWallet.getChainId()
-  const upalaConstants = new UpalaConstants(chainID, { loadFromDisk: false })
+  const upalaConstants = new UpalaConstants(chainID, { loadFromDisk: false })  // todo loadFromDisk option renamed. 
+  // ↑↑↑ But rename it even better and describe. Something like forceNewEntity () ↑↑↑
   if (verbose) {
-    console.log('chainID:', chainID, 'admin address:', adminWallet.address)
+    console.log('chainID:', chainID, '\nadmin:', adminWallet.address)
   }
 
   // Deploy Upala
