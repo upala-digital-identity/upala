@@ -16,7 +16,7 @@ Update Upala:
 
 */
 
-const UPALA_MANAGER = "0x525437F0C66A85fABf922B2aF642dfBc6BF9EeD5"
+const UPALA_MANAGER = '0x525437F0C66A85fABf922B2aF642dfBc6BF9EeD5'
 
 async function main() {
   const wallets = await ethers.getSigners()
@@ -31,7 +31,7 @@ async function main() {
   // transfer ownership from deployer wallet to Upala manager (cold wallet or Multisig)
   let tx = await env.upala.transferOwnership(UPALA_MANAGER)
   await tx.wait(numConfirmations(chainId))
-  console.log("Onership transferred to:", UPALA_MANAGER)
+  console.log('Onership transferred to:', UPALA_MANAGER)
 }
 main()
   .then(() => process.exit(0))
