@@ -107,7 +107,7 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
     /****
     USERS
     *****/
-
+    // REGISTRATION
     // Creates UpalaId
     // Upala ID can be assigned to an address by a third party
     function newIdentity(address newIdentityOwner) external whenNotPaused returns (address) {
@@ -124,6 +124,16 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
         NewIdentity(newId, newIdentityOwner);
         return newId;
     }
+    
+    // can be called by any delegate address to get id (used for tests)
+    function myId() external view returns(address) {
+        return delegateToIdentity[msg.sender];
+    }
+
+    // can be called by any delegate address to get id owner (used for tests)
+    function myIdOwner() external view returns(address owner) {
+        return identityOwner[delegateToIdentity[msg.sender]];
+    }
 
     modifier onlyIdOwner() {
         require (identityOwner[delegateToIdentity[msg.sender]] == msg.sender, 
@@ -131,9 +141,10 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
         _;
     }
 
+    // DELEGATION
     // UIP-23
     // must be called by an address receiving delegation prior to delegation
-    // to cancel use 0x0 address for UpalaId
+    // to cancel use 0x0 address as UpalaId
     function approveDelegation(address upalaId) external whenNotPaused {   // askDelegation
         require(delegateToIdentity[msg.sender] == address(0x0), 
             "Already a delegate");
@@ -177,6 +188,7 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
         DelegateDeleted(delegateToIdentity[msg.sender], delegate);
     }
     
+    // OWNERSHIP AND DELETION
     // Sets new UpalaId owner. Only allows to transfer ownership to an 
     // existing delegate (owner is a speial case of delegate)
     function setIdentityOwner(address newIdentityOwner) external onlyIdOwner whenNotPaused {
@@ -187,20 +199,8 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
         NewIdentityOwner(upalaId, msg.sender, newIdentityOwner);
     }
     
-    // production todo may be required by regulators
-    // just explode with 0 reward!
-    // function removeIdentity(address name) external {
-    // }
+    // GDPR. To clear records, remove all delegatews and explode with 0 reward
 
-    // can be called by any delegate address to get id (used for tests)
-    function myId() external view returns(address) {
-        return delegateToIdentity[msg.sender];
-    }
-
-    // can be called by any delegate address to get id owner (used for tests)
-    function myIdOwner() external view returns(address owner) {
-        return identityOwner[delegateToIdentity[msg.sender]];
-    }
 
     /****
     POOLS
