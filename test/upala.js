@@ -10,10 +10,18 @@
 - add events testing
 - ignore production todos
 */
-
+const { ethers } = require('hardhat')
+const { utils } = require('ethers')
 const { expect } = require('chai')
 const { setupProtocol } = require('../src/upala-admin.js')
+const {
+  BN,           // Big Number support
+  constants,    // Common constants, like the zero address and largest integers
+  expectEvent,  // Assertions for emitted events
+  expectRevert, // Assertions for transactions that should fail
+} = require('@openzeppelin/test-helpers');
 
+/*
 describe('PROTOCOL MANAGEMENT', function () {
   let upala
   let unusedFakeDai
@@ -25,14 +33,23 @@ describe('PROTOCOL MANAGEMENT', function () {
     ;[upalaAdmin, nobody] = environment.wallets
   })
 
+  it('onlyOwner guards are set', async function () {
+    // approvePoolFactory(address poolFactory, bool isApproved)
+    // setAttackWindow(uint256 newWindow)
+    // setExecutionWindow(uint256 newWindow)
+    // setExplosionFeePercent(uint8 newFee)
+    // setTreasury(address newTreasury)
+    // pause()
+    // unpause()
+    // _authorizeUpgrade(address)
+  })
+
   it('owner can set attack window', async function () {
     const oldAttackWindow = await upala.attackWindow()
     const newAttackWindow = oldAttackWindow + 1000
     await expect(upala.connect(nobody).setAttackWindow(newAttackWindow)).to.be.revertedWith(
       'Ownable: caller is not the owner'
     )
-    console.log('upalaAdmin', upalaAdmin.address)
-    console.log('upala.owner()', await upala.owner())
     await upala.connect(upalaAdmin).setAttackWindow(newAttackWindow)
     expect(await upala.attackWindow()).to.be.eq(newAttackWindow)
   })
@@ -47,6 +64,12 @@ describe('PROTOCOL MANAGEMENT', function () {
     expect(await upala.executionWindow()).to.be.eq(newExecutionWindow)
   })
 
+  // todo setExplosionFeePercent(uint8 newFee)
+
+  // todo setTreasury(address newTreasury)
+
+  // pause() unpause()
+
   it('owner can change owner', async function () {
     await expect(upala.connect(nobody).transferOwnership(nobody.getAddress())).to.be.revertedWith(
       'Ownable: caller is not the owner'
@@ -54,49 +77,59 @@ describe('PROTOCOL MANAGEMENT', function () {
     await upala.connect(upalaAdmin).transferOwnership(nobody.getAddress())
     expect(await upala.owner()).to.be.eq(await nobody.getAddress())
   })
-})
 
+  // check paused functions
+})
+*/
 describe('USERS', function () {
   let upala
-  let fakeDai_NotUsedInThisTest
-  let wallets
+  let upalaAdmin, user1, user2, user3, delegate1, delegate2, delegate3, nobody
   before('setup protocol, register users', async () => {
     //todo beforeEach
     let environment = await setupProtocol({ isSavingConstants: false })
     upala = environment.upala
     ;[upalaAdmin, user1, user2, user3, delegate1, delegate2, delegate3, nobody] = environment.wallets
-
-    // the follwoing two lines are tested first below
-    await upala.connect(user2).newIdentity(user1.getAddress())
-    await upala.connect(user2).newIdentity(user2.getAddress())
   })
 
   describe('registration', function () {
-    it('Owner can query ID and ID Owner', async function () {
-      expect(await upala.connect(user1).myId()).to.eq(id)
-      expect(await upala.connect(user1).myIdOwner()).to.eq(id)
-      // todo expect 'nobody' to fail
+    it('registers an Upala id and the id is non-deterministic', async function () {
+      const tx = await upala.connect(user1).newIdentity(user1.getAddress())
+      const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber)).timestamp
+      const expectedId = utils.getAddress('0x' + utils.solidityKeccak256(
+        ['address', 'uint256'],
+        [user1.address, blockTimestamp]
+      ).substring(26))
+      const receivedId = (await upala.connect(user1).myId())
+      expect(receivedId).to.eq(expectedId)
+      expect(await upala.connect(user1).myIdOwner()).to.eq(user1.address)
+      await expect(tx)
+        .to.emit(upala, 'NewIdentity')
+        .withArgs(expectedId, user1.address);
     })
 
     it('registers Upala ID for another address', async function () {
-      expect(await upala.connect(user1).myId()).to.eq(1)
-    })
-
-    it('Upala ID owner address cannot be used to register another Upala ID', async function () {
+      // cannot register to taken address
       await expect(upala.connect(user2).newIdentity(user1.getAddress())).to.be.revertedWith(
         'Address is already an owner or delegate'
       )
+      // cannot register to an empty address
+      await upala.connect(user1).newIdentity(user2.getAddress())
+      expect(await upala.connect(user1).myId()).to.eq(1)
     })
   })
-
+/*
   describe('delegation', function () {
+    // before
+    // await upala.connect(user1).newIdentity(user1.getAddress())
+    // await upala.connect(user1).newIdentity(user2.getAddress())
     // todo
     // before('create delegate', async () => {
     //   await upala.connect(user1).approveDelegate(delegate1.getAddress());
     //   })
 
     it('cannot remove the only delegate', async function () {
-      await expect(upala.connect(user1).removeDelegate(user1.getAddress())).to.be.revertedWith('Cannot remove oneself')
+      await expect(upala.connect(user1).removeDelegate(user1.getAddress())).to.be.revertedWith(
+        'Cannot remove oneself')
     })
 
     it('can query Upala ID and owner address from an approved address', async function () {
@@ -173,8 +206,9 @@ describe('USERS', function () {
       expect(await upala.connect(user1).myIdOwner()).to.eq(await user3.getAddress())
     })
   })
+  */
 })
-
+/*
 describe('POOL FACTORIES', function () {
   let upala
   let fakeDai
@@ -258,6 +292,6 @@ describe('DAPPS MANAGEMENT', function () {
   // todo dapps can regiter in Upala
   // todo dapss can unregister in Upala (only registered ones)
 })
-
+*/
 // todo check treasury
 // todo check explosionFee settings
