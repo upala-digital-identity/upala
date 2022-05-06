@@ -15,11 +15,11 @@ const { utils } = require('ethers')
 const { expect } = require('chai')
 const { setupProtocol } = require('../src/upala-admin.js')
 const {
-  BN,           // Big Number support
-  constants,    // Common constants, like the zero address and largest integers
-  expectEvent,  // Assertions for emitted events
+  BN, // Big Number support
+  constants, // Common constants, like the zero address and largest integers
+  expectEvent, // Assertions for emitted events
   expectRevert, // Assertions for transactions that should fail
-} = require('@openzeppelin/test-helpers');
+} = require('@openzeppelin/test-helpers')
 
 /*
 describe('PROTOCOL MANAGEMENT', function () {
@@ -95,16 +95,13 @@ describe('USERS', function () {
     it('registers an Upala id and the id is non-deterministic', async function () {
       const tx = await upala.connect(user1).newIdentity(user1.getAddress())
       const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber)).timestamp
-      const expectedId = utils.getAddress('0x' + utils.solidityKeccak256(
-        ['address', 'uint256'],
-        [user1.address, blockTimestamp]
-      ).substring(26))
-      const receivedId = (await upala.connect(user1).myId())
+      const expectedId = utils.getAddress(
+        '0x' + utils.solidityKeccak256(['address', 'uint256'], [user1.address, blockTimestamp]).substring(26)
+      )
+      const receivedId = await upala.connect(user1).myId()
       expect(receivedId).to.eq(expectedId)
       expect(await upala.connect(user1).myIdOwner()).to.eq(user1.address)
-      await expect(tx)
-        .to.emit(upala, 'NewIdentity')
-        .withArgs(expectedId, user1.address);
+      await expect(tx).to.emit(upala, 'NewIdentity').withArgs(expectedId, user1.address)
     })
 
     it('registers Upala ID for another address', async function () {
@@ -117,7 +114,7 @@ describe('USERS', function () {
       expect(await upala.connect(user1).myId()).to.eq(1)
     })
   })
-/*
+  /*
   describe('delegation', function () {
     // before
     // await upala.connect(user1).newIdentity(user1.getAddress())
