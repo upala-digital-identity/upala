@@ -83,7 +83,6 @@ describe('PROTOCOL MANAGEMENT', function () {
 })
 */
 
-
 describe('USERS', function () {
   let upala
   let upalaAdmin, user1, user2, user3, delegate1, delegate2, delegate3, nobody
@@ -94,16 +93,12 @@ describe('USERS', function () {
     ;[upalaAdmin, user1, user2, user3, delegate1, delegate2, delegate3, nobody] = environment.wallets
   })
 
-
   describe('registration', function () {
     // helper function for calculating Ids
     async function calculateUpalaId(txOfIdCreation, userAddress) {
       const blockTimestamp = (await ethers.provider.getBlock(txOfIdCreation.blockNumber)).timestamp
       return utils.getAddress(
-        '0x' + utils.solidityKeccak256(
-          ['address', 'uint256'], 
-          [userAddress, blockTimestamp])
-        .substring(26)
+        '0x' + utils.solidityKeccak256(['address', 'uint256'], [userAddress, blockTimestamp]).substring(26)
       )
     }
 
@@ -118,9 +113,7 @@ describe('USERS', function () {
 
     it('registers Upala ID for another address', async function () {
       // cannot register to an empty address
-      await expect(upala.connect(user2).newIdentity(NULL_ADDRESS)).to.be.revertedWith(
-        'Cannot use an empty addess'
-      )
+      await expect(upala.connect(user2).newIdentity(NULL_ADDRESS)).to.be.revertedWith('Cannot use an empty addess')
       // cannot register to taken address
       await expect(upala.connect(user2).newIdentity(user1.address)).to.be.revertedWith(
         'Address is already an owner or delegate'
@@ -133,12 +126,11 @@ describe('USERS', function () {
     })
   })
 
-  
   describe('delegation', function () {
     before('register users', async () => {
       await upala.connect(user1).newIdentity(user1.getAddress())
       await upala.connect(user1).newIdentity(user2.getAddress())
-      await upala.connect(user1).approveDelegate(delegate1.getAddress());
+      await upala.connect(user1).approveDelegate(delegate1.getAddress())
     })
     // before
     // await upala.connect(user1).newIdentity(user1.getAddress())
@@ -149,8 +141,7 @@ describe('USERS', function () {
     //   })
     // todo cannot register an Upala id for an existing delegate
     it('cannot remove the only delegate', async function () {
-      await expect(upala.connect(user1).removeDelegate(user1.getAddress())).to.be.revertedWith(
-        'Cannot remove oneself')
+      await expect(upala.connect(user1).removeDelegate(user1.getAddress())).to.be.revertedWith('Cannot remove oneself')
     })
 
     it('can query Upala ID and owner address from an approved address', async function () {
@@ -184,7 +175,7 @@ describe('USERS', function () {
       await expect(upala.connect(delegate2).myId()).to.be.revertedWith('no id registered for the address')
     })
   })
-/*
+  /*
   describe('ownership', function () {
     it('cannot pass ownership to another account OWNER', async function () {
       await expect(upala.connect(user3).setIdentityOwner(user2.getAddress())).to.be.revertedWith(
