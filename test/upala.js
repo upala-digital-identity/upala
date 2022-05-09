@@ -21,6 +21,7 @@ const {
   expectRevert, // Assertions for transactions that should fail
 } = require('@openzeppelin/test-helpers')
 
+const NULL_ADDRESS = '0x0000000000000000000000000000000000000000'
 /*
 describe('PROTOCOL MANAGEMENT', function () {
   let upala
@@ -81,6 +82,8 @@ describe('PROTOCOL MANAGEMENT', function () {
   // check paused functions
 })
 */
+
+
 describe('USERS', function () {
   let upala
   let upalaAdmin, user1, user2, user3, delegate1, delegate2, delegate3, nobody
@@ -91,13 +94,22 @@ describe('USERS', function () {
     ;[upalaAdmin, user1, user2, user3, delegate1, delegate2, delegate3, nobody] = environment.wallets
   })
 
+
   describe('registration', function () {
+    // helper function for calculating Ids
+    async function calculateUpalaId(txOfIdCreation, userAddress) {
+      const blockTimestamp = (await ethers.provider.getBlock(txOfIdCreation.blockNumber)).timestamp
+      return utils.getAddress(
+        '0x' + utils.solidityKeccak256(
+          ['address', 'uint256'], 
+          [userAddress, blockTimestamp])
+        .substring(26)
+      )
+    }
+
     it('registers an Upala id and the id is non-deterministic', async function () {
       const tx = await upala.connect(user1).newIdentity(user1.getAddress())
-      const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber)).timestamp
-      const expectedId = utils.getAddress(
-        '0x' + utils.solidityKeccak256(['address', 'uint256'], [user1.address, blockTimestamp]).substring(26)
-      )
+      const expectedId = await calculateUpalaId(tx, user1.address)
       const receivedId = await upala.connect(user1).myId()
       expect(receivedId).to.eq(expectedId)
       expect(await upala.connect(user1).myIdOwner()).to.eq(user1.address)
@@ -105,17 +117,29 @@ describe('USERS', function () {
     })
 
     it('registers Upala ID for another address', async function () {
+      // cannot register to an empty address
+      await expect(upala.connect(user2).newIdentity(NULL_ADDRESS)).to.be.revertedWith(
+        'Cannot use an empty addess'
+      )
       // cannot register to taken address
-      await expect(upala.connect(user2).newIdentity(user1.getAddress())).to.be.revertedWith(
+      await expect(upala.connect(user2).newIdentity(user1.address)).to.be.revertedWith(
         'Address is already an owner or delegate'
       )
-      // cannot register to an empty address
-      await upala.connect(user1).newIdentity(user2.getAddress())
-      expect(await upala.connect(user1).myId()).to.eq(1)
+      // can register a third party address
+      tx = await upala.connect(user1).newIdentity(user2.address)
+      const expectedId = await calculateUpalaId(tx, user2.address)
+      expect(await upala.connect(user2).myId()).to.eq(expectedId)
+      await expect(tx).to.emit(upala, 'NewIdentity').withArgs(expectedId, user2.address)
     })
   })
-  /*
+
+  
   describe('delegation', function () {
+    before('register users', async () => {
+      await upala.connect(user1).newIdentity(user1.getAddress())
+      await upala.connect(user1).newIdentity(user2.getAddress())
+      await upala.connect(user1).approveDelegate(delegate1.getAddress());
+    })
     // before
     // await upala.connect(user1).newIdentity(user1.getAddress())
     // await upala.connect(user1).newIdentity(user2.getAddress())
@@ -123,7 +147,7 @@ describe('USERS', function () {
     // before('create delegate', async () => {
     //   await upala.connect(user1).approveDelegate(delegate1.getAddress());
     //   })
-
+    // todo cannot register an Upala id for an existing delegate
     it('cannot remove the only delegate', async function () {
       await expect(upala.connect(user1).removeDelegate(user1.getAddress())).to.be.revertedWith(
         'Cannot remove oneself')
@@ -160,7 +184,7 @@ describe('USERS', function () {
       await expect(upala.connect(delegate2).myId()).to.be.revertedWith('no id registered for the address')
     })
   })
-
+/*
   describe('ownership', function () {
     it('cannot pass ownership to another account OWNER', async function () {
       await expect(upala.connect(user3).setIdentityOwner(user2.getAddress())).to.be.revertedWith(
