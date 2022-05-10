@@ -194,7 +194,7 @@ describe('SCORING AND BOT ATTACK', function () {
     // register persona1 id
     persona1id = await newIdentity(persona1.address, persona1, env.upalaConstants)
     // register persona1 delegate
-    await upala.connect(delegate11).approveDelegation(persona1id)
+    await upala.connect(delegate11).askDelegation(persona1id)
     await upala.connect(persona1).approveDelegate(delegate11.address)
 
     let validScoreAssignedTo = [persona1.address, persona1id, delegate11.address]
@@ -280,7 +280,7 @@ describe('SCORING AND BOT ATTACK', function () {
     // bot actions
     // 1. register UpalaID (no matter on which address, so using persona1 from above)
     // 2. register persona1 delegate (use address with score)
-    await upala.connect(delegate11).approveDelegation(persona1id)
+    await upala.connect(delegate11).askDelegation(persona1id)
     await upala.connect(persona1).approveDelegate(delegate11.address)
     // before
     let poolBalBefore = await fakeDAI.balanceOf(signedScoresPool.address)

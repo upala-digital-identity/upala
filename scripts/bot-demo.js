@@ -93,7 +93,7 @@ async function main() {
   console.log(chalk.green('persona2id'), persona2id)
 
   // // register persona1 delegate
-  tx = await upala.connect(delegate11).approveDelegation(persona1id)
+  tx = await upala.connect(delegate11).askDelegation(persona1id)
   await tx.wait(numConfirmations(await delegate11.getChainId()))
   console.log(chalk.green('delegate11 approved delegation'))
 

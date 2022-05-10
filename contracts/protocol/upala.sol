@@ -145,7 +145,7 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
     // UIP-23
     // must be called by an address receiving delegation prior to delegation
     // to cancel use 0x0 address as UpalaId
-    function approveDelegation(address upalaId) external whenNotPaused {   // askDelegation
+    function askDelegation(address upalaId) external whenNotPaused {
         require(delegateToIdentity[msg.sender] == address(0x0), 
             "Already a delegate");
         candidateDelegateToIdentity[msg.sender] = upalaId;
@@ -167,25 +167,28 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
     }
 
     // Stop being a delegate (called by delegate)
-    function stopDelegation() external whenNotPaused {  // dropDelegation
+    function dropDelegation() external whenNotPaused {  
         address upalaId = delegateToIdentity[msg.sender];
         require(upalaId != address(0x0),
             "Upala: Must be a delegate");  // what about exploded?
-        address idOwner = identityOwner[upalaId];
-        require(idOwner != msg.sender, 
-            "Cannot remove identity owner");
-        delete delegateToIdentity[msg.sender];
-        DelegateDeleted(upalaId, msg.sender);
+
+        _removeDelegate(upalaId, msg.sender);
     }
 
-    // Removes delegate for the UpalaId. 
+    // Removes delegate for the UpalaId (called by Upala id owner)
     function removeDelegate(address delegate) external onlyIdOwner whenNotPaused {
-        require(delegate != msg.sender, 
-            "Cannot remove oneself");
-        require(delegateToIdentity[msg.sender] == delegateToIdentity[delegate],
+        address upalaId = delegateToIdentity[msg.sender];
+        _removeDelegate(upalaId, delegate);
+    }
+
+    function _removeDelegate(address upalaId, address delegate) internal {
+        require(upalaId == delegateToIdentity[delegate],
             "UpalaId must be same for delegate and id owner");
+        address idOwner = identityOwner[upalaId];
+        require(idOwner != delegate, 
+            "Cannot remove identity owner");
         delete delegateToIdentity[delegate];
-        DelegateDeleted(delegateToIdentity[msg.sender], delegate);
+        DelegateDeleted(upalaId, delegate);
     }
     
     // OWNERSHIP AND DELETION
