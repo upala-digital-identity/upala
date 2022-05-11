@@ -23,8 +23,6 @@ const {
 
 const NULL_ADDRESS = '0x0000000000000000000000000000000000000000'
 
-
-
 /*
 describe('PROTOCOL MANAGEMENT', function () {
   let upala
@@ -121,7 +119,6 @@ describe('USERS', function () {
   })
 
   describe('creating upala id and delegates', function () {
-
     it('registers non-deterministic Upala ID', async function () {
       const tx = await upala.connect(user1).newIdentity(user1.address)
       const expectedId = await calculateUpalaId(tx, user1.address)
@@ -168,10 +165,8 @@ describe('USERS', function () {
         'Delegatee must confirm delegation first'
       )
       // register new delegate
-      await upala.connect(delegate1).askDelegation(user1Id) 
-      await expect(upala.connect(user1).approveDelegate(NULL_ADDRESS)).to.be.revertedWith(
-        'Cannot use an empty addess'
-      )
+      await upala.connect(delegate1).askDelegation(user1Id)
+      await expect(upala.connect(user1).approveDelegate(NULL_ADDRESS)).to.be.revertedWith('Cannot use an empty addess')
       await expect(upala.connect(user1).approveDelegate(user1.address)).to.be.revertedWith(
         'Cannot approve oneself as delegate'
       )
@@ -196,14 +191,10 @@ describe('USERS', function () {
       await expect(upala.connect(user1).approveDelegate(delegate1.address)).to.be.revertedWith(
         'Delegatee must confirm delegation first'
       )
-      await expect(upala.connect(delegate1).askDelegation(user1Id)).to.be.revertedWith(
-        'Already a delegate'
-      )
+      await expect(upala.connect(delegate1).askDelegation(user1Id)).to.be.revertedWith('Already a delegate')
       // try use same delegate for another UpalaId
       const user2Id = await registerUpalaId(user2)
-      await expect(upala.connect(delegate1).askDelegation(user2Id)).to.be.revertedWith(
-        'Already a delegate'
-      )
+      await expect(upala.connect(delegate1).askDelegation(user2Id)).to.be.revertedWith('Already a delegate')
     })
 
     it('cannot register an Upala id for an existing delegate', async function () {
@@ -216,7 +207,8 @@ describe('USERS', function () {
     it('cannot remove the only delegate (owner is a speial case of delegate)', async function () {
       const user1Id = await registerUpalaId(user1)
       await expect(upala.connect(user1).removeDelegate(user1.address)).to.be.revertedWith(
-        'Upala: Cannot remove identity owner')
+        'Upala: Cannot remove identity owner'
+      )
     })
 
     it('cannot APPROVE delegate from a delegate address (only owner)', async function () {
@@ -258,11 +250,9 @@ describe('USERS', function () {
     })
 
     // todo can remove delegates after explosion
-
   })
 
   describe('ownership', function () {
-  
     it('cannot pass ownership to another account owner or delegate', async function () {
       const user1Id = await createIdAndDelegate(user1, delegate1)
       const user2Id = await createIdAndDelegate(user2, delegate2)
@@ -287,13 +277,14 @@ describe('USERS', function () {
       const user1Id = await createIdAndDelegate(user1, delegate1)
       await expect(upala.connect(user1).setIdentityOwner(delegate2.address)).to.be.revertedWith(
         'Upala: Address must be a delegate for the current UpalaId'
-      ) 
+      )
     })
 
     it('owner can pass ownership to own delegate (change owner address)', async function () {
       const user1Id = await createIdAndDelegate(user1, delegate1)
       const ownershipTransferTx = await upala.connect(user1).setIdentityOwner(delegate1.address)
-      await expect(ownershipTransferTx).to.emit(upala, 'NewIdentityOwner')
+      await expect(ownershipTransferTx)
+        .to.emit(upala, 'NewIdentityOwner')
         .withArgs(user1Id, user1.address, delegate1.address)
       expect(await upala.connect(user1).myIdOwner()).to.eq(delegate1.address)
       expect(await upala.connect(user1).myId()).to.eq(user1Id)
@@ -301,7 +292,6 @@ describe('USERS', function () {
       expect(await upala.connect(delegate1).myId()).to.eq(user1Id)
     })
   })
-
 })
 /*
 describe('POOL FACTORIES', function () {
