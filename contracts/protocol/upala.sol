@@ -137,14 +137,14 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
 
     modifier onlyIdOwner() {
         require (identityOwner[delegateToIdentity[msg.sender]] == msg.sender, 
-            "Only identity holder can add or remove delegates");
+            "Upala: Only identity owner can manage delegates and ownership");
         _;
     }
 
     // DELEGATION
     // UIP-23
     // must be called by an address receiving delegation prior to delegation
-    // to cancel use 0x0 address as UpalaId
+    // to cancel delegation request use 0x0 address as UpalaId
     function askDelegation(address upalaId) external whenNotPaused {
         require(delegateToIdentity[msg.sender] == address(0x0), 
             "Already a delegate");
@@ -154,9 +154,9 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
 
     // Creates delegate for the UpalaId. // todo delegate hijack
     function approveDelegate(address delegate) external onlyIdOwner whenNotPaused {  // newDelegate // setDelegate
-        require (delegate != address(0x0),
+        require(delegate != address(0x0),
             "Cannot use an empty addess");
-        require (delegate != msg.sender,
+        require(delegate != msg.sender,
             "Cannot approve oneself as delegate");
         address upalaId = delegateToIdentity[msg.sender];
         require(candidateDelegateToIdentity[delegate] == upalaId,
@@ -167,26 +167,24 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
     }
 
     // Stop being a delegate (called by delegate)
-    function dropDelegation() external whenNotPaused {  
-        address upalaId = delegateToIdentity[msg.sender];
-        require(upalaId != address(0x0),
-            "Upala: Must be a delegate");  // what about exploded?
-
-        _removeDelegate(upalaId, msg.sender);
+    // Can be called afrer id explosion as well
+    function dropDelegation() external whenNotPaused {
+        _removeDelegate(delegateToIdentity[msg.sender], msg.sender);
     }
 
     // Removes delegate for the UpalaId (called by Upala id owner)
     function removeDelegate(address delegate) external onlyIdOwner whenNotPaused {
-        address upalaId = delegateToIdentity[msg.sender];
-        _removeDelegate(upalaId, delegate);
+        _removeDelegate(delegateToIdentity[msg.sender], delegate);
     }
 
     function _removeDelegate(address upalaId, address delegate) internal {
+        require(upalaId != address(0x0),
+            "Upala: Must be an existing Upala ID");
         require(upalaId == delegateToIdentity[delegate],
-            "UpalaId must be same for delegate and id owner");
+            "Upala: Must be an existing delegate");
         address idOwner = identityOwner[upalaId];
-        require(idOwner != delegate, 
-            "Cannot remove identity owner");
+        require(idOwner != delegate,
+            "Upala: Cannot remove identity owner");
         delete delegateToIdentity[delegate];
         DelegateDeleted(upalaId, delegate);
     }
@@ -197,7 +195,7 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
     function setIdentityOwner(address newIdentityOwner) external onlyIdOwner whenNotPaused {
         address upalaId = delegateToIdentity[msg.sender];
         require (delegateToIdentity[newIdentityOwner] == upalaId, 
-            "Address is not a delegate for current UpalaId");
+            "Upala: Address must be a delegate for the current UpalaId");
         identityOwner[upalaId] = newIdentityOwner;
         NewIdentityOwner(upalaId, msg.sender, newIdentityOwner);
     }
