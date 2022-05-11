@@ -22,6 +22,9 @@ const {
 } = require('@openzeppelin/test-helpers')
 
 const NULL_ADDRESS = '0x0000000000000000000000000000000000000000'
+
+
+
 /*
 describe('PROTOCOL MANAGEMENT', function () {
   let upala
@@ -32,6 +35,9 @@ describe('PROTOCOL MANAGEMENT', function () {
     let environment = await setupProtocol({ isSavingConstants: false })
     upala = environment.upala
     ;[upalaAdmin, nobody] = environment.wallets
+
+
+
   })
 
   it('onlyOwner guards are set', async function () {
@@ -72,11 +78,11 @@ describe('PROTOCOL MANAGEMENT', function () {
   // pause() unpause()
 
   it('owner can change owner', async function () {
-    await expect(upala.connect(nobody).transferOwnership(nobody.getAddress())).to.be.revertedWith(
+    await expect(upala.connect(nobody).transferOwnership(nobody.address)).to.be.revertedWith(
       'Ownable: caller is not the owner'
     )
-    await upala.connect(upalaAdmin).transferOwnership(nobody.getAddress())
-    expect(await upala.owner()).to.be.eq(await nobody.getAddress())
+    await upala.connect(upalaAdmin).transferOwnership(nobody.address)
+    expect(await upala.owner()).to.be.eq(await nobody.address)
   })
 
   // check paused functions
@@ -86,24 +92,38 @@ describe('PROTOCOL MANAGEMENT', function () {
 describe('USERS', function () {
   let upala
   let upalaAdmin, user1, user2, user3, delegate1, delegate2, delegate3, nobody
-  before('setup protocol, register users', async () => {
+
+  // helper function for calculating Ids
+  async function calculateUpalaId(txOfIdCreation, userAddress) {
+    const blockTimestamp = (await ethers.provider.getBlock(txOfIdCreation.blockNumber)).timestamp
+    return utils.getAddress(
+      '0x' + utils.solidityKeccak256(['address', 'uint256'], [userAddress, blockTimestamp]).substring(26)
+    )
+  }
+  // helper function to register upala id for a wallet (returns upala id)
+  async function registerUpalaId(userWallet) {
+    tx = await upala.connect(userWallet).newIdentity(userWallet.address)
+    return calculateUpalaId(tx, userWallet.address)
+  }
+
+  async function createIdAndDelegate(userWallet, delegateWallet) {
+    const upalaId = await registerUpalaId(userWallet)
+    await upala.connect(delegateWallet).askDelegation(upalaId)
+    await upala.connect(userWallet).approveDelegate(delegateWallet.address)
+    return upalaId
+  }
+
+  beforeEach('setup protocol, register users', async () => {
     //todo beforeEach
     let environment = await setupProtocol({ isSavingConstants: false })
     upala = environment.upala
     ;[upalaAdmin, user1, user2, user3, delegate1, delegate2, delegate3, nobody] = environment.wallets
   })
 
-  describe('registration', function () {
-    // helper function for calculating Ids
-    async function calculateUpalaId(txOfIdCreation, userAddress) {
-      const blockTimestamp = (await ethers.provider.getBlock(txOfIdCreation.blockNumber)).timestamp
-      return utils.getAddress(
-        '0x' + utils.solidityKeccak256(['address', 'uint256'], [userAddress, blockTimestamp]).substring(26)
-      )
-    }
+  describe('creating upala id and delegates', function () {
 
-    it('registers an Upala id and the id is non-deterministic', async function () {
-      const tx = await upala.connect(user1).newIdentity(user1.getAddress())
+    it('registers non-deterministic Upala ID', async function () {
+      const tx = await upala.connect(user1).newIdentity(user1.address)
       const expectedId = await calculateUpalaId(tx, user1.address)
       const receivedId = await upala.connect(user1).myId()
       expect(receivedId).to.eq(expectedId)
@@ -111,10 +131,11 @@ describe('USERS', function () {
       await expect(tx).to.emit(upala, 'NewIdentity').withArgs(expectedId, user1.address)
     })
 
-    it('registers Upala ID for another address', async function () {
+    it('registers Upala ID for a third party address', async function () {
       // cannot register to an empty address
       await expect(upala.connect(user2).newIdentity(NULL_ADDRESS)).to.be.revertedWith('Cannot use an empty addess')
       // cannot register to taken address
+      await upala.connect(user1).newIdentity(user1.address)
       await expect(upala.connect(user2).newIdentity(user1.address)).to.be.revertedWith(
         'Address is already an owner or delegate'
       )
@@ -124,101 +145,163 @@ describe('USERS', function () {
       expect(await upala.connect(user2).myId()).to.eq(expectedId)
       await expect(tx).to.emit(upala, 'NewIdentity').withArgs(expectedId, user2.address)
     })
-  })
 
-  describe('delegation', function () {
-    before('register users', async () => {
-      await upala.connect(user1).newIdentity(user1.getAddress())
-      await upala.connect(user1).newIdentity(user2.getAddress())
-      await upala.connect(user1).approveDelegate(delegate1.getAddress())
-    })
-    // before
-    // await upala.connect(user1).newIdentity(user1.getAddress())
-    // await upala.connect(user1).newIdentity(user2.getAddress())
-    // todo
-    // before('create delegate', async () => {
-    //   await upala.connect(user1).approveDelegate(delegate1.getAddress());
-    //   })
-    // todo cannot register an Upala id for an existing delegate
-    it('cannot remove the only delegate', async function () {
-      await expect(upala.connect(user1).removeDelegate(user1.getAddress())).to.be.revertedWith('Cannot remove oneself')
+    it('can ask for delegation', async function () {
+      const user1Id = await registerUpalaId(user1)
+      const askDelegationTx = await upala.connect(delegate1).askDelegation(user1Id)
+      await expect(askDelegationTx).to.emit(upala, 'NewCandidateDelegate').withArgs(user1Id, delegate1.address)
     })
 
-    it('can query Upala ID and owner address from an approved address', async function () {
-      // todo expect 'nobody' to fail 0x0 in return
-      // todo get ownerID
-      await upala.connect(user1).approveDelegate(delegate1.getAddress())
-      expect(await upala.connect(delegate1).myId()).to.eq(await upala.connect(user1).myId())
+    it('can cancel delegation request (GDPR)', async function () {
+      const user1Id = await registerUpalaId(user1)
+      await upala.connect(delegate1).askDelegation(user1Id)
+      const askDelegationTx = await upala.connect(delegate1).askDelegation(NULL_ADDRESS)
+      await expect(askDelegationTx).to.emit(upala, 'NewCandidateDelegate').withArgs(NULL_ADDRESS, delegate1.address)
     })
 
-    it('cannot register an address approved by another Upala ID as a delegate', async function () {
-      await expect(upala.connect(user2).newIdentity(delegate1.getAddress())).to.be.revertedWith(
+    it('id owner can register a delegate', async function () {
+      await expect(upala.connect(nobody).approveDelegate(delegate1.address)).to.be.revertedWith(
+        'Upala: Only identity owner can manage delegates and ownership'
+      )
+      const user1Id = await registerUpalaId(user1)
+      await expect(upala.connect(user1).approveDelegate(delegate1.address)).to.be.revertedWith(
+        'Delegatee must confirm delegation first'
+      )
+      // register new delegate
+      await upala.connect(delegate1).askDelegation(user1Id) 
+      await expect(upala.connect(user1).approveDelegate(NULL_ADDRESS)).to.be.revertedWith(
+        'Cannot use an empty addess'
+      )
+      await expect(upala.connect(user1).approveDelegate(user1.address)).to.be.revertedWith(
+        'Cannot approve oneself as delegate'
+      )
+      const createDelegateTx = upala.connect(user1).approveDelegate(delegate1.address)
+      await expect(createDelegateTx).to.emit(upala, 'NewDelegate').withArgs(user1Id, delegate1.address)
+    })
+
+    it('delegates and owner can query Upala ID and owner', async function () {
+      const user1Id = await createIdAndDelegate(user1, delegate1)
+      expect(await upala.connect(nobody).myId()).to.eq(NULL_ADDRESS)
+      expect(await upala.connect(nobody).myIdOwner()).to.eq(NULL_ADDRESS)
+      expect(await upala.connect(user1).myId()).to.eq(user1Id)
+      expect(await upala.connect(delegate1).myId()).to.eq(user1Id)
+      expect(await upala.connect(user1).myIdOwner()).to.eq(user1.address)
+      expect(await upala.connect(delegate1).myIdOwner()).to.eq(user1.address)
+    })
+
+    it('cannot approve same delegate twice', async function () {
+      const user1Id = await createIdAndDelegate(user1, delegate1)
+
+      // try again for the same delegate candidate
+      await expect(upala.connect(user1).approveDelegate(delegate1.address)).to.be.revertedWith(
+        'Delegatee must confirm delegation first'
+      )
+      await expect(upala.connect(delegate1).askDelegation(user1Id)).to.be.revertedWith(
+        'Already a delegate'
+      )
+      // try use same delegate for another UpalaId
+      const user2Id = await registerUpalaId(user2)
+      await expect(upala.connect(delegate1).askDelegation(user2Id)).to.be.revertedWith(
+        'Already a delegate'
+      )
+    })
+
+    it('cannot register an Upala id for an existing delegate', async function () {
+      const user1Id = await createIdAndDelegate(user1, delegate1)
+      await expect(upala.connect(delegate1).newIdentity(delegate1.address)).to.be.revertedWith(
         'Address is already an owner or delegate'
       )
     })
 
+    it('cannot remove the only delegate (owner is a speial case of delegate)', async function () {
+      const user1Id = await registerUpalaId(user1)
+      await expect(upala.connect(user1).removeDelegate(user1.address)).to.be.revertedWith(
+        'Upala: Cannot remove identity owner')
+    })
+
     it('cannot APPROVE delegate from a delegate address (only owner)', async function () {
-      await expect(upala.connect(delegate1).approveDelegate(delegate2.getAddress())).to.be.revertedWith(
-        'Only identity holder can add or remove delegates'
+      const user1Id = await createIdAndDelegate(user1, delegate1)
+      await upala.connect(delegate2).askDelegation(user1Id)
+      await expect(upala.connect(delegate1).approveDelegate(delegate2.address)).to.be.revertedWith(
+        'Upala: Only identity owner can manage delegates and ownership'
       )
     })
 
     it('cannot REMOVE delegate from a delegate address (only owner)', async function () {
-      await upala.connect(user1).approveDelegate(delegate2.getAddress())
-      await expect(upala.connect(delegate1).removeDelegate(delegate2.getAddress())).to.be.revertedWith(
-        'Only identity holder can add or remove delegates'
+      const user1Id = await createIdAndDelegate(user1, delegate1)
+      await upala.connect(delegate2).askDelegation(user1Id)
+      await expect(upala.connect(delegate1).removeDelegate(delegate2.address)).to.be.revertedWith(
+        'Upala: Only identity owner can manage delegates and ownership'
       )
+    })
+
+    it('Id owner can remove a delegate', async function () {
+      const user1Id = await createIdAndDelegate(user1, delegate1)
+      await expect(upala.connect(nobody).removeDelegate(delegate1.address)).to.be.revertedWith(
+        'Upala: Only identity owner can manage delegates and ownership'
+      )
+      const removalTx = await upala.connect(user1).removeDelegate(delegate1.address)
+      await expect(removalTx).to.emit(upala, 'DelegateDeleted').withArgs(user1Id, delegate1.address)
+    })
+
+    it('delegate can drop delegation rights (GDPR)', async function () {
+      const user1Id = await createIdAndDelegate(user1, delegate1)
+      const droplTx = await upala.connect(delegate1).dropDelegation()
+      await expect(droplTx).to.emit(upala, 'DelegateDeleted').withArgs(user1Id, delegate1.address)
     })
 
     it('cannot query Upala ID from a removed address', async function () {
-      await upala.connect(user1).removeDelegate(delegate2.getAddress())
-      await expect(upala.connect(delegate2).myId()).to.be.revertedWith('no id registered for the address')
+      const user1Id = await createIdAndDelegate(user1, delegate1)
+      await upala.connect(delegate1).dropDelegation()
+      expect(await upala.connect(delegate1).myId()).to.eq(NULL_ADDRESS)
+      expect(await upala.connect(delegate1).myIdOwner()).to.eq(NULL_ADDRESS)
     })
+
+    // todo can remove delegates after explosion
+
   })
-  /*
+
   describe('ownership', function () {
-    it('cannot pass ownership to another account OWNER', async function () {
-      await expect(upala.connect(user3).setIdentityOwner(user2.getAddress())).to.be.revertedWith(
-        'Address is already an owner or delegate'
+  
+    it('cannot pass ownership to another account owner or delegate', async function () {
+      const user1Id = await createIdAndDelegate(user1, delegate1)
+      const user2Id = await createIdAndDelegate(user2, delegate2)
+      await expect(upala.connect(user1).setIdentityOwner(user2.address)).to.be.revertedWith(
+        'Upala: Address must be a delegate for the current UpalaId'
+      )
+      await expect(upala.connect(user1).setIdentityOwner(delegate2.address)).to.be.revertedWith(
+        'Upala: Address must be a delegate for the current UpalaId'
       )
     })
 
-    it('cannot pass ownership to another account DELEGATE', async function () {
-      await upala.connect(user2).approveDelegate(delegate2.getAddress())
-      await expect(upala.connect(user3).setIdentityOwner(delegate2.getAddress())).to.be.revertedWith(
-        'Address is already an owner or delegate'
-      )
-    })
-
-    it('delegate cannot change ownership', async function () {
-      await upala.connect(user3).approveDelegate(delegate3.getAddress())
-      await expect(upala.connect(delegate3).setIdentityOwner(user1.getAddress())).to.be.revertedWith(
-        'Only identity holder can add or remove delegates'
+    it('delegate cannot pass ownership', async function () {
+      const user1Id = await createIdAndDelegate(user1, delegate1)
+      await upala.connect(delegate2).askDelegation(user1Id)
+      await upala.connect(user1).approveDelegate(delegate2.address)
+      await expect(upala.connect(delegate2).setIdentityOwner(delegate1.address)).to.be.revertedWith(
+        'Upala: Only identity owner can manage delegates and ownership'
       )
     })
 
     it('cannot transfer ownership to a non-delegate (create delegate first)', async function () {
-      // todo to.be.revertedWith("Address is not a delegate for current UpalaId")
-    })
-
-    it('a non-owner cannot transfer ownership', async function () {
-      // todo to.be.revertedWith("Only identity holder can add or remove delegates")
+      const user1Id = await createIdAndDelegate(user1, delegate1)
+      await expect(upala.connect(user1).setIdentityOwner(delegate2.address)).to.be.revertedWith(
+        'Upala: Address must be a delegate for the current UpalaId'
+      ) 
     })
 
     it('owner can pass ownership to own delegate (change owner address)', async function () {
-      // todo probably bad code here
-      const upalaId = await upala.connect(user1).myId()
-      await upala.connect(user3).setIdentityOwner(delegate3.getAddress())
-      expect(await upala.connect(delegate3).myIdOwner()).to.eq(await delegate3.getAddress())
-      // id sticks
-      expect(await upala.connect(user3).myId()).to.eq(upalaId)
-      // delegates sticks
-      expect(await upala.connect(delegate1).myIdOwner()).to.eq(await user3.getAddress())
-      // owner becomes delegate
-      expect(await upala.connect(user1).myIdOwner()).to.eq(await user3.getAddress())
+      const user1Id = await createIdAndDelegate(user1, delegate1)
+      const ownershipTransferTx = await upala.connect(user1).setIdentityOwner(delegate1.address)
+      await expect(ownershipTransferTx).to.emit(upala, 'NewIdentityOwner')
+        .withArgs(user1Id, user1.address, delegate1.address)
+      expect(await upala.connect(user1).myIdOwner()).to.eq(delegate1.address)
+      expect(await upala.connect(user1).myId()).to.eq(user1Id)
+      expect(await upala.connect(delegate1).myIdOwner()).to.eq(delegate1.address)
+      expect(await upala.connect(delegate1).myId()).to.eq(user1Id)
     })
   })
-  */
+
 })
 /*
 describe('POOL FACTORIES', function () {
