@@ -14,6 +14,8 @@ const { ethers } = require('hardhat')
 const { utils } = require('ethers')
 const { expect } = require('chai')
 const { setupProtocol } = require('../src/upala-admin.js')
+const { deployPool } = require('@upala/group-manager')
+
 const {
   BN, // Big Number support
   constants, // Common constants, like the zero address and largest integers
@@ -22,7 +24,7 @@ const {
 } = require('@openzeppelin/test-helpers')
 
 const NULL_ADDRESS = '0x0000000000000000000000000000000000000000'
-
+const EXPLODED_ADDRESS = '0x0000000000000000000000006578706c6f646564'
 /*
 describe('PROTOCOL MANAGEMENT', function () {
   let upala
@@ -89,8 +91,8 @@ describe('PROTOCOL MANAGEMENT', function () {
 
 describe('USERS', function () {
   let upala
-  let upalaAdmin, user1, user2, user3, delegate1, delegate2, delegate3, nobody
-
+  let upalaAdmin, user1, user2, user3, delegate1, delegate2, manager1, nobody
+  let environment
   // helper function for calculating Ids
   async function calculateUpalaId(txOfIdCreation, userAddress) {
     const blockTimestamp = (await ethers.provider.getBlock(txOfIdCreation.blockNumber)).timestamp
@@ -113,9 +115,9 @@ describe('USERS', function () {
 
   beforeEach('setup protocol, register users', async () => {
     //todo beforeEach
-    let environment = await setupProtocol({ isSavingConstants: false })
+    environment = await setupProtocol({ isSavingConstants: false })
     upala = environment.upala
-    ;[upalaAdmin, user1, user2, user3, delegate1, delegate2, delegate3, nobody] = environment.wallets
+    ;[upalaAdmin, user1, user2, user3, delegate1, delegate2, manager1, nobody] = environment.wallets
   })
 
   describe('creating upala id', function () {
@@ -216,6 +218,7 @@ describe('USERS', function () {
   })
 
   describe('deleting delegates and upala id', function () {
+
     it('cannot REMOVE delegate from a delegate address (only owner)', async function () {
       const user1Id = await createIdAndDelegate(user1, delegate1)
       await upala.connect(delegate2).askDelegation(user1Id)
@@ -252,8 +255,31 @@ describe('USERS', function () {
       expect(await upala.connect(delegate1).myId()).to.eq(NULL_ADDRESS)
       expect(await upala.connect(delegate1).myIdOwner()).to.eq(NULL_ADDRESS)
     })
-    // todo can remove upala Id by exploding with zero reward
-    // todo can remove delegates after explosion
+
+    it('liquidated id has no link to owner address, delegates can be removed', async function () {
+      const user1Id = await createIdAndDelegate(user1, delegate1)
+
+      // exlode start (remove upala Id by exploding with zero reward)
+      const A_SCORE_BUNDLE = '0x0000000000000000000000000000000000000000000000000000000000000001'
+      const ZERO_REWARD = 0
+      const signedScoresPool = await deployPool('SignedScoresPool', manager1, environment.upalaConstants)
+      await signedScoresPool.connect(manager1).setBaseScore(1)
+      await signedScoresPool.connect(manager1).publishScoreBundleId(A_SCORE_BUNDLE)
+      let proof = await manager1.signMessage(
+        ethers.utils.arrayify(
+          utils.solidityKeccak256(['address', 'uint8', 'bytes32'], [user1Id, ZERO_REWARD, A_SCORE_BUNDLE])
+        )
+      )
+      await signedScoresPool
+        .connect(user1)
+        .attack(user1Id, user1Id, ZERO_REWARD, A_SCORE_BUNDLE, proof)
+      // exlode end
+      
+      await upala.connect(delegate1).dropDelegation()
+      expect(await upala.connect(delegate1).myId()).to.eq(NULL_ADDRESS)
+      expect(await upala.connect(user1).myId()).to.eq(NULL_ADDRESS)
+      expect(await upala.connect(user1).isExploded(user1Id)).to.eq(true)
+    })
   })
 
   describe('ownership', function () {
@@ -308,7 +334,7 @@ describe('POOL FACTORIES', function () {
     let environment = await setupProtocol({ isSavingConstants: false })
     upala = environment.upala
     fakeDai = environment.dai
-    ;[upalaAdmin, user1, user2, user3, manager1, manager2, delegate1, delegate2, delegate3, nobody] =
+    ;[upalaAdmin, user1, user2, user3, manager1, manager2, delegate1, delegate2, manager1, nobody] =
       environment.wallets
     signedScoresPoolFactory = environment.poolFactory
   })
