@@ -252,7 +252,7 @@ describe('USERS', function () {
       expect(await upala.connect(delegate1).myId()).to.eq(NULL_ADDRESS)
       expect(await upala.connect(delegate1).myIdOwner()).to.eq(NULL_ADDRESS)
     })
-    // todo can remove upala Id by exploding with zero reward 
+    // todo can remove upala Id by exploding with zero reward
     // todo can remove delegates after explosion
   })
 
