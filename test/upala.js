@@ -218,7 +218,6 @@ describe('USERS', function () {
   })
 
   describe('deleting delegates and upala id', function () {
-
     it('cannot REMOVE delegate from a delegate address (only owner)', async function () {
       const user1Id = await createIdAndDelegate(user1, delegate1)
       await upala.connect(delegate2).askDelegation(user1Id)
@@ -270,11 +269,9 @@ describe('USERS', function () {
           utils.solidityKeccak256(['address', 'uint8', 'bytes32'], [user1Id, ZERO_REWARD, A_SCORE_BUNDLE])
         )
       )
-      await signedScoresPool
-        .connect(user1)
-        .attack(user1Id, user1Id, ZERO_REWARD, A_SCORE_BUNDLE, proof)
+      await signedScoresPool.connect(user1).attack(user1Id, user1Id, ZERO_REWARD, A_SCORE_BUNDLE, proof)
       // exlode end
-      
+
       await upala.connect(delegate1).dropDelegation()
       expect(await upala.connect(delegate1).myId()).to.eq(NULL_ADDRESS)
       expect(await upala.connect(user1).myId()).to.eq(NULL_ADDRESS)
