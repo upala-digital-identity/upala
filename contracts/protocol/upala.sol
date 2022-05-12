@@ -135,6 +135,14 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
         return identityOwner[delegateToIdentity[msg.sender]];
     }
 
+    function isExploded(address upalaId) external view returns(bool) {
+        if (identityOwner[upalaId] == EXPLODED) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     modifier onlyIdOwner() {
         require (identityOwner[delegateToIdentity[msg.sender]] == msg.sender, 
             "Upala: Only identity owner can manage delegates and ownership");
@@ -266,6 +274,7 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
         whenNotPaused
         returns(bool)
     {
+        delete delegateToIdentity[identityOwner[identity]];
         identityOwner[identity] = EXPLODED;
         Exploded(identity);
         return true;
