@@ -118,7 +118,7 @@ describe('USERS', function () {
     ;[upalaAdmin, user1, user2, user3, delegate1, delegate2, delegate3, nobody] = environment.wallets
   })
 
-  describe('creating upala id and delegates', function () {
+  describe('creating upala id', function () {
     it('registers non-deterministic Upala ID', async function () {
       const tx = await upala.connect(user1).newIdentity(user1.address)
       const expectedId = await calculateUpalaId(tx, user1.address)
@@ -143,7 +143,16 @@ describe('USERS', function () {
       await expect(tx).to.emit(upala, 'NewIdentity').withArgs(expectedId, user2.address)
     })
 
-    it('can ask for delegation', async function () {
+    it('cannot register an Upala id for an existing delegate', async function () {
+      const user1Id = await createIdAndDelegate(user1, delegate1)
+      await expect(upala.connect(delegate1).newIdentity(delegate1.address)).to.be.revertedWith(
+        'Address is already an owner or delegate'
+      )
+    })
+  })
+
+  describe('creating delegates', function () {
+    it('any address can ask for delegation', async function () {
       const user1Id = await registerUpalaId(user1)
       const askDelegationTx = await upala.connect(delegate1).askDelegation(user1Id)
       await expect(askDelegationTx).to.emit(upala, 'NewCandidateDelegate').withArgs(user1Id, delegate1.address)
@@ -174,7 +183,7 @@ describe('USERS', function () {
       await expect(createDelegateTx).to.emit(upala, 'NewDelegate').withArgs(user1Id, delegate1.address)
     })
 
-    it('delegates and owner can query Upala ID and owner', async function () {
+    it('delegates and owner can query Upala ID and owner address', async function () {
       const user1Id = await createIdAndDelegate(user1, delegate1)
       expect(await upala.connect(nobody).myId()).to.eq(NULL_ADDRESS)
       expect(await upala.connect(nobody).myIdOwner()).to.eq(NULL_ADDRESS)
@@ -197,20 +206,6 @@ describe('USERS', function () {
       await expect(upala.connect(delegate1).askDelegation(user2Id)).to.be.revertedWith('Already a delegate')
     })
 
-    it('cannot register an Upala id for an existing delegate', async function () {
-      const user1Id = await createIdAndDelegate(user1, delegate1)
-      await expect(upala.connect(delegate1).newIdentity(delegate1.address)).to.be.revertedWith(
-        'Address is already an owner or delegate'
-      )
-    })
-
-    it('cannot remove the only delegate (owner is a speial case of delegate)', async function () {
-      const user1Id = await registerUpalaId(user1)
-      await expect(upala.connect(user1).removeDelegate(user1.address)).to.be.revertedWith(
-        'Upala: Cannot remove identity owner'
-      )
-    })
-
     it('cannot APPROVE delegate from a delegate address (only owner)', async function () {
       const user1Id = await createIdAndDelegate(user1, delegate1)
       await upala.connect(delegate2).askDelegation(user1Id)
@@ -218,12 +213,21 @@ describe('USERS', function () {
         'Upala: Only identity owner can manage delegates and ownership'
       )
     })
+  })
 
+  describe('deleting delegates and upala id', function () {
     it('cannot REMOVE delegate from a delegate address (only owner)', async function () {
       const user1Id = await createIdAndDelegate(user1, delegate1)
       await upala.connect(delegate2).askDelegation(user1Id)
       await expect(upala.connect(delegate1).removeDelegate(delegate2.address)).to.be.revertedWith(
         'Upala: Only identity owner can manage delegates and ownership'
+      )
+    })
+
+    it('cannot remove the only delegate (owner is a speial case of delegate)', async function () {
+      const user1Id = await registerUpalaId(user1)
+      await expect(upala.connect(user1).removeDelegate(user1.address)).to.be.revertedWith(
+        'Upala: Cannot remove identity owner'
       )
     })
 
@@ -248,7 +252,7 @@ describe('USERS', function () {
       expect(await upala.connect(delegate1).myId()).to.eq(NULL_ADDRESS)
       expect(await upala.connect(delegate1).myIdOwner()).to.eq(NULL_ADDRESS)
     })
-
+    // todo can remove upala Id by exploding with zero reward 
     // todo can remove delegates after explosion
   })
 
