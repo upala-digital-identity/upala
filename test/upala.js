@@ -329,8 +329,7 @@ describe('POOL FACTORIES', function () {
   beforeEach('setup protocol', async () => {
     environment = await setupProtocol({ isSavingConstants: false, skipPoolFactorySetup: true })
     upala = environment.upala
-    ;[upalaAdmin, user1, manager1, manager2, delegate1, delegate2, manager1, nobody] =
-      environment.wallets
+    ;[upalaAdmin, user1, manager1, manager2, delegate1, delegate2, manager1, nobody] = environment.wallets
   })
 
   it('owner (and only owner) can approve and disapprove pool factories', async function () {
@@ -341,14 +340,10 @@ describe('POOL FACTORIES', function () {
     )
     const approvalTx = await upala.connect(upalaAdmin).approvePoolFactory(poolFactory.address, true)
     expect(await upala.connect(nobody).isApprovedPoolFactory(poolFactory.address)).to.eq(true)
-    await expect(approvalTx)
-        .to.emit(upala, 'NewPoolFactoryStatus')
-        .withArgs(poolFactory.address, true)
+    await expect(approvalTx).to.emit(upala, 'NewPoolFactoryStatus').withArgs(poolFactory.address, true)
     const disApproveTx = await upala.connect(upalaAdmin).approvePoolFactory(poolFactory.address, false)
     expect(await upala.connect(nobody).isApprovedPoolFactory(poolFactory.address)).to.eq(false)
-    await expect(disApproveTx)
-        .to.emit(upala, 'NewPoolFactoryStatus')
-        .withArgs(poolFactory.address, false)
+    await expect(disApproveTx).to.emit(upala, 'NewPoolFactoryStatus').withArgs(poolFactory.address, false)
   })
 })
 

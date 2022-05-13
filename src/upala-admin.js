@@ -122,10 +122,10 @@ async function setupProtocol(params) {
   if (verbose) {
     console.log('DAI:', dai.address)
   }
-  
+
   let poolFactory
   if (params.hasOwnProperty('skipPoolFactorySetup') && params.skipPoolFactorySetup == true) {
-    } else {
+  } else {
     // Deploy Pool Factory
     const upalaManager = new UpalaManager(adminWallet, { upalaConstants: upalaConstants })
     // upalaManager grabs DAI contract from Upala Constants
