@@ -13,7 +13,7 @@
 const { ethers } = require('hardhat')
 const { utils } = require('ethers')
 const { expect } = require('chai')
-const { setupProtocol } = require('../src/upala-admin.js')
+const { setupProtocol, UpalaManager } = require('../src/upala-admin.js')
 const { deployPool } = require('@upala/group-manager')
 
 const {
@@ -88,7 +88,7 @@ describe('PROTOCOL MANAGEMENT', function () {
   // check paused functions
 })
 */
-
+/* USERS
 describe('USERS', function () {
   let upala
   let upalaAdmin, user1, user2, user3, delegate1, delegate2, manager1, nobody
@@ -320,27 +320,40 @@ describe('USERS', function () {
     })
   })
 })
-/*
+*/
+
 describe('POOL FACTORIES', function () {
   let upala
-  let fakeDai
-  let signedScoresPoolFactory
-  let wallets
+  let environment
 
-  before('setup protocol', async () => {
-    let environment = await setupProtocol({ isSavingConstants: false })
+  beforeEach('setup protocol', async () => {
+    environment = await setupProtocol({ isSavingConstants: false, skipPoolFactorySetup: true })
     upala = environment.upala
-    fakeDai = environment.dai
-    ;[upalaAdmin, user1, user2, user3, manager1, manager2, delegate1, delegate2, manager1, nobody] =
+    ;[upalaAdmin, user1, manager1, manager2, delegate1, delegate2, manager1, nobody] =
       environment.wallets
-    signedScoresPoolFactory = environment.poolFactory
   })
 
-  it('owner can manage pool factories', async function () {
-    // approvePoolFactory(addr, true) fails for nobody - see ownable for
-    // approvePoolFactory(addr, true) works for owner (event fired, record changed)
+  it('owner (and only owner) can approve and disapprove pool factories', async function () {
+    const upalaManager = new UpalaManager(upalaAdmin, { upalaConstants: environment.upalaConstants })
+    const poolFactory = await upalaManager.setUpPoolFactory('SignedScoresPoolFactory')
+    await expect(upala.connect(nobody).approvePoolFactory(poolFactory.address, true)).to.be.revertedWith(
+      'Ownable: caller is not the owner'
+    )
+    const approvalTx = await upala.connect(upalaAdmin).approvePoolFactory(poolFactory.address, true)
+    expect(await upala.connect(nobody).isApprovedPoolFactory(poolFactory.address)).to.eq(true)
+    await expect(approvalTx)
+        .to.emit(upala, 'NewPoolFactoryStatus')
+        .withArgs(poolFactory.address, true)
+    const disApproveTx = await upala.connect(upalaAdmin).approvePoolFactory(poolFactory.address, false)
+    expect(await upala.connect(nobody).isApprovedPoolFactory(poolFactory.address)).to.eq(false)
+    await expect(disApproveTx)
+        .to.emit(upala, 'NewPoolFactoryStatus')
+        .withArgs(poolFactory.address, false)
   })
+})
 
+/*
+  // todo disapprove pools don't work
   // production todo 'requires isPoolFactory bool to be true'
 
   it('only approved pool factory can register new pools', async function () {
