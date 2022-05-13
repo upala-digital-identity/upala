@@ -45,7 +45,7 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
     *****/
 
     // Pool Factories approved by Upala admin
-    mapping(address => bool) public approvedPoolFactories;
+    mapping(address => bool) approvedPoolFactories;
     // Pools created by approved pool factories
     mapping(address => address) public poolParent;
 
@@ -251,6 +251,10 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
     {
         approvedPoolFactories[poolFactory] = isApproved;
         NewPoolFactoryStatus(poolFactory, isApproved);
+    }
+
+    function isApprovedPoolFactory(address poolFactory) external view returns (bool) {
+        return approvedPoolFactories[poolFactory];
     }
 
     // used by pools to check validity of address and upala id
