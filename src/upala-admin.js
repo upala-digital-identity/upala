@@ -122,15 +122,19 @@ async function setupProtocol(params) {
   if (verbose) {
     console.log('DAI:', dai.address)
   }
-
-  // Deploy Pool Factory
-  const upalaManager = new UpalaManager(adminWallet, { upalaConstants: upalaConstants })
-  // upalaManager grabs DAI contract from Upala Constants
-  const poolFactory = await upalaManager.setUpPoolFactory('SignedScoresPoolFactory')
-  upalaConstants.addContract('SignedScoresPoolFactory', poolFactory)
-  upalaConstants.addABI('SignedScoresPool', (await artifacts.readArtifact('SignedScoresPool')).abi)
-  if (verbose) {
-    console.log('poolFactory:', poolFactory.address)
+  
+  let poolFactory
+  if (params.hasOwnProperty('skipPoolFactorySetup') && params.skipPoolFactorySetup == true) {
+    } else {
+    // Deploy Pool Factory
+    const upalaManager = new UpalaManager(adminWallet, { upalaConstants: upalaConstants })
+    // upalaManager grabs DAI contract from Upala Constants
+    poolFactory = await upalaManager.setUpPoolFactory('SignedScoresPoolFactory')
+    upalaConstants.addContract('SignedScoresPoolFactory', poolFactory)
+    upalaConstants.addABI('SignedScoresPool', (await artifacts.readArtifact('SignedScoresPool')).abi)
+    if (verbose) {
+      console.log('poolFactory:', poolFactory.address)
+    }
   }
 
   // Save Upala constants if needed (when deploying to production)
@@ -165,4 +169,4 @@ async function productionDeployment(wallet) {
   // store status
 }
 
-module.exports = { setupProtocol }
+module.exports = { setupProtocol, UpalaManager }
