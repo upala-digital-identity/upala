@@ -226,7 +226,7 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
 
     modifier onlyApprovedPoolFactory() {
         require(approvedPoolFactories[msg.sender] == true, 
-            "Pool factory is not approved");
+            "Upala: Pool factory is not approved");
         _;
     }
 
