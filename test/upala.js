@@ -279,6 +279,8 @@ describe('USERS', function () {
     })
   })
 
+  // todo test onlyOwner (one owner tries to access anoher)
+
   describe('ownership', function () {
     it('cannot pass ownership to another account owner or delegate', async function () {
       const user1Id = await createIdAndDelegate(user1, delegate1)
@@ -324,17 +326,30 @@ describe('USERS', function () {
 
 describe('POOL FACTORIES', function () {
   let upala
+  let dai
   let environment
+  let upalaManager
+
+  // helpers
+  // get newPoolAddress from event emitted at its creation
+  async function getNewPoolAddress(tx) {
+    const receipt = await tx.wait()
+    const blockNumber = receipt.blockNumber
+    const eventFilter = upala.filters.NewPool()
+    const events = await upala.queryFilter(eventFilter, blockNumber, blockNumber)
+    return events[0].args.poolAddress
+  }
 
   beforeEach('setup protocol', async () => {
     environment = await setupProtocol({ isSavingConstants: false, skipPoolFactorySetup: true })
     upala = environment.upala
+    dai = environment.dai
     ;[upalaAdmin, user1, manager1, manager2, delegate1, delegate2, manager1, nobody] = environment.wallets
+    upalaManager = new UpalaManager(upalaAdmin, { upalaConstants: environment.upalaConstants })
   })
 
   it('owner (and only owner) can approve and disapprove pool factories', async function () {
-    const upalaManager = new UpalaManager(upalaAdmin, { upalaConstants: environment.upalaConstants })
-    const poolFactory = await upalaManager.setUpPoolFactory('SignedScoresPoolFactory')
+    const poolFactory = await upalaManager.deployPoolFactory('SignedScoresPoolFactory', upala.address, dai.address)
     await expect(upala.connect(nobody).approvePoolFactory(poolFactory.address, true)).to.be.revertedWith(
       'Ownable: caller is not the owner'
     )
@@ -345,8 +360,22 @@ describe('POOL FACTORIES', function () {
     expect(await upala.connect(nobody).isApprovedPoolFactory(poolFactory.address)).to.eq(false)
     await expect(disApproveTx).to.emit(upala, 'NewPoolFactoryStatus').withArgs(poolFactory.address, false)
   })
-})
 
+  it('a pool factory which is NOT approved cannot register new pools', async function () {
+    const poolFactory = await upalaManager.deployPoolFactory('SignedScoresPoolFactory', upala.address, dai.address)
+    await expect(poolFactory.connect(nobody).createPool()).to.be.revertedWith(
+      'Upala: Pool factory is not approved'
+    )
+  })
+
+  it('approved pool factory can register new pools', async function () {
+    const poolFactory = await upalaManager.deployPoolFactory('SignedScoresPoolFactory', upala.address, dai.address)
+    await upala.connect(upalaAdmin).approvePoolFactory(poolFactory.address, true)
+    const poolCreationTx = await poolFactory.connect(manager1).createPool()
+    const newPoolAddress = await getNewPoolAddress(poolCreationTx)
+    await expect(poolCreationTx).to.emit(upala, 'NewPool').withArgs(newPoolAddress, manager1.address, poolFactory.address)
+  })
+})
 /*
   // todo disapprove pools don't work
   // production todo 'requires isPoolFactory bool to be true'
