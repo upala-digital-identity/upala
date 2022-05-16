@@ -6,6 +6,7 @@ const { UpalaConstants, numConfirmations } = require('@upala/constants')
 const { utils } = require('ethers')
 const { upgrades } = require('hardhat')
 const chalk = require('chalk')
+const { runInNewContext } = require('vm')
 
 async function deployContract(contractName, ...args) {
   const contractFactory = await ethers.getContractFactory(contractName)
@@ -71,10 +72,14 @@ class UpalaManager {
   async setUpPoolFactory(poolType) {
     const upConsts = await this.getUpalaConstants() // todo introduce initialize function instead
     const upalaContract = await this.getUpalaContract()
-    let poolFactory = await deployContract(poolType, upalaContract.address, upConsts.getAddress('DAI'))
+    let poolFactory = await this.deployPoolFactory(poolType, upalaContract.address, upConsts.getAddress('DAI'))
     let tx = await upalaContract.approvePoolFactory(poolFactory.address, 'true')
     await tx.wait(numConfirmations(await this.getChainID()))
     return poolFactory
+  }
+
+  async deployPoolFactory(poolType, upalaContractAddress, DaiAddress) {
+    return deployContract(poolType, upalaContractAddress, DaiAddress)
   }
 }
 
