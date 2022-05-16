@@ -363,9 +363,7 @@ describe('POOL FACTORIES', function () {
 
   it('a pool factory which is NOT approved cannot register new pools', async function () {
     const poolFactory = await upalaManager.deployPoolFactory('SignedScoresPoolFactory', upala.address, dai.address)
-    await expect(poolFactory.connect(nobody).createPool()).to.be.revertedWith(
-      'Upala: Pool factory is not approved'
-    )
+    await expect(poolFactory.connect(nobody).createPool()).to.be.revertedWith('Upala: Pool factory is not approved')
   })
 
   it('approved pool factory can register new pools', async function () {
@@ -373,7 +371,9 @@ describe('POOL FACTORIES', function () {
     await upala.connect(upalaAdmin).approvePoolFactory(poolFactory.address, true)
     const poolCreationTx = await poolFactory.connect(manager1).createPool()
     const newPoolAddress = await getNewPoolAddress(poolCreationTx)
-    await expect(poolCreationTx).to.emit(upala, 'NewPool').withArgs(newPoolAddress, manager1.address, poolFactory.address)
+    await expect(poolCreationTx)
+      .to.emit(upala, 'NewPool')
+      .withArgs(newPoolAddress, manager1.address, poolFactory.address)
   })
 })
 /*
