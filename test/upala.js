@@ -25,6 +25,21 @@ const {
 
 const NULL_ADDRESS = '0x0000000000000000000000000000000000000000'
 const EXPLODED_ADDRESS = '0x0000000000000000000000006578706c6f646564'
+const A_SCORE_BUNDLE = '0x0000000000000000000000000000000000000000000000000000000000000001'
+const ZERO_REWARD = 0
+
+async function getProof(userId, poolContract, managerWallet, bundleId, reward, baseScore = 1) {
+  await poolContract.connect(managerWallet).setBaseScore(baseScore)
+  await poolContract.connect(managerWallet).publishScoreBundleId(bundleId)
+  return await managerWallet.signMessage(
+    ethers.utils.arrayify(
+      utils.solidityKeccak256(['address', 'uint8', 'bytes32'], [userId, reward, bundleId])
+    )
+  )
+}
+
+      // await signedScoresPool.connect(user1).attack(user1Id, user1Id, ZERO_REWARD, A_SCORE_BUNDLE, proof)
+
 /*
 describe('PROTOCOL MANAGEMENT', function () {
   let upala
@@ -88,7 +103,7 @@ describe('PROTOCOL MANAGEMENT', function () {
   // check paused functions
 })
 */
-/* USERS
+// USERS
 describe('USERS', function () {
   let upala
   let upalaAdmin, user1, user2, user3, delegate1, delegate2, manager1, nobody
@@ -119,7 +134,7 @@ describe('USERS', function () {
     upala = environment.upala
     ;[upalaAdmin, user1, user2, user3, delegate1, delegate2, manager1, nobody] = environment.wallets
   })
-
+/*
   describe('creating upala id', function () {
     it('registers non-deterministic Upala ID', async function () {
       const tx = await upala.connect(user1).newIdentity(user1.address)
@@ -152,7 +167,7 @@ describe('USERS', function () {
       )
     })
   })
-
+/*
   describe('creating delegates', function () {
     it('any address can ask for delegation', async function () {
       const user1Id = await registerUpalaId(user1)
@@ -216,7 +231,7 @@ describe('USERS', function () {
       )
     })
   })
-
+*/
   describe('deleting delegates and upala id', function () {
     it('cannot REMOVE delegate from a delegate address (only owner)', async function () {
       const user1Id = await createIdAndDelegate(user1, delegate1)
@@ -257,20 +272,10 @@ describe('USERS', function () {
 
     it('liquidated id has no link to owner address, delegates can be removed', async function () {
       const user1Id = await createIdAndDelegate(user1, delegate1)
-
-      // exlode start (remove upala Id by exploding with zero reward)
-      const A_SCORE_BUNDLE = '0x0000000000000000000000000000000000000000000000000000000000000001'
-      const ZERO_REWARD = 0
+      // exlode (remove upala Id by exploding with zero reward)
       const signedScoresPool = await deployPool('SignedScoresPool', manager1, environment.upalaConstants)
-      await signedScoresPool.connect(manager1).setBaseScore(1)
-      await signedScoresPool.connect(manager1).publishScoreBundleId(A_SCORE_BUNDLE)
-      let proof = await manager1.signMessage(
-        ethers.utils.arrayify(
-          utils.solidityKeccak256(['address', 'uint8', 'bytes32'], [user1Id, ZERO_REWARD, A_SCORE_BUNDLE])
-        )
-      )
+      const proof = getProof(user1Id, signedScoresPool, manager1, A_SCORE_BUNDLE, ZERO_REWARD)
       await signedScoresPool.connect(user1).attack(user1Id, user1Id, ZERO_REWARD, A_SCORE_BUNDLE, proof)
-      // exlode end
 
       await upala.connect(delegate1).dropDelegation()
       expect(await upala.connect(delegate1).myId()).to.eq(NULL_ADDRESS)
@@ -278,9 +283,9 @@ describe('USERS', function () {
       expect(await upala.connect(user1).isExploded(user1Id)).to.eq(true)
     })
   })
-
+})
   // todo test onlyOwner (one owner tries to access anoher)
-
+/*
   describe('ownership', function () {
     it('cannot pass ownership to another account owner or delegate', async function () {
       const user1Id = await createIdAndDelegate(user1, delegate1)
@@ -361,75 +366,66 @@ describe('POOL FACTORIES', function () {
     await expect(disApproveTx).to.emit(upala, 'NewPoolFactoryStatus').withArgs(poolFactory.address, false)
   })
 
-  it('a pool factory which is NOT approved cannot register new pools', async function () {
+  it('only approved pool factory can register new pools', async function () {
+    // not yet approved
     const poolFactory = await upalaManager.deployPoolFactory('SignedScoresPoolFactory', upala.address, dai.address)
     await expect(poolFactory.connect(nobody).createPool()).to.be.revertedWith('Upala: Pool factory is not approved')
-  })
-
-  it('approved pool factory can register new pools', async function () {
-    const poolFactory = await upalaManager.deployPoolFactory('SignedScoresPoolFactory', upala.address, dai.address)
+    // approved
     await upala.connect(upalaAdmin).approvePoolFactory(poolFactory.address, true)
     const poolCreationTx = await poolFactory.connect(manager1).createPool()
     const newPoolAddress = await getNewPoolAddress(poolCreationTx)
     await expect(poolCreationTx)
       .to.emit(upala, 'NewPool')
       .withArgs(newPoolAddress, manager1.address, poolFactory.address)
+    // disapporved
+    await upala.connect(upalaAdmin).approvePoolFactory(poolFactory.address, false)
+    await expect(poolFactory.connect(nobody).createPool()).to.be.revertedWith('Upala: Pool factory is not approved')
+    // approved again
+    await upala.connect(upalaAdmin).approvePoolFactory(poolFactory.address, true)
+    const poolCreationTx2 = await poolFactory.connect(manager1).createPool()
+    const newPoolAddress2 = await getNewPoolAddress(poolCreationTx2)
+    await expect(poolCreationTx2)
+      .to.emit(upala, 'NewPool')
+      .withArgs(newPoolAddress2, manager1.address, poolFactory.address)
+
   })
-})
-/*
-  // todo disapprove pools don't work
+
   // production todo 'requires isPoolFactory bool to be true'
 
-  it('only approved pool factory can register new pools', async function () {
-    // todo 'nobody' cannot approve pools
-    // fails with "Not an owner" (see Ownbale contract)
-
-    // approve pool factory
-    await upala
-      .connect(upalaAdmin)
-      .approvePoolFactory(signedScoresPoolFactory.address, 'true')
-      .then((tx) => tx.wait())
-    expect(await upala.approvedPoolFactories(signedScoresPoolFactory.address)).to.eq(true)
-    // todo only Upala admin
-
-    // spawn a new pool by the factory
-    const tx = await signedScoresPoolFactory.connect(manager1).createPool()
-    // retrieve new pool address from Upala event (todo - is there an easier way?)
-    const blockNumber = (await tx.wait(1)).blockNumber
-    const eventFilter = upala.filters.NewPool()
-    const events = await upala.queryFilter(eventFilter, blockNumber, blockNumber)
-    const newPoolAddress = events[0].args.poolAddress
-
-    const poolContract = (await ethers.getContractFactory('SignedScoresPool')).attach(newPoolAddress)
-    // expect(await upala.approvedPools(newPoolAddress)).to.eq(signedScoresPoolFactory.address)
-
-    // try to spawn a pool from a not approved factory
-    // await expect(signedScoresPoolFactory2.connect(manager1).createPool()).to.be.revertedWith('Pool factory is not approved')
-  })
-
-  it('pool factories can be switched on and off', async function () {
-    // approvePoolFactory(addr, true)
-    // pool factory can register pools again
-    // approvePoolFactory(addr, false)
-    // pool factory cannot register pools
-    // approvePoolFactory(addr, true)
-    // pool factory can register pools again
-  })
+})
+/*
+  
 })
 
 describe('POOLS', function () {
-  // before
-  //    setup protocol
-  //    setup pool (approve pool factory and spawn a pool)
-  //
 
-  it('only registered pools can validate and explode users', async function () {
+  let upala
+  let upalaAdmin, user1, user2, user3, delegate1, delegate2, manager1, nobody
+  let environment
+
+  beforeEach('setup protocol, register users', async () => {
+    //todo beforeEach
+    environment = await setupProtocol({ isSavingConstants: false })
+    upala = environment.upala
+    ;[upalaAdmin, user1, user2, user3, delegate1, delegate2, manager1, nobody] = environment.wallets
+  })
+
+  it('registered pools can validate and explode users', async function () {
     // 'nobody' cannot read isOwnerOrDelegate - "Parent pool factory is disapproved"
     // 'nobody' cannot explode - "Parent pool factory is disapproved"
     // a registered one can do those
   })
 
-  it('disapproved pool factory child pool cannot validate or explode users', async function () {
+  it('disapproved pool factory child pool cannot validate or liquidate users', async function () {
+    const user1Id = await createIdAndDelegate(user1, delegate1)
+    const poolFactory = await upalaManager.deployPoolFactory('SignedScoresPoolFactory', upala.address, dai.address)
+    const approvalTx = await upala.connect(upalaAdmin).approvePoolFactory(poolFactory.address, true)
+
+    // exlode (remove upala Id by exploding with zero reward)
+    const signedScoresPool = await deployPool('SignedScoresPool', manager1, environment.upalaConstants)
+    const proof = getProof(user1Id, signedScoresPool, manager1, A_SCORE_BUNDLE, ZERO_REWARD)
+    await signedScoresPool.connect(user1).attack(user1Id, user1Id, ZERO_REWARD, A_SCORE_BUNDLE, proof)
+
     // disapprove
     // fails to validate or explode
     // approve
@@ -444,3 +440,4 @@ describe('DAPPS MANAGEMENT', function () {
 */
 // todo check treasury
 // todo check explosionFee settings
+// todo whenNot paused
