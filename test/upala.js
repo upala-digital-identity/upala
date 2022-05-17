@@ -32,13 +32,11 @@ async function getProof(userId, poolContract, managerWallet, bundleId, reward, b
   await poolContract.connect(managerWallet).setBaseScore(baseScore)
   await poolContract.connect(managerWallet).publishScoreBundleId(bundleId)
   return await managerWallet.signMessage(
-    ethers.utils.arrayify(
-      utils.solidityKeccak256(['address', 'uint8', 'bytes32'], [userId, reward, bundleId])
-    )
+    ethers.utils.arrayify(utils.solidityKeccak256(['address', 'uint8', 'bytes32'], [userId, reward, bundleId]))
   )
 }
 
-      // await signedScoresPool.connect(user1).attack(user1Id, user1Id, ZERO_REWARD, A_SCORE_BUNDLE, proof)
+// await signedScoresPool.connect(user1).attack(user1Id, user1Id, ZERO_REWARD, A_SCORE_BUNDLE, proof)
 
 /*
 describe('PROTOCOL MANAGEMENT', function () {
@@ -134,7 +132,7 @@ describe('USERS', function () {
     upala = environment.upala
     ;[upalaAdmin, user1, user2, user3, delegate1, delegate2, manager1, nobody] = environment.wallets
   })
-/*
+  /*
   describe('creating upala id', function () {
     it('registers non-deterministic Upala ID', async function () {
       const tx = await upala.connect(user1).newIdentity(user1.address)
@@ -284,7 +282,7 @@ describe('USERS', function () {
     })
   })
 })
-  // todo test onlyOwner (one owner tries to access anoher)
+// todo test onlyOwner (one owner tries to access anoher)
 /*
   describe('ownership', function () {
     it('cannot pass ownership to another account owner or delegate', async function () {
@@ -387,11 +385,9 @@ describe('POOL FACTORIES', function () {
     await expect(poolCreationTx2)
       .to.emit(upala, 'NewPool')
       .withArgs(newPoolAddress2, manager1.address, poolFactory.address)
-
   })
 
   // production todo 'requires isPoolFactory bool to be true'
-
 })
 /*
   
