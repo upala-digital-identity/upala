@@ -298,7 +298,7 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
 
     function unRegisterDApp() external whenNotPaused {
         require(registeredDapps[msg.sender] == true,
-            "DApp is not registered");
+            "Upala: DApp is not registered");
         delete registeredDapps[msg.sender];
         NewDAppStatus(msg.sender, false);
     }

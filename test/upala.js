@@ -116,6 +116,11 @@ describe('PROTOCOL MANAGEMENT', function () {
   })
 
   // check paused functions
+
+  // todo check treasury
+  // todo check explosionFee settings
+  // todo whenNot paused
+
 })
 
 // USERS
@@ -419,10 +424,35 @@ describe('POOL FACTORIES & POOLS', function () {
 })
 
 describe('DAPPS MANAGEMENT', function () {
-  // todo dapps can regiter in Upala
-  // todo dapss can unregister in Upala (only registered ones)
+  let upala
+  let upalaAdmin, dapp1, nobody
+  let environment
+
+  beforeEach('setup protocol, register users', async () => {
+    environment = await setupProtocol({ isSavingConstants: false })
+    upala = environment.upala
+    ;[upalaAdmin, dapp1, nobody] = environment.wallets
+  })
+
+  it('Dapps can register in Upala', async function () {
+    const DappRegTx = await upala.connect(dapp1).registerDApp()
+    await expect(DappRegTx)
+      .to.emit(upala, 'NewDAppStatus')
+      .withArgs(dapp1.address, true)
+  })
+
+  it('Dapss can unregister in Upala (only registered ones)', async function () {
+    // unregister UNREGISTERED
+    await expect(
+      upala.connect(dapp1).unRegisterDApp()
+    ).to.be.revertedWith('Upala: DApp is not registered')
+    // unregister REGISTERED
+    await upala.connect(dapp1).registerDApp()
+    const DappUnRegTx = await upala.connect(dapp1).unRegisterDApp()
+    await expect(DappUnRegTx)
+      .to.emit(upala, 'NewDAppStatus')
+      .withArgs(dapp1.address, false)
+  })
+
 })
 
-// todo check treasury
-// todo check explosionFee settings
-// todo whenNot paused
