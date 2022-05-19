@@ -59,7 +59,6 @@ async function getProof(userId, poolContract, managerWallet, bundleId, reward, b
 
 // await signedScoresPool.connect(user1).attack(user1Id, user1Id, ZERO_REWARD, A_SCORE_BUNDLE, proof)
 
-
 describe('PROTOCOL MANAGEMENT', function () {
   let upala
   let unusedFakeDai
@@ -69,9 +68,6 @@ describe('PROTOCOL MANAGEMENT', function () {
     let environment = await setupProtocol({ isSavingConstants: false })
     upala = environment.upala
     ;[upalaAdmin, nobody] = environment.wallets
-
-
-
   })
 
   it('onlyOwner guards are set', async function () {
@@ -127,7 +123,6 @@ describe('USERS', function () {
   let upala
   let upalaAdmin, user1, user2, user3, delegate1, delegate2, manager1, nobody
   let environment
-  
 
   beforeEach('setup protocol, register users', async () => {
     //todo beforeEach
@@ -284,7 +279,7 @@ describe('USERS', function () {
       expect(await upala.connect(user1).isExploded(user1Id)).to.eq(true)
     })
   })
-// todo test onlyOwner (one owner tries to access anoher)
+  // todo test onlyOwner (one owner tries to access anoher)
 
   describe('ownership', function () {
     it('cannot pass ownership to another account owner or delegate', async function () {
@@ -327,7 +322,6 @@ describe('USERS', function () {
     })
   })
 })
-
 
 describe('POOL FACTORIES & POOLS', function () {
   let upala
@@ -394,22 +388,28 @@ describe('POOL FACTORIES & POOLS', function () {
     // create user and delegate
     const user1Id = await createIdAndDelegate(upala, user1, delegate1)
     // try liquidate from random address
-    await expect(upala.connect(nobody).isOwnerOrDelegate(user1.address, user1Id)).to.be.revertedWith('Upala: Parent pool factory is not approved')
-    await expect(upala.connect(nobody).explode(user1Id)).to.be.revertedWith('Upala: Parent pool factory is not approved')
-    // liquidate from an approved pool address 
-    const poolFactory = await upalaManager.setUpPoolFactory("SignedScoresPoolFactory")
+    await expect(upala.connect(nobody).isOwnerOrDelegate(user1.address, user1Id)).to.be.revertedWith(
+      'Upala: Parent pool factory is not approved'
+    )
+    await expect(upala.connect(nobody).explode(user1Id)).to.be.revertedWith(
+      'Upala: Parent pool factory is not approved'
+    )
+    // liquidate from an approved pool address
+    const poolFactory = await upalaManager.setUpPoolFactory('SignedScoresPoolFactory')
     const poolCreationTx = await poolFactory.connect(manager1).createPool()
     const newPoolAddress = await getNewPoolAddress(poolCreationTx)
-    const signedScoresPool = environment.upalaConstants.getContract("SignedScoresPool", manager1, newPoolAddress)
+    const signedScoresPool = environment.upalaConstants.getContract('SignedScoresPool', manager1, newPoolAddress)
     const proof = getProof(user1Id, signedScoresPool, manager1, A_SCORE_BUNDLE, ZERO_REWARD)
-    await signedScoresPool.connect(user1).attack(user1Id, user1Id, ZERO_REWARD, A_SCORE_BUNDLE, proof)  
+    await signedScoresPool.connect(user1).attack(user1Id, user1Id, ZERO_REWARD, A_SCORE_BUNDLE, proof)
     expect(await upala.connect(user1).isExploded(user1Id)).to.eq(true)
     // turn off parent Pool Factory
     await upala.connect(upalaAdmin).approvePoolFactory(poolFactory.address, false)
     const user2Id = await createIdAndDelegate(upala, user2, delegate2)
     const proof2 = getProof(user2Id, signedScoresPool, manager1, B_SCORE_BUNDLE, ZERO_REWARD)
-    await expect(signedScoresPool.connect(user2).attack(user2Id, user2Id, ZERO_REWARD, B_SCORE_BUNDLE, proof2)).to.be.revertedWith('Upala: Parent pool factory is not approved')
-    // turn on again 
+    await expect(
+      signedScoresPool.connect(user2).attack(user2Id, user2Id, ZERO_REWARD, B_SCORE_BUNDLE, proof2)
+    ).to.be.revertedWith('Upala: Parent pool factory is not approved')
+    // turn on again
     await upala.connect(upalaAdmin).approvePoolFactory(poolFactory.address, true)
     await signedScoresPool.connect(user2).attack(user2Id, user2Id, ZERO_REWARD, B_SCORE_BUNDLE, proof2)
     expect(await upala.connect(user1).isExploded(user2Id)).to.eq(true)
@@ -417,7 +417,6 @@ describe('POOL FACTORIES & POOLS', function () {
 
   // production todo 'requires isPoolFactory bool to be true'
 })
-
 
 describe('DAPPS MANAGEMENT', function () {
   // todo dapps can regiter in Upala
