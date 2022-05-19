@@ -84,7 +84,7 @@ describe('PROTOCOL MANAGEMENT', function () {
     )
     const newExWindowTx = await upala.connect(upalaAdmin).setExecutionWindow(newExecutionWindow)
     await expect(newExWindowTx).to.emit(upala, 'NewExecutionWindow').withArgs(newExecutionWindow)
-    expect(await upala.getExecutionWindow()).to.be.eq(newExecutionWindow) 
+    expect(await upala.getExecutionWindow()).to.be.eq(newExecutionWindow)
   })
 
   it('owner can set explosion fee percent', async function () {
@@ -100,9 +100,7 @@ describe('PROTOCOL MANAGEMENT', function () {
 
   it('owner can set treasury address', async function () {
     const newTreasury = newAdmin.address
-    await expect(upala.connect(nobody).setTreasury(newTreasury)).to.be.revertedWith(
-      'Ownable: caller is not the owner'
-    )
+    await expect(upala.connect(nobody).setTreasury(newTreasury)).to.be.revertedWith('Ownable: caller is not the owner')
     const newTreasuryTx = await upala.connect(upalaAdmin).setTreasury(newTreasury)
     await expect(newTreasuryTx).to.emit(upala, 'NewTreasury').withArgs(newAdmin.address)
     expect(await upala.getTreasury()).to.be.eq(newAdmin.address)
@@ -110,16 +108,12 @@ describe('PROTOCOL MANAGEMENT', function () {
 
   it('owner can pause/unpause contract', async function () {
     // Pause
-    await expect(upala.connect(nobody).pause()).to.be.revertedWith(
-      'Ownable: caller is not the owner'
-    )
+    await expect(upala.connect(nobody).pause()).to.be.revertedWith('Ownable: caller is not the owner')
     const pausedTx = await upala.connect(upalaAdmin).pause()
     await expect(pausedTx).to.emit(upala, 'Paused').withArgs(upalaAdmin.address)
     expect(await upala.paused()).to.be.eq(true)
     // Unpause
-    await expect(upala.connect(nobody).unpause()).to.be.revertedWith(
-      'Ownable: caller is not the owner'
-    )
+    await expect(upala.connect(nobody).unpause()).to.be.revertedWith('Ownable: caller is not the owner')
     const unpausedTx = await upala.connect(upalaAdmin).unpause()
     await expect(unpausedTx).to.emit(upala, 'Unpaused').withArgs(upalaAdmin.address)
     expect(await upala.paused()).to.be.eq(false)
