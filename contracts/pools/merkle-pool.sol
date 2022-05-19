@@ -76,10 +76,10 @@ contract MerklePool is BundledScoresPool {
     modifier hasValidCommit(bytes32 hash) {
         require(commitsTimestamps[hash] != 0, 
             'No such commitment hash');
-        require(commitsTimestamps[hash] + upala.attackWindow() <= block.timestamp, 
+        require(commitsTimestamps[hash] + upala.getAttackWindow() <= block.timestamp, 
             'Attack window is not closed yet');
         require(
-            commitsTimestamps[hash] + upala.attackWindow() + upala.executionWindow() >= block.timestamp,
+            commitsTimestamps[hash] + upala.getAttackWindow() + upala.getExecutionWindow() >= block.timestamp,
             'Execution window is already closed'
         );
         _;

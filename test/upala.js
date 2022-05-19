@@ -61,7 +61,6 @@ async function getProof(userId, poolContract, managerWallet, bundleId, reward, b
 
 describe('PROTOCOL MANAGEMENT', function () {
   let upala
-  let unusedFakeDai
   let wallets
 
   before('setup protocol', async () => {
@@ -71,9 +70,7 @@ describe('PROTOCOL MANAGEMENT', function () {
   })
 
   it('onlyOwner guards are set', async function () {
-    // approvePoolFactory(address poolFactory, bool isApproved)
-    // setAttackWindow(uint256 newWindow)
-    // setExecutionWindow(uint256 newWindow)
+
     // setExplosionFeePercent(uint8 newFee)
     // setTreasury(address newTreasury)
     // pause()
@@ -82,24 +79,34 @@ describe('PROTOCOL MANAGEMENT', function () {
   })
 
   it('owner can set attack window', async function () {
-    const oldAttackWindow = await upala.attackWindow()
+    const oldAttackWindow = await upala.getAttackWindow()
     const newAttackWindow = oldAttackWindow + 1000
     await expect(upala.connect(nobody).setAttackWindow(newAttackWindow)).to.be.revertedWith(
       'Ownable: caller is not the owner'
     )
     await upala.connect(upalaAdmin).setAttackWindow(newAttackWindow)
-    expect(await upala.attackWindow()).to.be.eq(newAttackWindow)
+    expect(await upala.getAttackWindow()).to.be.eq(newAttackWindow)
   })
 
   it('owner can set execution window', async function () {
-    const oldExecutionWindow = await upala.executionWindow()
+    const oldExecutionWindow = await upala.getExecutionWindow()
     const newExecutionWindow = oldExecutionWindow + 1000
     await expect(upala.connect(nobody).setExecutionWindow(newExecutionWindow)).to.be.revertedWith(
       'Ownable: caller is not the owner'
     )
     await upala.connect(upalaAdmin).setExecutionWindow(newExecutionWindow)
-    expect(await upala.executionWindow()).to.be.eq(newExecutionWindow)
+    expect(await upala.getExecutionWindow()).to.be.eq(newExecutionWindow)
   })
+
+  // it('owner can set explosion fee percent', async function () {
+  //   const oldExecutionWindow = await upala.getExecutionWindow()
+  //   const newExecutionWindow = oldExecutionWindow + 1000
+  //   await expect(upala.connect(nobody).setExecutionWindow(newExecutionWindow)).to.be.revertedWith(
+  //     'Ownable: caller is not the owner'
+  //   )
+  //   await upala.connect(upalaAdmin).setExecutionWindow(newExecutionWindow)
+  //   expect(await upala.getExecutionWindow()).to.be.eq(newExecutionWindow)
+  // })
 
   // todo setExplosionFeePercent(uint8 newFee)
 
@@ -116,12 +123,13 @@ describe('PROTOCOL MANAGEMENT', function () {
   })
 
   // check paused functions
-
+  // _authorizeUpgrade(address) - only owner
   // todo check treasury
   // todo check explosionFee settings
   // todo whenNot paused
+  // todo getters 
 })
-
+/*
 // USERS
 describe('USERS', function () {
   let upala
@@ -447,3 +455,4 @@ describe('DAPPS MANAGEMENT', function () {
     await expect(DappUnRegTx).to.emit(upala, 'NewDAppStatus').withArgs(dapp1.address, false)
   })
 })
+*/

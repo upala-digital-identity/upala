@@ -138,11 +138,11 @@ contract BundledScoresPool is Ownable {
 
     // bots are getting paid instantly
     function _payBotReward(address bot, uint256 amount) private {
-        uint256 fee = amount.mul(upala.explosionFeePercent()).div(100);
+        uint256 fee = amount.mul(upala.getExplosionFeePercent()).div(100);
         require(_withdraw(bot, amount.sub(fee)), 
             'Token transfer to bot failed');
         // UIP-6. Sustainability + mitigating withdrawals by explosion
-        require(_withdraw(upala.treasury(), fee), 
+        require(_withdraw(upala.getTreasury(), fee), 
             'Explosion fee transfer failed');
     }
 

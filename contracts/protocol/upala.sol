@@ -18,13 +18,13 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
     ********/
 
     // funds
-    uint8 public explosionFeePercent;
-    address public treasury;
+    uint8 explosionFeePercent;
+    address treasury;
 
     // any changes that hurt bots rights must be announced an hour in advance
-    uint256 public attackWindow; 
+    uint256 attackWindow; 
     // changes must be executed within execution window
-    uint256 public executionWindow; // 1000 - for tests
+    uint256 executionWindow; // 1000 - for tests
     
     /****
     USERS
@@ -47,13 +47,13 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
     // Pool Factories approved by Upala admin
     mapping(address => bool) approvedPoolFactories;
     // Pools created by approved pool factories
-    mapping(address => address) public poolParent;
+    mapping(address => address) poolParent;
 
     /****
     DAPPS
     *****/
 
-    mapping(address => bool) public registeredDapps;
+    mapping(address => bool) registeredDapps;
 
     /*****
     EVENTS
@@ -348,7 +348,21 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
     GETTERS
     *******/
 
-    // getExecutionWindow() ?
+    function getAttackWindow() public view returns (uint256) {
+        return attackWindow;
+    }
+
+    function getExecutionWindow() public view returns (uint256) {
+        return executionWindow;
+    }
+
+    function getExplosionFeePercent() public view returns (uint256) {
+        return explosionFeePercent;
+    }
+
+    function getTreasury() public view returns (address) {
+        return treasury;
+    }
 
     // /*******
     // PAYWALLS

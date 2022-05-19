@@ -285,7 +285,7 @@ describe('SCORING AND BOT ATTACK', function () {
     // before
     let poolBalBefore = await fakeDAI.balanceOf(signedScoresPool.address)
     let botBalBefore = await fakeDAI.balanceOf(persona1.address)
-    let upalaBalBefore = await fakeDAI.balanceOf(await upala.treasury())
+    let upalaBalBefore = await fakeDAI.balanceOf(await upala.getTreasury())
     // explode
     await signedScoresPool
       .connect(persona1)
@@ -293,10 +293,10 @@ describe('SCORING AND BOT ATTACK', function () {
     // after
     let poolBalAfter = await fakeDAI.balanceOf(signedScoresPool.address)
     let botBalAfter = await fakeDAI.balanceOf(persona1.address)
-    let upalaBalAfter = await fakeDAI.balanceOf(await upala.treasury())
+    let upalaBalAfter = await fakeDAI.balanceOf(await upala.getTreasury())
     // check rewards
     let totalScore = BASE_SCORE.mul(USER_RATING_42)
-    let fee = totalScore.mul(await upala.explosionFeePercent()).div(100)
+    let fee = totalScore.mul(await upala.getExplosionFeePercent()).div(100)
     let reward = totalScore.sub(fee)
     expect(poolBalBefore.sub(poolBalAfter)).to.be.equal(totalScore) // pool balance decreased
     expect(botBalAfter.sub(botBalBefore)).to.be.equal(reward) // bot gets reward
