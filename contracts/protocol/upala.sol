@@ -356,7 +356,7 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
         return executionWindow;
     }
 
-    function getExplosionFeePercent() public view returns (uint256) {
+    function getExplosionFeePercent() public view returns (uint8) {
         return explosionFeePercent;
     }
 

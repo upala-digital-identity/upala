@@ -8,7 +8,6 @@
 - try preserve ordering of tests
 - remove unnecessary wallets from tests and all unnecessary code in general
 - add events testing
-- ignore production todos
 */
 const { ethers } = require('hardhat')
 const { utils } = require('ethers')
@@ -57,24 +56,13 @@ async function getProof(userId, poolContract, managerWallet, bundleId, reward, b
   )
 }
 
-// await signedScoresPool.connect(user1).attack(user1Id, user1Id, ZERO_REWARD, A_SCORE_BUNDLE, proof)
-
 describe('PROTOCOL MANAGEMENT', function () {
   let upala
-  let wallets
 
   before('setup protocol', async () => {
     let environment = await setupProtocol({ isSavingConstants: false })
     upala = environment.upala
-    ;[upalaAdmin, nobody] = environment.wallets
-  })
-
-  it('onlyOwner guards are set', async function () {
-    // setExplosionFeePercent(uint8 newFee)
-    // setTreasury(address newTreasury)
-    // pause()
-    // unpause()
-    // _authorizeUpgrade(address)
+    ;[upalaAdmin, nobody, newAdmin] = environment.wallets
   })
 
   it('owner can set attack window', async function () {
@@ -83,7 +71,8 @@ describe('PROTOCOL MANAGEMENT', function () {
     await expect(upala.connect(nobody).setAttackWindow(newAttackWindow)).to.be.revertedWith(
       'Ownable: caller is not the owner'
     )
-    await upala.connect(upalaAdmin).setAttackWindow(newAttackWindow)
+    const newAttWindowTx = await upala.connect(upalaAdmin).setAttackWindow(newAttackWindow)
+    await expect(newAttWindowTx).to.emit(upala, 'NewAttackWindow').withArgs(newAttackWindow)
     expect(await upala.getAttackWindow()).to.be.eq(newAttackWindow)
   })
 
@@ -93,41 +82,61 @@ describe('PROTOCOL MANAGEMENT', function () {
     await expect(upala.connect(nobody).setExecutionWindow(newExecutionWindow)).to.be.revertedWith(
       'Ownable: caller is not the owner'
     )
-    await upala.connect(upalaAdmin).setExecutionWindow(newExecutionWindow)
-    expect(await upala.getExecutionWindow()).to.be.eq(newExecutionWindow)
+    const newExWindowTx = await upala.connect(upalaAdmin).setExecutionWindow(newExecutionWindow)
+    await expect(newExWindowTx).to.emit(upala, 'NewExecutionWindow').withArgs(newExecutionWindow)
+    expect(await upala.getExecutionWindow()).to.be.eq(newExecutionWindow) 
   })
 
-  // it('owner can set explosion fee percent', async function () {
-  //   const oldExecutionWindow = await upala.getExecutionWindow()
-  //   const newExecutionWindow = oldExecutionWindow + 1000
-  //   await expect(upala.connect(nobody).setExecutionWindow(newExecutionWindow)).to.be.revertedWith(
-  //     'Ownable: caller is not the owner'
-  //   )
-  //   await upala.connect(upalaAdmin).setExecutionWindow(newExecutionWindow)
-  //   expect(await upala.getExecutionWindow()).to.be.eq(newExecutionWindow)
-  // })
+  it('owner can set explosion fee percent', async function () {
+    const oldExplosionFeePercent = await upala.getExplosionFeePercent()
+    const newExplosionFeePercent = oldExplosionFeePercent + 1
+    await expect(upala.connect(nobody).setExplosionFeePercent(newExplosionFeePercent)).to.be.revertedWith(
+      'Ownable: caller is not the owner'
+    )
+    const newFeeTX = await upala.connect(upalaAdmin).setExplosionFeePercent(newExplosionFeePercent)
+    await expect(newFeeTX).to.emit(upala, 'NewExplosionFeePercent').withArgs(newExplosionFeePercent)
+    expect(await upala.getExplosionFeePercent()).to.be.eq(newExplosionFeePercent)
+  })
 
-  // todo setExplosionFeePercent(uint8 newFee)
+  it('owner can set treasury address', async function () {
+    const newTreasury = newAdmin.address
+    await expect(upala.connect(nobody).setTreasury(newTreasury)).to.be.revertedWith(
+      'Ownable: caller is not the owner'
+    )
+    const newTreasuryTx = await upala.connect(upalaAdmin).setTreasury(newTreasury)
+    await expect(newTreasuryTx).to.emit(upala, 'NewTreasury').withArgs(newAdmin.address)
+    expect(await upala.getTreasury()).to.be.eq(newAdmin.address)
+  })
 
-  // todo setTreasury(address newTreasury)
-
-  // pause() unpause()
+  it('owner can pause/unpause contract', async function () {
+    // Pause
+    await expect(upala.connect(nobody).pause()).to.be.revertedWith(
+      'Ownable: caller is not the owner'
+    )
+    const pausedTx = await upala.connect(upalaAdmin).pause()
+    await expect(pausedTx).to.emit(upala, 'Paused').withArgs(upalaAdmin.address)
+    expect(await upala.paused()).to.be.eq(true)
+    // Unpause
+    await expect(upala.connect(nobody).unpause()).to.be.revertedWith(
+      'Ownable: caller is not the owner'
+    )
+    const unpausedTx = await upala.connect(upalaAdmin).unpause()
+    await expect(unpausedTx).to.emit(upala, 'Unpaused').withArgs(upalaAdmin.address)
+    expect(await upala.paused()).to.be.eq(false)
+  })
 
   it('owner can change owner', async function () {
     await expect(upala.connect(nobody).transferOwnership(nobody.address)).to.be.revertedWith(
       'Ownable: caller is not the owner'
     )
-    await upala.connect(upalaAdmin).transferOwnership(nobody.address)
-    expect(await upala.owner()).to.be.eq(await nobody.address)
+    await upala.connect(upalaAdmin).transferOwnership(newAdmin.address)
+    expect(await upala.owner()).to.be.eq(await newAdmin.address)
   })
 
-  // check paused functions
   // _authorizeUpgrade(address) - only owner
-  // todo check treasury
-  // todo check explosionFee settings
   // todo whenNot paused
-  // todo getters
 })
+
 /*
 // USERS
 describe('USERS', function () {
