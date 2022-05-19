@@ -220,7 +220,7 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
     modifier onlyApprovedPool() {
         // msg.sender is a pool address
         require(approvedPoolFactories[poolParent[msg.sender]] == true,
-            "Parent pool factory is disapproved");
+            "Upala: Parent pool factory is not approved");
         _;
     }
 

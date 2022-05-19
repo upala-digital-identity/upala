@@ -26,7 +26,28 @@ const {
 const NULL_ADDRESS = '0x0000000000000000000000000000000000000000'
 const EXPLODED_ADDRESS = '0x0000000000000000000000006578706c6f646564'
 const A_SCORE_BUNDLE = '0x0000000000000000000000000000000000000000000000000000000000000001'
+const B_SCORE_BUNDLE = '0x0000000000000000000000000000000000000000000000000000000000000002'
 const ZERO_REWARD = 0
+
+// helper function for calculating Ids
+async function calculateUpalaId(txOfIdCreation, userAddress) {
+  const blockTimestamp = (await ethers.provider.getBlock(txOfIdCreation.blockNumber)).timestamp
+  return utils.getAddress(
+    '0x' + utils.solidityKeccak256(['address', 'uint256'], [userAddress, blockTimestamp]).substring(26)
+  )
+}
+// helper function to register upala id for a wallet (returns upala id)
+async function registerUpalaId(upalaContract, userWallet) {
+  tx = await upalaContract.connect(userWallet).newIdentity(userWallet.address)
+  return calculateUpalaId(tx, userWallet.address)
+}
+
+async function createIdAndDelegate(upalaContract, userWallet, delegateWallet) {
+  const upalaId = await registerUpalaId(upalaContract, userWallet)
+  await upalaContract.connect(delegateWallet).askDelegation(upalaId)
+  await upalaContract.connect(userWallet).approveDelegate(delegateWallet.address)
+  return upalaId
+}
 
 async function getProof(userId, poolContract, managerWallet, bundleId, reward, baseScore = 1) {
   await poolContract.connect(managerWallet).setBaseScore(baseScore)
@@ -38,7 +59,7 @@ async function getProof(userId, poolContract, managerWallet, bundleId, reward, b
 
 // await signedScoresPool.connect(user1).attack(user1Id, user1Id, ZERO_REWARD, A_SCORE_BUNDLE, proof)
 
-/*
+
 describe('PROTOCOL MANAGEMENT', function () {
   let upala
   let unusedFakeDai
@@ -100,31 +121,13 @@ describe('PROTOCOL MANAGEMENT', function () {
 
   // check paused functions
 })
-*/
+
 // USERS
 describe('USERS', function () {
   let upala
   let upalaAdmin, user1, user2, user3, delegate1, delegate2, manager1, nobody
   let environment
-  // helper function for calculating Ids
-  async function calculateUpalaId(txOfIdCreation, userAddress) {
-    const blockTimestamp = (await ethers.provider.getBlock(txOfIdCreation.blockNumber)).timestamp
-    return utils.getAddress(
-      '0x' + utils.solidityKeccak256(['address', 'uint256'], [userAddress, blockTimestamp]).substring(26)
-    )
-  }
-  // helper function to register upala id for a wallet (returns upala id)
-  async function registerUpalaId(userWallet) {
-    tx = await upala.connect(userWallet).newIdentity(userWallet.address)
-    return calculateUpalaId(tx, userWallet.address)
-  }
-
-  async function createIdAndDelegate(userWallet, delegateWallet) {
-    const upalaId = await registerUpalaId(userWallet)
-    await upala.connect(delegateWallet).askDelegation(upalaId)
-    await upala.connect(userWallet).approveDelegate(delegateWallet.address)
-    return upalaId
-  }
+  
 
   beforeEach('setup protocol, register users', async () => {
     //todo beforeEach
@@ -132,7 +135,7 @@ describe('USERS', function () {
     upala = environment.upala
     ;[upalaAdmin, user1, user2, user3, delegate1, delegate2, manager1, nobody] = environment.wallets
   })
-  /*
+
   describe('creating upala id', function () {
     it('registers non-deterministic Upala ID', async function () {
       const tx = await upala.connect(user1).newIdentity(user1.address)
@@ -159,22 +162,22 @@ describe('USERS', function () {
     })
 
     it('cannot register an Upala id for an existing delegate', async function () {
-      const user1Id = await createIdAndDelegate(user1, delegate1)
+      const user1Id = await createIdAndDelegate(upala, user1, delegate1)
       await expect(upala.connect(delegate1).newIdentity(delegate1.address)).to.be.revertedWith(
         'Address is already an owner or delegate'
       )
     })
   })
-/*
+
   describe('creating delegates', function () {
     it('any address can ask for delegation', async function () {
-      const user1Id = await registerUpalaId(user1)
+      const user1Id = await registerUpalaId(upala, user1)
       const askDelegationTx = await upala.connect(delegate1).askDelegation(user1Id)
       await expect(askDelegationTx).to.emit(upala, 'NewCandidateDelegate').withArgs(user1Id, delegate1.address)
     })
 
     it('can cancel delegation request (GDPR)', async function () {
-      const user1Id = await registerUpalaId(user1)
+      const user1Id = await registerUpalaId(upala, user1)
       await upala.connect(delegate1).askDelegation(user1Id)
       const askDelegationTx = await upala.connect(delegate1).askDelegation(NULL_ADDRESS)
       await expect(askDelegationTx).to.emit(upala, 'NewCandidateDelegate').withArgs(NULL_ADDRESS, delegate1.address)
@@ -184,7 +187,7 @@ describe('USERS', function () {
       await expect(upala.connect(nobody).approveDelegate(delegate1.address)).to.be.revertedWith(
         'Upala: Only identity owner can manage delegates and ownership'
       )
-      const user1Id = await registerUpalaId(user1)
+      const user1Id = await registerUpalaId(upala, user1)
       await expect(upala.connect(user1).approveDelegate(delegate1.address)).to.be.revertedWith(
         'Delegatee must confirm delegation first'
       )
@@ -199,7 +202,7 @@ describe('USERS', function () {
     })
 
     it('delegates and owner can query Upala ID and owner address', async function () {
-      const user1Id = await createIdAndDelegate(user1, delegate1)
+      const user1Id = await createIdAndDelegate(upala, user1, delegate1)
       expect(await upala.connect(nobody).myId()).to.eq(NULL_ADDRESS)
       expect(await upala.connect(nobody).myIdOwner()).to.eq(NULL_ADDRESS)
       expect(await upala.connect(user1).myId()).to.eq(user1Id)
@@ -209,7 +212,7 @@ describe('USERS', function () {
     })
 
     it('cannot approve same delegate twice', async function () {
-      const user1Id = await createIdAndDelegate(user1, delegate1)
+      const user1Id = await createIdAndDelegate(upala, user1, delegate1)
 
       // try again for the same delegate candidate
       await expect(upala.connect(user1).approveDelegate(delegate1.address)).to.be.revertedWith(
@@ -217,22 +220,22 @@ describe('USERS', function () {
       )
       await expect(upala.connect(delegate1).askDelegation(user1Id)).to.be.revertedWith('Already a delegate')
       // try use same delegate for another UpalaId
-      const user2Id = await registerUpalaId(user2)
+      const user2Id = await registerUpalaId(upala, user2)
       await expect(upala.connect(delegate1).askDelegation(user2Id)).to.be.revertedWith('Already a delegate')
     })
 
     it('cannot APPROVE delegate from a delegate address (only owner)', async function () {
-      const user1Id = await createIdAndDelegate(user1, delegate1)
+      const user1Id = await createIdAndDelegate(upala, user1, delegate1)
       await upala.connect(delegate2).askDelegation(user1Id)
       await expect(upala.connect(delegate1).approveDelegate(delegate2.address)).to.be.revertedWith(
         'Upala: Only identity owner can manage delegates and ownership'
       )
     })
   })
-*/
+
   describe('deleting delegates and upala id', function () {
     it('cannot REMOVE delegate from a delegate address (only owner)', async function () {
-      const user1Id = await createIdAndDelegate(user1, delegate1)
+      const user1Id = await createIdAndDelegate(upala, user1, delegate1)
       await upala.connect(delegate2).askDelegation(user1Id)
       await expect(upala.connect(delegate1).removeDelegate(delegate2.address)).to.be.revertedWith(
         'Upala: Only identity owner can manage delegates and ownership'
@@ -240,14 +243,14 @@ describe('USERS', function () {
     })
 
     it('cannot remove the only delegate (owner is a speial case of delegate)', async function () {
-      const user1Id = await registerUpalaId(user1)
+      const user1Id = await registerUpalaId(upala, user1)
       await expect(upala.connect(user1).removeDelegate(user1.address)).to.be.revertedWith(
         'Upala: Cannot remove identity owner'
       )
     })
 
     it('Id owner can remove a delegate', async function () {
-      const user1Id = await createIdAndDelegate(user1, delegate1)
+      const user1Id = await createIdAndDelegate(upala, user1, delegate1)
       await expect(upala.connect(nobody).removeDelegate(delegate1.address)).to.be.revertedWith(
         'Upala: Only identity owner can manage delegates and ownership'
       )
@@ -256,20 +259,20 @@ describe('USERS', function () {
     })
 
     it('delegate can drop delegation rights (GDPR)', async function () {
-      const user1Id = await createIdAndDelegate(user1, delegate1)
+      const user1Id = await createIdAndDelegate(upala, user1, delegate1)
       const droplTx = await upala.connect(delegate1).dropDelegation()
       await expect(droplTx).to.emit(upala, 'DelegateDeleted').withArgs(user1Id, delegate1.address)
     })
 
     it('cannot query Upala ID from a removed address', async function () {
-      const user1Id = await createIdAndDelegate(user1, delegate1)
+      const user1Id = await createIdAndDelegate(upala, user1, delegate1)
       await upala.connect(delegate1).dropDelegation()
       expect(await upala.connect(delegate1).myId()).to.eq(NULL_ADDRESS)
       expect(await upala.connect(delegate1).myIdOwner()).to.eq(NULL_ADDRESS)
     })
 
     it('liquidated id has no link to owner address, delegates can be removed', async function () {
-      const user1Id = await createIdAndDelegate(user1, delegate1)
+      const user1Id = await createIdAndDelegate(upala, user1, delegate1)
       // exlode (remove upala Id by exploding with zero reward)
       const signedScoresPool = await deployPool('SignedScoresPool', manager1, environment.upalaConstants)
       const proof = getProof(user1Id, signedScoresPool, manager1, A_SCORE_BUNDLE, ZERO_REWARD)
@@ -281,13 +284,12 @@ describe('USERS', function () {
       expect(await upala.connect(user1).isExploded(user1Id)).to.eq(true)
     })
   })
-})
 // todo test onlyOwner (one owner tries to access anoher)
-/*
+
   describe('ownership', function () {
     it('cannot pass ownership to another account owner or delegate', async function () {
-      const user1Id = await createIdAndDelegate(user1, delegate1)
-      const user2Id = await createIdAndDelegate(user2, delegate2)
+      const user1Id = await createIdAndDelegate(upala, user1, delegate1)
+      const user2Id = await createIdAndDelegate(upala, user2, delegate2)
       await expect(upala.connect(user1).setIdentityOwner(user2.address)).to.be.revertedWith(
         'Upala: Address must be a delegate for the current UpalaId'
       )
@@ -297,7 +299,7 @@ describe('USERS', function () {
     })
 
     it('delegate cannot pass ownership', async function () {
-      const user1Id = await createIdAndDelegate(user1, delegate1)
+      const user1Id = await createIdAndDelegate(upala, user1, delegate1)
       await upala.connect(delegate2).askDelegation(user1Id)
       await upala.connect(user1).approveDelegate(delegate2.address)
       await expect(upala.connect(delegate2).setIdentityOwner(delegate1.address)).to.be.revertedWith(
@@ -306,14 +308,14 @@ describe('USERS', function () {
     })
 
     it('cannot transfer ownership to a non-delegate (create delegate first)', async function () {
-      const user1Id = await createIdAndDelegate(user1, delegate1)
+      const user1Id = await createIdAndDelegate(upala, user1, delegate1)
       await expect(upala.connect(user1).setIdentityOwner(delegate2.address)).to.be.revertedWith(
         'Upala: Address must be a delegate for the current UpalaId'
       )
     })
 
     it('owner can pass ownership to own delegate (change owner address)', async function () {
-      const user1Id = await createIdAndDelegate(user1, delegate1)
+      const user1Id = await createIdAndDelegate(upala, user1, delegate1)
       const ownershipTransferTx = await upala.connect(user1).setIdentityOwner(delegate1.address)
       await expect(ownershipTransferTx)
         .to.emit(upala, 'NewIdentityOwner')
@@ -325,9 +327,9 @@ describe('USERS', function () {
     })
   })
 })
-*/
 
-describe('POOL FACTORIES', function () {
+
+describe('POOL FACTORIES & POOLS', function () {
   let upala
   let dai
   let environment
@@ -347,7 +349,7 @@ describe('POOL FACTORIES', function () {
     environment = await setupProtocol({ isSavingConstants: false, skipPoolFactorySetup: true })
     upala = environment.upala
     dai = environment.dai
-    ;[upalaAdmin, user1, manager1, manager2, delegate1, delegate2, manager1, nobody] = environment.wallets
+    ;[upalaAdmin, user1, user2, manager1, manager2, delegate1, delegate2, nobody] = environment.wallets
     upalaManager = new UpalaManager(upalaAdmin, { upalaConstants: environment.upalaConstants })
   })
 
@@ -387,53 +389,41 @@ describe('POOL FACTORIES', function () {
       .withArgs(newPoolAddress2, manager1.address, poolFactory.address)
   })
 
+  // (todo future) create mocks for pools and pool factories to test these functions directly
+  it('disapproved pool factory child pool cannot validate or liquidate users', async function () {
+    // create user and delegate
+    const user1Id = await createIdAndDelegate(upala, user1, delegate1)
+    // try liquidate from random address
+    await expect(upala.connect(nobody).isOwnerOrDelegate(user1.address, user1Id)).to.be.revertedWith('Upala: Parent pool factory is not approved')
+    await expect(upala.connect(nobody).explode(user1Id)).to.be.revertedWith('Upala: Parent pool factory is not approved')
+    // liquidate from an approved pool address 
+    const poolFactory = await upalaManager.setUpPoolFactory("SignedScoresPoolFactory")
+    const poolCreationTx = await poolFactory.connect(manager1).createPool()
+    const newPoolAddress = await getNewPoolAddress(poolCreationTx)
+    const signedScoresPool = environment.upalaConstants.getContract("SignedScoresPool", manager1, newPoolAddress)
+    const proof = getProof(user1Id, signedScoresPool, manager1, A_SCORE_BUNDLE, ZERO_REWARD)
+    await signedScoresPool.connect(user1).attack(user1Id, user1Id, ZERO_REWARD, A_SCORE_BUNDLE, proof)  
+    expect(await upala.connect(user1).isExploded(user1Id)).to.eq(true)
+    // turn off parent Pool Factory
+    await upala.connect(upalaAdmin).approvePoolFactory(poolFactory.address, false)
+    const user2Id = await createIdAndDelegate(upala, user2, delegate2)
+    const proof2 = getProof(user2Id, signedScoresPool, manager1, B_SCORE_BUNDLE, ZERO_REWARD)
+    await expect(signedScoresPool.connect(user2).attack(user2Id, user2Id, ZERO_REWARD, B_SCORE_BUNDLE, proof2)).to.be.revertedWith('Upala: Parent pool factory is not approved')
+    // turn on again 
+    await upala.connect(upalaAdmin).approvePoolFactory(poolFactory.address, true)
+    await signedScoresPool.connect(user2).attack(user2Id, user2Id, ZERO_REWARD, B_SCORE_BUNDLE, proof2)
+    expect(await upala.connect(user1).isExploded(user2Id)).to.eq(true)
+  })
+
   // production todo 'requires isPoolFactory bool to be true'
 })
-/*
-  
-})
 
-describe('POOLS', function () {
-
-  let upala
-  let upalaAdmin, user1, user2, user3, delegate1, delegate2, manager1, nobody
-  let environment
-
-  beforeEach('setup protocol, register users', async () => {
-    //todo beforeEach
-    environment = await setupProtocol({ isSavingConstants: false })
-    upala = environment.upala
-    ;[upalaAdmin, user1, user2, user3, delegate1, delegate2, manager1, nobody] = environment.wallets
-  })
-
-  it('registered pools can validate and explode users', async function () {
-    // 'nobody' cannot read isOwnerOrDelegate - "Parent pool factory is disapproved"
-    // 'nobody' cannot explode - "Parent pool factory is disapproved"
-    // a registered one can do those
-  })
-
-  it('disapproved pool factory child pool cannot validate or liquidate users', async function () {
-    const user1Id = await createIdAndDelegate(user1, delegate1)
-    const poolFactory = await upalaManager.deployPoolFactory('SignedScoresPoolFactory', upala.address, dai.address)
-    const approvalTx = await upala.connect(upalaAdmin).approvePoolFactory(poolFactory.address, true)
-
-    // exlode (remove upala Id by exploding with zero reward)
-    const signedScoresPool = await deployPool('SignedScoresPool', manager1, environment.upalaConstants)
-    const proof = getProof(user1Id, signedScoresPool, manager1, A_SCORE_BUNDLE, ZERO_REWARD)
-    await signedScoresPool.connect(user1).attack(user1Id, user1Id, ZERO_REWARD, A_SCORE_BUNDLE, proof)
-
-    // disapprove
-    // fails to validate or explode
-    // approve
-    // can validate or explode again
-  })
-})
 
 describe('DAPPS MANAGEMENT', function () {
   // todo dapps can regiter in Upala
   // todo dapss can unregister in Upala (only registered ones)
 })
-*/
+
 // todo check treasury
 // todo check explosionFee settings
 // todo whenNot paused
