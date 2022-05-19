@@ -70,7 +70,6 @@ describe('PROTOCOL MANAGEMENT', function () {
   })
 
   it('onlyOwner guards are set', async function () {
-
     // setExplosionFeePercent(uint8 newFee)
     // setTreasury(address newTreasury)
     // pause()
@@ -127,7 +126,7 @@ describe('PROTOCOL MANAGEMENT', function () {
   // todo check treasury
   // todo check explosionFee settings
   // todo whenNot paused
-  // todo getters 
+  // todo getters
 })
 /*
 // USERS
