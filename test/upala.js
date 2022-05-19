@@ -120,7 +120,6 @@ describe('PROTOCOL MANAGEMENT', function () {
   // todo check treasury
   // todo check explosionFee settings
   // todo whenNot paused
-
 })
 
 // USERS
@@ -436,23 +435,15 @@ describe('DAPPS MANAGEMENT', function () {
 
   it('Dapps can register in Upala', async function () {
     const DappRegTx = await upala.connect(dapp1).registerDApp()
-    await expect(DappRegTx)
-      .to.emit(upala, 'NewDAppStatus')
-      .withArgs(dapp1.address, true)
+    await expect(DappRegTx).to.emit(upala, 'NewDAppStatus').withArgs(dapp1.address, true)
   })
 
   it('Dapss can unregister in Upala (only registered ones)', async function () {
     // unregister UNREGISTERED
-    await expect(
-      upala.connect(dapp1).unRegisterDApp()
-    ).to.be.revertedWith('Upala: DApp is not registered')
+    await expect(upala.connect(dapp1).unRegisterDApp()).to.be.revertedWith('Upala: DApp is not registered')
     // unregister REGISTERED
     await upala.connect(dapp1).registerDApp()
     const DappUnRegTx = await upala.connect(dapp1).unRegisterDApp()
-    await expect(DappUnRegTx)
-      .to.emit(upala, 'NewDAppStatus')
-      .withArgs(dapp1.address, false)
+    await expect(DappUnRegTx).to.emit(upala, 'NewDAppStatus').withArgs(dapp1.address, false)
   })
-
 })
-
