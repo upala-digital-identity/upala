@@ -161,7 +161,7 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
     }
 
     // Creates delegate for the UpalaId. // todo delegate hijack
-    function approveDelegate(address delegate) external onlyIdOwner whenNotPaused {  // newDelegate // setDelegate
+    function approveDelegate(address delegate) external whenNotPaused onlyIdOwner {  // newDelegate // setDelegate
         require(delegate != address(0x0),
             "Cannot use an empty addess");
         require(delegate != msg.sender,
@@ -181,7 +181,7 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
     }
 
     // Removes delegate for the UpalaId (called by Upala id owner)
-    function removeDelegate(address delegate) external onlyIdOwner whenNotPaused {
+    function removeDelegate(address delegate) external whenNotPaused onlyIdOwner {
         _removeDelegate(delegateToIdentity[msg.sender], delegate);
     }
 
@@ -200,7 +200,7 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
     // OWNERSHIP AND DELETION
     // Sets new UpalaId owner. Only allows to transfer ownership to an 
     // existing delegate (owner is a speial case of delegate)
-    function setIdentityOwner(address newIdentityOwner) external onlyIdOwner whenNotPaused {
+    function setIdentityOwner(address newIdentityOwner) external whenNotPaused onlyIdOwner {
         address upalaId = delegateToIdentity[msg.sender];
         require (delegateToIdentity[newIdentityOwner] == upalaId, 
             "Upala: Address must be a delegate for the current UpalaId");
@@ -232,9 +232,9 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
 
     // pool factories can register pools they generate
     function registerPool(address newPool, address poolManager) 
-        external 
-        onlyApprovedPoolFactory
+        external
         whenNotPaused
+        onlyApprovedPoolFactory
         returns(bool) 
     {
         // msg.sender is an approved pool factory address
@@ -273,9 +273,9 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
 
     // explodes ID
     function explode(address identity) 
-        external 
-        onlyApprovedPool
+        external
         whenNotPaused
+        onlyApprovedPool
         returns(bool)
     {
         delete delegateToIdentity[identityOwner[identity]];

@@ -59,10 +59,10 @@ async function getProof(userId, poolContract, managerWallet, bundleId, reward, b
 describe('PROTOCOL MANAGEMENT', function () {
   let upala
 
-  before('setup protocol', async () => {
+  beforeEach('setup protocol', async () => {
     let environment = await setupProtocol({ isSavingConstants: false })
     upala = environment.upala
-    ;[upalaAdmin, nobody, newAdmin] = environment.wallets
+    ;[upalaAdmin, nobody, newAdmin, x] = environment.wallets
   })
 
   it('owner can set attack window', async function () {
@@ -127,8 +127,22 @@ describe('PROTOCOL MANAGEMENT', function () {
     expect(await upala.owner()).to.be.eq(await newAdmin.address)
   })
 
-  // _authorizeUpgrade(address) - only owner
-  // todo whenNot paused
+  it('public functions don\'t work when contract is paused', async function () {
+    await upala.connect(upalaAdmin).pause()
+    await expect(upala.connect(x).newIdentity(x.address)).to.be.revertedWith('Pausable: paused')
+    await expect(upala.connect(x).askDelegation(x.address)).to.be.revertedWith('Pausable: paused')
+    await expect(upala.connect(x).approveDelegate(x.address)).to.be.revertedWith('Pausable: paused')
+    await expect(upala.connect(x).dropDelegation()).to.be.revertedWith('Pausable: paused')
+    await expect(upala.connect(x).removeDelegate(x.address)).to.be.revertedWith('Pausable: paused')
+    await expect(upala.connect(x).registerPool(x.address, x.address)).to.be.revertedWith('Pausable: paused')
+    await expect(upala.connect(x).explode(x.address)).to.be.revertedWith('Pausable: paused')
+    await expect(upala.connect(x).setIdentityOwner(x.address)).to.be.revertedWith('Pausable: paused')
+    await expect(upala.connect(x).registerDApp()).to.be.revertedWith('Pausable: paused')
+    await expect(upala.connect(x).unRegisterDApp()).to.be.revertedWith('Pausable: paused')
+  })
+
+// _authorizeUpgrade(address) - only owner
+
 })
 
 /*
