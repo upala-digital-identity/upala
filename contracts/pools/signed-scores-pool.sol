@@ -6,7 +6,7 @@ import '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';
 // production todo create IPool
 // production todo import vs inheritance check
 
-contract SignedScoresPoolFactory {  // naming convention poolType + 'Factory'
+contract SignedScoresPoolFactory {  // important!!! naming convention poolType + 'Factory'
     Upala public upala;
     address public upalaAddress;
     address public approvedTokenAddress;
@@ -24,6 +24,11 @@ contract SignedScoresPoolFactory {  // naming convention poolType + 'Factory'
         require(upala.registerPool(newPoolAddress, msg.sender) == true, 
             'Cannot approve new pool on Upala');
         return newPoolAddress;
+    }
+
+    // needed when approveing pool factory by admin
+    function isPoolFactory() external view returns(bool) {
+        return true;
     }
 }
 

@@ -55,7 +55,7 @@ async function getProof(userId, poolContract, managerWallet, bundleId, reward, b
     ethers.utils.arrayify(utils.solidityKeccak256(['address', 'uint8', 'bytes32'], [userId, reward, bundleId]))
   )
 }
-
+/*
 describe('PROTOCOL MANAGEMENT', function () {
   let upala
 
@@ -141,10 +141,9 @@ describe('PROTOCOL MANAGEMENT', function () {
     await expect(upala.connect(x).unRegisterDApp()).to.be.revertedWith('Pausable: paused')
   })
 
-  // _authorizeUpgrade(address) - only owner
 })
 
-/*
+
 // USERS
 describe('USERS', function () {
   let upala
@@ -152,7 +151,6 @@ describe('USERS', function () {
   let environment
 
   beforeEach('setup protocol, register users', async () => {
-    //todo beforeEach
     environment = await setupProtocol({ isSavingConstants: false })
     upala = environment.upala
     ;[upalaAdmin, user1, user2, user3, delegate1, delegate2, manager1, nobody] = environment.wallets
@@ -349,7 +347,7 @@ describe('USERS', function () {
     })
   })
 })
-
+*/
 describe('POOL FACTORIES & POOLS', function () {
   let upala
   let dai
@@ -442,9 +440,13 @@ describe('POOL FACTORIES & POOLS', function () {
     expect(await upala.connect(user1).isExploded(user2Id)).to.eq(true)
   })
 
-  // production todo 'requires isPoolFactory bool to be true'
+  it('can approve only a valid pool factory contract', async function () {
+    await expect(upala.connect(upalaAdmin).approvePoolFactory(environment.dai.address, true)).to.be.revertedWith(
+      'Error: Transaction reverted: function selector was not recognized and there\'s no fallback function'
+    )
+  })
 })
-
+/*
 describe('DAPPS MANAGEMENT', function () {
   let upala
   let upalaAdmin, dapp1, nobody

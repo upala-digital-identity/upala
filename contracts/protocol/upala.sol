@@ -160,7 +160,7 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
         NewCandidateDelegate(upalaId, msg.sender);
     }
 
-    // Creates delegate for the UpalaId. // todo delegate hijack
+    // Creates delegate for the UpalaId.
     function approveDelegate(address delegate) external whenNotPaused onlyIdOwner {  // newDelegate // setDelegate
         require(delegate != address(0x0),
             "Cannot use an empty addess");
@@ -249,6 +249,7 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
         external 
         onlyOwner
     {
+        require(IPoolFactory(poolFactory).isPoolFactory() == true, "Upala: Address must be a pool factory");
         approvedPoolFactories[poolFactory] = isApproved;
         NewPoolFactoryStatus(poolFactory, isApproved);
     }
