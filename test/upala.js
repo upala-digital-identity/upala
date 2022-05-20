@@ -442,7 +442,7 @@ describe('POOL FACTORIES & POOLS', function () {
 
   it('can approve only a valid pool factory contract', async function () {
     await expect(upala.connect(upalaAdmin).approvePoolFactory(environment.dai.address, true)).to.be.revertedWith(
-      'Error: Transaction reverted: function selector was not recognized and there\'s no fallback function'
+      "Error: Transaction reverted: function selector was not recognized and there's no fallback function"
     )
   })
 })
