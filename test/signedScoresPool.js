@@ -46,7 +46,7 @@ describe('MANAGE GROUP', function () {
     let bundleTimestamp = await signedScoresPool.scoreBundleTimestamp(ZERO_BYTES32)
     expect(bundleTimestamp).to.eq(txTimestamp)
     await expect(tx).to.emit(signedScoresPool, 'NewScoreBundleId').withArgs(ZERO_BYTES32, bundleTimestamp)
-    
+
     // cannot publish again
     await expect(signedScoresPool.connect(manager1).publishScoreBundleId(ZERO_BYTES32)).to.be.revertedWith(
       'Score bundle id already exists'
@@ -73,7 +73,6 @@ describe('MANAGE GROUP', function () {
     const metaTx = await signedScoresPool.connect(manager1).updateMetadata(newMeta)
     expect(await signedScoresPool.metaData()).to.be.equal(newMeta)
     await expect(metaTx).to.emit(signedScoresPool, 'MetaDataUpdate').withArgs(newMeta)
-
   })
 
   it('group manager can withdraw money from pool', async function () {

@@ -57,7 +57,6 @@ async function getNewPoolAddress(tx) {
 }
 
 describe('PROTOCOL MANAGEMENT', function () {
-  
   beforeEach('setup protocol', async () => {
     let environment = await setupProtocol({ isSavingConstants: false })
     upala = environment.upala
@@ -139,12 +138,10 @@ describe('PROTOCOL MANAGEMENT', function () {
     await expect(upala.connect(x).registerDApp()).to.be.revertedWith('Pausable: paused')
     await expect(upala.connect(x).unRegisterDApp()).to.be.revertedWith('Pausable: paused')
   })
-
 })
 
 // USERS
 describe('USERS', function () {
-
   beforeEach('setup protocol, register users', async () => {
     environment = await setupProtocol({ isSavingConstants: false })
     upala = environment.upala
@@ -343,7 +340,6 @@ describe('USERS', function () {
 })
 
 describe('POOL FACTORIES & POOLS', function () {
-
   beforeEach('setup protocol', async () => {
     environment = await setupProtocol({ isSavingConstants: false, skipPoolFactorySetup: true })
     upala = environment.upala
@@ -428,7 +424,6 @@ describe('POOL FACTORIES & POOLS', function () {
 })
 
 describe('DAPPS MANAGEMENT', function () {
-
   beforeEach('setup protocol, register users', async () => {
     environment = await setupProtocol({ isSavingConstants: false })
     upala = environment.upala
