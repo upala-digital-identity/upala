@@ -127,7 +127,7 @@ describe('PROTOCOL MANAGEMENT', function () {
     expect(await upala.owner()).to.be.eq(await newAdmin.address)
   })
 
-  it('public functions don\'t work when contract is paused', async function () {
+  it("public functions don't work when contract is paused", async function () {
     await upala.connect(upalaAdmin).pause()
     await expect(upala.connect(x).newIdentity(x.address)).to.be.revertedWith('Pausable: paused')
     await expect(upala.connect(x).askDelegation(x.address)).to.be.revertedWith('Pausable: paused')
@@ -141,8 +141,7 @@ describe('PROTOCOL MANAGEMENT', function () {
     await expect(upala.connect(x).unRegisterDApp()).to.be.revertedWith('Pausable: paused')
   })
 
-// _authorizeUpgrade(address) - only owner
-
+  // _authorizeUpgrade(address) - only owner
 })
 
 /*
