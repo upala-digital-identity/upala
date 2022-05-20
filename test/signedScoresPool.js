@@ -3,6 +3,8 @@ Testing both Signed scores pool and it's parent BundledScoresPool as
 there's not much difference.
 */
 
+// todo emit events
+
 const fs = require('fs')
 const { ethers } = require('hardhat')
 const { expect } = require('chai')
@@ -39,11 +41,12 @@ describe('MANAGE GROUP', function () {
     await expect(signedScoresPool.connect(nobody).publishScoreBundleId(ZERO_BYTES32)).to.be.revertedWith(
       'Ownable: caller is not the owner'
     )
-    tx = await signedScoresPool.connect(manager1).publishScoreBundleId(ZERO_BYTES32)
+    const tx = await signedScoresPool.connect(manager1).publishScoreBundleId(ZERO_BYTES32)
     let txTimestamp = (await ethers.provider.getBlock(tx.blockNumber)).timestamp
     let bundleTimestamp = await signedScoresPool.scoreBundleTimestamp(ZERO_BYTES32)
     expect(bundleTimestamp).to.eq(txTimestamp)
-
+    await expect(tx).to.emit(signedScoresPool, 'NewScoreBundleId').withArgs(ZERO_BYTES32, bundleTimestamp)
+    
     // cannot publish again
     await expect(signedScoresPool.connect(manager1).publishScoreBundleId(ZERO_BYTES32)).to.be.revertedWith(
       'Score bundle id already exists'
@@ -56,7 +59,8 @@ describe('MANAGE GROUP', function () {
     await expect(signedScoresPool.connect(nobody).deleteScoreBundleId(ZERO_BYTES32)).to.be.revertedWith(
       'Ownable: caller is not the owner'
     )
-    tx = await signedScoresPool.connect(manager1).deleteScoreBundleId(ZERO_BYTES32)
+    const delTx = await signedScoresPool.connect(manager1).deleteScoreBundleId(ZERO_BYTES32)
+    await expect(delTx).to.emit(signedScoresPool, 'ScoreBundleIdDeleted').withArgs(ZERO_BYTES32)
     let deletedBundleTimestamp = await signedScoresPool.scoreBundleTimestamp(ZERO_BYTES32)
     expect(deletedBundleTimestamp).to.eq(0)
   })
@@ -66,8 +70,10 @@ describe('MANAGE GROUP', function () {
     await expect(signedScoresPool.connect(nobody).updateMetadata(newMeta)).to.be.revertedWith(
       'Ownable: caller is not the owner'
     )
-    await signedScoresPool.connect(manager1).updateMetadata(newMeta)
+    const metaTx = await signedScoresPool.connect(manager1).updateMetadata(newMeta)
     expect(await signedScoresPool.metaData()).to.be.equal(newMeta)
+    await expect(metaTx).to.emit(signedScoresPool, 'MetaDataUpdate').withArgs(newMeta)
+
   })
 
   it('group manager can withdraw money from pool', async function () {
@@ -359,7 +365,9 @@ describe('POOL MANAGER', function () {
 
     let poolManager = new PoolManager(signedScoresPool, localDBdir, scoreExplorerDBdir)
 
-    await poolManager.setBaseScore(BASE_SCORE)
+    const baseScoreTx = await poolManager.setBaseScore(BASE_SCORE)
+    await expect(baseScoreTx).to.emit(signedScoresPool, 'NewBaseScore').withArgs(BASE_SCORE)
+
     // register users
     let users = [
       { address: persona1.address, score: USER_RATING_42 },
