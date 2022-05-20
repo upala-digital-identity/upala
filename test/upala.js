@@ -1,32 +1,23 @@
 // README
 // Testing upala.sol with this
 
-// TODO
-/*
-- make all 'it's work
-- think where before/beforeEach could be placed best (and what they would do)
-- try preserve ordering of tests
-- remove unnecessary wallets from tests and all unnecessary code in general
-- add events testing
-*/
 const { ethers } = require('hardhat')
 const { utils } = require('ethers')
 const { expect } = require('chai')
 const { setupProtocol, UpalaManager } = require('../src/upala-admin.js')
 const { deployPool } = require('@upala/group-manager')
 
-const {
-  BN, // Big Number support
-  constants, // Common constants, like the zero address and largest integers
-  expectEvent, // Assertions for emitted events
-  expectRevert, // Assertions for transactions that should fail
-} = require('@openzeppelin/test-helpers')
-
 const NULL_ADDRESS = '0x0000000000000000000000000000000000000000'
-const EXPLODED_ADDRESS = '0x0000000000000000000000006578706c6f646564'
 const A_SCORE_BUNDLE = '0x0000000000000000000000000000000000000000000000000000000000000001'
 const B_SCORE_BUNDLE = '0x0000000000000000000000000000000000000000000000000000000000000002'
 const ZERO_REWARD = 0
+
+let upala
+let environment
+let dai
+let upalaManager
+
+// helpers
 
 // helper function for calculating Ids
 async function calculateUpalaId(txOfIdCreation, userAddress) {
@@ -55,10 +46,18 @@ async function getProof(userId, poolContract, managerWallet, bundleId, reward, b
     ethers.utils.arrayify(utils.solidityKeccak256(['address', 'uint8', 'bytes32'], [userId, reward, bundleId]))
   )
 }
-/*
-describe('PROTOCOL MANAGEMENT', function () {
-  let upala
 
+// get newPoolAddress from event emitted at its creation
+async function getNewPoolAddress(tx) {
+  const receipt = await tx.wait()
+  const blockNumber = receipt.blockNumber
+  const eventFilter = upala.filters.NewPool()
+  const events = await upala.queryFilter(eventFilter, blockNumber, blockNumber)
+  return events[0].args.poolAddress
+}
+
+describe('PROTOCOL MANAGEMENT', function () {
+  
   beforeEach('setup protocol', async () => {
     let environment = await setupProtocol({ isSavingConstants: false })
     upala = environment.upala
@@ -143,12 +142,8 @@ describe('PROTOCOL MANAGEMENT', function () {
 
 })
 
-
 // USERS
 describe('USERS', function () {
-  let upala
-  let upalaAdmin, user1, user2, user3, delegate1, delegate2, manager1, nobody
-  let environment
 
   beforeEach('setup protocol, register users', async () => {
     environment = await setupProtocol({ isSavingConstants: false })
@@ -304,7 +299,6 @@ describe('USERS', function () {
       expect(await upala.connect(user1).isExploded(user1Id)).to.eq(true)
     })
   })
-  // todo test onlyOwner (one owner tries to access anoher)
 
   describe('ownership', function () {
     it('cannot pass ownership to another account owner or delegate', async function () {
@@ -347,28 +341,14 @@ describe('USERS', function () {
     })
   })
 })
-*/
-describe('POOL FACTORIES & POOLS', function () {
-  let upala
-  let dai
-  let environment
-  let upalaManager
 
-  // helpers
-  // get newPoolAddress from event emitted at its creation
-  async function getNewPoolAddress(tx) {
-    const receipt = await tx.wait()
-    const blockNumber = receipt.blockNumber
-    const eventFilter = upala.filters.NewPool()
-    const events = await upala.queryFilter(eventFilter, blockNumber, blockNumber)
-    return events[0].args.poolAddress
-  }
+describe('POOL FACTORIES & POOLS', function () {
 
   beforeEach('setup protocol', async () => {
     environment = await setupProtocol({ isSavingConstants: false, skipPoolFactorySetup: true })
     upala = environment.upala
     dai = environment.dai
-    ;[upalaAdmin, user1, user2, manager1, manager2, delegate1, delegate2, nobody] = environment.wallets
+    ;[upalaAdmin, user1, user2, manager1, delegate1, delegate2, nobody] = environment.wallets
     upalaManager = new UpalaManager(upalaAdmin, { upalaConstants: environment.upalaConstants })
   })
 
@@ -446,11 +426,8 @@ describe('POOL FACTORIES & POOLS', function () {
     )
   })
 })
-/*
+
 describe('DAPPS MANAGEMENT', function () {
-  let upala
-  let upalaAdmin, dapp1, nobody
-  let environment
 
   beforeEach('setup protocol, register users', async () => {
     environment = await setupProtocol({ isSavingConstants: false })
@@ -472,4 +449,3 @@ describe('DAPPS MANAGEMENT', function () {
     await expect(DappUnRegTx).to.emit(upala, 'NewDAppStatus').withArgs(dapp1.address, false)
   })
 })
-*/
