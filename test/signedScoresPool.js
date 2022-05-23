@@ -314,7 +314,9 @@ describe('SCORING AND BOT ATTACK', function () {
       )
       if (scoreAssignedTo == delegate11.address) {
         await expect(
-          signedScoresPool.connect(delegate11).attack(persona1id, scoreAssignedTo, USER_RATING_42, A_SCORE_BUNDLE, prooof)
+          signedScoresPool
+            .connect(delegate11)
+            .attack(persona1id, scoreAssignedTo, USER_RATING_42, A_SCORE_BUNDLE, prooof)
         ).to.be.revertedWith('Upala: The id is already exploded')
       } else {
         await expect(
