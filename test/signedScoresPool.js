@@ -3,8 +3,6 @@ Testing both Signed scores pool and it's parent BundledScoresPool as
 there's not much difference.
 */
 
-// todo emit events
-
 const fs = require('fs')
 const { ethers } = require('hardhat')
 const { expect } = require('chai')
@@ -314,13 +312,19 @@ describe('SCORING AND BOT ATTACK', function () {
           utils.solidityKeccak256(['address', 'uint8', 'bytes32'], [scoreAssignedTo, USER_RATING_42, A_SCORE_BUNDLE])
         )
       )
-      await expect(
-        signedScoresPool.connect(persona1).myScore(persona1id, scoreAssignedTo, USER_RATING_42, A_SCORE_BUNDLE, prooof)
-      ).to.be.revertedWith('Upala: The id is already exploded')
+      if (scoreAssignedTo == delegate11.address) {
+        await expect(
+          signedScoresPool.connect(delegate11).attack(persona1id, scoreAssignedTo, USER_RATING_42, A_SCORE_BUNDLE, prooof)
+        ).to.be.revertedWith('Upala: The id is already exploded')
+      } else {
+        await expect(
+          signedScoresPool.connect(persona1).attack(persona1id, scoreAssignedTo, USER_RATING_42, A_SCORE_BUNDLE, prooof)
+        ).to.be.revertedWith('Upala: No such id, not an owner or not a delegate of the id')
+      }
     }
   })
 
-  // leaving it here for now, because it is not clear how it works
+  // leaving it here for now, learn how it works!
   // (todo is web3.eth.sign deprecated?)
   // it('you can explode, you can explode, you can explode, anyone can exploooooode', async function () {
   //   const TEST_MESSAGE = web3.utils.sha3('Human')
