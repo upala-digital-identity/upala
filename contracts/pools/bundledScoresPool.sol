@@ -213,7 +213,7 @@ contract BundledScoresPool is Ownable {
     )
         external
         view
-        /// production todo paywall modifier goes here
+        /// future todo paywall modifier goes here
         returns (uint256)
     {
         return _userScore(userAddress, upalaID, scoreAssignedTo, score, bundleId, proof);

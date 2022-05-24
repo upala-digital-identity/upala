@@ -326,7 +326,6 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
     }
 
     function setTreasury(address newTreasury) onlyOwner external {
-        // production todo make sure treasury is ERC-20 compatible
         treasury = newTreasury;
         NewTreasury(newTreasury);
     }
@@ -368,7 +367,7 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
     // /*******
     // PAYWALLS
     // ********/
-    // // groups can append any paywall they chose to charge dapps.
+    // (future) groups can append any paywall they chose to charge dapps.
 
     // modifier onlyApprovedPaywallFactory() {
     //     require(approvedPaywallFactories[msg.sender] == true, 
@@ -387,14 +386,13 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
     //     return true;
     // }
 
-    // // TODO only admin
     // Admin can swtich on and off all paywalls by a factory 
     // (both creation of new paywalls and approval of existing ones)
     // function setApprovedPaywallFactory(
     //     address paywallFactory, 
     //     bool isApproved
     // ) 
-    //     external 
+    //     external onlyOwner
     // {
     //     approvedPaywallFactories[paywallFactory] = isApproved;
     // }

@@ -10,10 +10,10 @@ async function main() {
   }
 
   // fund wallets
-  // for (let i = 3; i <= 8; i++) {
+  // for (let i = 1; i <= 1; i++) {
   //     let tx = await wallets[0].sendTransaction({
   //         to: wallets[i].address,
-  //         value: ethers.utils.parseEther("0.01")
+  //         value: ethers.utils.parseEther("0.1")
   //         });
   //     await tx.wait(2)
   // }
