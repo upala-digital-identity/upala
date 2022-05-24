@@ -12,12 +12,13 @@ Merkle pool is for the nearest future.
 
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 import '@openzeppelin/contracts/utils/math/SafeMath.sol';
-import '@openzeppelin/contracts/access/Ownable.sol';
+import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import './i-pool.sol';
 import '../protocol/upala.sol';
 import 'hardhat/console.sol';
 
-contract BundledScoresPool is Ownable {
+contract BundledScoresPool is Initializable, OwnableUpgradeable {  // todo OwnableUpgradable?
     using SafeMath for uint256;
 
     Upala public upala;
@@ -50,11 +51,12 @@ contract BundledScoresPool is Ownable {
     event ScoreBundleIdDeleted(bytes32 scoreBundleId);
     event NewBaseScore(uint256 newBaseScore);
 
-    constructor(
+    function initialize (
         address upalaAddress,
         address approvedTokenAddress,
         address poolManager
-    ) public {
+    ) external initializer {
+        __Ownable_init();
         upala = Upala(upalaAddress);
         approvedToken = IERC20(approvedTokenAddress);
         transferOwnership(poolManager);

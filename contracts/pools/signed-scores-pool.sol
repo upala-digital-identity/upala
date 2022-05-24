@@ -1,6 +1,7 @@
 pragma solidity ^0.8.2;
 
 import '../pools/bundledScoresPool.sol';
+import '@openzeppelin/contracts/proxy/Clones.sol';
 import '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';
 
 // production todo create IPool
@@ -10,20 +11,40 @@ contract SignedScoresPoolFactory {  // important!!! naming convention poolType +
     Upala public upala;
     address public upalaAddress;
     address public approvedTokenAddress;
+    address immutable cloneTemplate;
+    address immutable templateOwner;
 
     constructor(address _upalaAddress, address _approvedTokenAddress) public {
         upalaAddress = _upalaAddress;
         upala = Upala(_upalaAddress);
         approvedTokenAddress = _approvedTokenAddress;
+        address _cloneTemplate = address(new SignedScoresPool());
+        cloneTemplate = _cloneTemplate;
+        templateOwner = msg.sender;
+        // owner is "address(this)" to prevent ownership transfer bevore registration
+        SignedScoresPool(_cloneTemplate).initialize(upalaAddress, approvedTokenAddress, address(this));
     }
 
     function createPool() external returns (address) {
-        address newPoolAddress = address(
-            new SignedScoresPool(upalaAddress, approvedTokenAddress, msg.sender));
-
-        require(upala.registerPool(newPoolAddress, msg.sender) == true, 
-            'Cannot approve new pool on Upala');
+        address newPoolAddress = Clones.clone(cloneTemplate);
+        _initializePool(newPoolAddress, msg.sender);
+        _registerPool(newPoolAddress, msg.sender);
         return newPoolAddress;
+    }
+
+    // allows to use template as pool too
+    function registerTemplateToo() external {
+        SignedScoresPool(cloneTemplate).transferOwnership(templateOwner);
+        _registerPool(cloneTemplate, templateOwner);
+    }
+
+    function _registerPool(address pool, address poolOwner) private {
+        require(upala.registerPool(pool, poolOwner) == true, 
+            'Cannot approve new pool on Upala');
+    }
+
+    function _initializePool(address pool, address poolOwner) private {
+        SignedScoresPool(pool).initialize(upalaAddress, approvedTokenAddress, poolOwner);
     }
 
     // needed when approveing pool factory by admin
@@ -35,16 +56,6 @@ contract SignedScoresPoolFactory {  // important!!! naming convention poolType +
 // The most important obligation of a group is to pay bot rewards.
 contract SignedScoresPool is BundledScoresPool {
     using ECDSA for bytes32;
-
-    constructor(
-        address upalaAddress,
-        address approvedTokenAddress,
-        address poolManager) 
-    BundledScoresPool(
-        upalaAddress, 
-        approvedTokenAddress, 
-        poolManager) 
-    public {}
 
     // Pool-specific score management
     function setBaseScore(uint256 newBaseScore)

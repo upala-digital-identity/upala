@@ -18,7 +18,8 @@ contract MerklePoolFactory {
     }
 
     function createPool() external returns (address) {
-        address newPoolAddress = address(new MerklePool(upalaAddress, approvedTokenAddress, msg.sender));
+        // address newPoolAddress = address(new MerklePool(upalaAddress, approvedTokenAddress, msg.sender));
+        address newPoolAddress = address(new MerklePool());
         require(upala.registerPool(newPoolAddress, msg.sender) == true, "Cannot approve new pool on Upala");
         NewPool(newPoolAddress);
         return newPoolAddress;
@@ -33,16 +34,6 @@ contract MerklePool is BundledScoresPool {
 
     // Any changes that can hurt bot rights must wait for an attackWindow
     mapping(bytes32 => uint256) public commitsTimestamps;
-
-    constructor(
-        address upalaAddress,
-        address approvedTokenAddress,
-        address poolManager) 
-    BundledScoresPool(
-        upalaAddress, 
-        approvedTokenAddress, 
-        poolManager) 
-    public {}
 
     function isInBundle(
         address intraBundleUserID,
