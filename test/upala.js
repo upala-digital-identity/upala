@@ -388,7 +388,7 @@ describe('POOL FACTORIES & POOLS', function () {
     // deploy pool factory
     const poolFactory = await upalaManager.deployPoolFactory('SignedScoresPoolFactory', upala.address, dai.address)
     await upala.connect(upalaAdmin).approvePoolFactory(poolFactory.address, true)
-    // create pool via clones 
+    // create pool via clones
     const poolCreationTx = await poolFactory.connect(manager1).createPool()
     const newPoolAddress = await getNewPoolAddress(poolCreationTx)
     await expect(poolCreationTx)
@@ -397,9 +397,7 @@ describe('POOL FACTORIES & POOLS', function () {
     // register template
     const implRegTx = await poolFactory.connect(nobody).registerImplementationAsPool()
     const implPoolAddress = await getNewPoolAddress(implRegTx)
-    await expect(implRegTx)
-      .to.emit(upala, 'NewPool')
-      .withArgs(implPoolAddress, upalaAdmin.address, poolFactory.address)
+    await expect(implRegTx).to.emit(upala, 'NewPool').withArgs(implPoolAddress, upalaAdmin.address, poolFactory.address)
     // set base score
     const implPool = environment.upalaConstants.getContract('SignedScoresPool', upalaAdmin, implPoolAddress)
     await implPool.connect(upalaAdmin).setBaseScore(10)
