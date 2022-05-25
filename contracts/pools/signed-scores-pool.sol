@@ -11,31 +11,31 @@ contract SignedScoresPoolFactory {  // important!!! naming convention poolType +
     Upala public upala;
     address public upalaAddress;
     address public approvedTokenAddress;
-    address immutable cloneTemplate;
-    address immutable templateOwner;
+    address immutable implementation;
+    address immutable impltnOwner;
 
     constructor(address _upalaAddress, address _approvedTokenAddress) public {
         upalaAddress = _upalaAddress;
         upala = Upala(_upalaAddress);
         approvedTokenAddress = _approvedTokenAddress;
-        address _cloneTemplate = address(new SignedScoresPool());
-        cloneTemplate = _cloneTemplate;
-        templateOwner = msg.sender;
-        // owner is "address(this)" to prevent ownership transfer bevore registration
-        SignedScoresPool(_cloneTemplate).initialize(upalaAddress, approvedTokenAddress, address(this));
+        address _implementation = address(new SignedScoresPool());
+        implementation = _implementation;
+        impltnOwner = msg.sender;
+        // owner is "address(this)" to prevent ownership transfer before registration
+        SignedScoresPool(_implementation).initialize(upalaAddress, approvedTokenAddress, address(this));
     }
 
     function createPool() external returns (address) {
-        address newPoolAddress = Clones.clone(cloneTemplate);
+        address newPoolAddress = Clones.clone(implementation);
         _initializePool(newPoolAddress, msg.sender);
         _registerPool(newPoolAddress, msg.sender);
         return newPoolAddress;
     }
 
     // allows to use template as pool too
-    function registerTemplateToo() external {
-        SignedScoresPool(cloneTemplate).transferOwnership(templateOwner);
-        _registerPool(cloneTemplate, templateOwner);
+    function registerImplementationAsPool() external {
+        SignedScoresPool(implementation).transferOwnership(impltnOwner);
+        _registerPool(implementation, impltnOwner);
     }
 
     function _registerPool(address pool, address poolOwner) private {
