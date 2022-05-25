@@ -18,7 +18,7 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
     ********/
 
     // funds
-    uint8 explosionFeePercent;
+    uint8 liquidationFeePercent;
     address treasury;
 
     // any changes that hurt bots rights must be announced an hour in advance
@@ -37,8 +37,8 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
     mapping(address => address) delegateToIdentity;
     // candidates are used in pairing delegates and UpalaID (UIP-23)
     mapping(address => address) candidateDelegateToIdentity;
-    // assigned as identity holder after ID explosion
-    address EXPLODED; 
+    // assigned as identity holder after ID liquidation
+    address LIQUIDATED; 
 
     /****
     POOLS
@@ -65,7 +65,7 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
     event NewDelegate(address upalaId, address delegate);
     event DelegateDeleted(address upalaId, address delegate);
     event NewIdentityOwner(address upalaId, address oldOwner, address newOwner);
-    event Exploded(address upalaId);
+    event Liquidated(address upalaId);
 
     // Keeps track of new pools in graph
     // helps define pool ABI by factory address
@@ -78,7 +78,7 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
     // Protocol settings
     event NewAttackWindow(uint256 newWindow);
     event NewExecutionWindow(uint256 newWindow);
-    event NewExplosionFeePercent(uint8 newFee);
+    event NewLiquidationFeePercent(uint8 newFee);
     event NewTreasury(address newTreasury);
 
     /**********
@@ -91,16 +91,16 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
         __Ownable_init();
         __Pausable_init();
         // defaults
-        explosionFeePercent = 3;
+        liquidationFeePercent = 3;
         treasury = owner();
         attackWindow = 30 minutes;
         executionWindow = 1 hours;
-        // ASCII to Hex "exploded"
-        EXPLODED = address(0x0000000000000000000000006578706c6f646564);
+        // ASCII to Hex "liquidated"
+        LIQUIDATED = address(0x0000000000000000000000006578706c6f646564);
         // emit events for subgraph
         NewAttackWindow(attackWindow);
         NewExecutionWindow(executionWindow);
-        NewExplosionFeePercent(explosionFeePercent);
+        NewLiquidationFeePercent(liquidationFeePercent);
         NewTreasury(treasury);
     }
 
@@ -135,8 +135,8 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
         return identityOwner[delegateToIdentity[msg.sender]];
     }
 
-    function isExploded(address upalaId) external view returns(bool) {
-        if (identityOwner[upalaId] == EXPLODED) {
+    function isLiquidated(address upalaId) external view returns(bool) {
+        if (identityOwner[upalaId] == LIQUIDATED) {
             return true;
         } else {
             return false;
@@ -175,7 +175,7 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
     }
 
     // Stop being a delegate (called by delegate)
-    // Can be called afrer id explosion as well
+    // Can be called afrer id liquidation as well
     function dropDelegation() external whenNotPaused {
         _removeDelegate(delegateToIdentity[msg.sender], msg.sender);
     }
@@ -208,7 +208,7 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
         NewIdentityOwner(upalaId, msg.sender, newIdentityOwner);
     }
     
-    // GDPR. To clear records, remove all delegatews and explode with 0 reward
+    // GDPR. To clear records, remove all delegatews and liquidate with 0 reward
 
 
     /****
@@ -267,21 +267,21 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
     {
         require(identity == delegateToIdentity[ownerOrDelegate],
             "Upala: No such id, not an owner or not a delegate of the id");
-        require (identityOwner[identity] != EXPLODED,
-            "Upala: The id is already exploded");
+        require (identityOwner[identity] != LIQUIDATED,
+            "Upala: The id is already liquidated");
         return true;
     }
 
-    // explodes ID
-    function explode(address identity) 
+    // liquidates ID
+    function liquidate(address identity) 
         external
         whenNotPaused
         onlyApprovedPool
         returns(bool)
     {
         delete delegateToIdentity[identityOwner[identity]];
-        identityOwner[identity] = EXPLODED;
-        Exploded(identity);
+        identityOwner[identity] = LIQUIDATED;
+        Liquidated(identity);
         return true;
     }
 
@@ -320,9 +320,9 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
         NewExecutionWindow(newWindow);
     }
 
-    function setExplosionFeePercent(uint8 newFee) onlyOwner external {
-        explosionFeePercent = newFee;
-        NewExplosionFeePercent(newFee);
+    function setLiquidationFeePercent(uint8 newFee) onlyOwner external {
+        liquidationFeePercent = newFee;
+        NewLiquidationFeePercent(newFee);
     }
 
     function setTreasury(address newTreasury) onlyOwner external {
@@ -356,8 +356,8 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
         return executionWindow;
     }
 
-    function getExplosionFeePercent() public view returns (uint8) {
-        return explosionFeePercent;
+    function getLiquidationFeePercent() public view returns (uint8) {
+        return liquidationFeePercent;
     }
 
     function getTreasury() public view returns (address) {

@@ -85,15 +85,15 @@ describe('PROTOCOL MANAGEMENT', function () {
     expect(await upala.getExecutionWindow()).to.be.eq(newExecutionWindow)
   })
 
-  it('owner can set explosion fee percent', async function () {
-    const oldExplosionFeePercent = await upala.getExplosionFeePercent()
-    const newExplosionFeePercent = oldExplosionFeePercent + 1
-    await expect(upala.connect(nobody).setExplosionFeePercent(newExplosionFeePercent)).to.be.revertedWith(
+  it('owner can set liquidation fee percent', async function () {
+    const oldLiquidationFeePercent = await upala.getLiquidationFeePercent()
+    const newLiquidationFeePercent = oldLiquidationFeePercent + 1
+    await expect(upala.connect(nobody).setLiquidationFeePercent(newLiquidationFeePercent)).to.be.revertedWith(
       'Ownable: caller is not the owner'
     )
-    const newFeeTX = await upala.connect(upalaAdmin).setExplosionFeePercent(newExplosionFeePercent)
-    await expect(newFeeTX).to.emit(upala, 'NewExplosionFeePercent').withArgs(newExplosionFeePercent)
-    expect(await upala.getExplosionFeePercent()).to.be.eq(newExplosionFeePercent)
+    const newFeeTX = await upala.connect(upalaAdmin).setLiquidationFeePercent(newLiquidationFeePercent)
+    await expect(newFeeTX).to.emit(upala, 'NewLiquidationFeePercent').withArgs(newLiquidationFeePercent)
+    expect(await upala.getLiquidationFeePercent()).to.be.eq(newLiquidationFeePercent)
   })
 
   it('owner can set treasury address', async function () {
@@ -133,7 +133,7 @@ describe('PROTOCOL MANAGEMENT', function () {
     await expect(upala.connect(x).dropDelegation()).to.be.revertedWith('Pausable: paused')
     await expect(upala.connect(x).removeDelegate(x.address)).to.be.revertedWith('Pausable: paused')
     await expect(upala.connect(x).registerPool(x.address, x.address)).to.be.revertedWith('Pausable: paused')
-    await expect(upala.connect(x).explode(x.address)).to.be.revertedWith('Pausable: paused')
+    await expect(upala.connect(x).liquidate(x.address)).to.be.revertedWith('Pausable: paused')
     await expect(upala.connect(x).setIdentityOwner(x.address)).to.be.revertedWith('Pausable: paused')
     await expect(upala.connect(x).registerDApp()).to.be.revertedWith('Pausable: paused')
     await expect(upala.connect(x).unRegisterDApp()).to.be.revertedWith('Pausable: paused')
@@ -285,7 +285,7 @@ describe('USERS', function () {
 
     it('liquidated id has no link to owner address, delegates can be removed', async function () {
       const user1Id = await createIdAndDelegate(upala, user1, delegate1)
-      // exlode (remove upala Id by exploding with zero reward)
+      // exlode (remove upala Id by liquidating with zero reward)
       const signedScoresPool = await deployPool('SignedScoresPool', manager1, environment.upalaConstants)
       const proof = getProof(user1Id, signedScoresPool, manager1, A_SCORE_BUNDLE, ZERO_REWARD)
       await signedScoresPool.connect(user1).attack(user1Id, user1Id, ZERO_REWARD, A_SCORE_BUNDLE, proof)
@@ -293,7 +293,7 @@ describe('USERS', function () {
       await upala.connect(delegate1).dropDelegation()
       expect(await upala.connect(delegate1).myId()).to.eq(NULL_ADDRESS)
       expect(await upala.connect(user1).myId()).to.eq(NULL_ADDRESS)
-      expect(await upala.connect(user1).isExploded(user1Id)).to.eq(true)
+      expect(await upala.connect(user1).isLiquidated(user1Id)).to.eq(true)
     })
   })
 
@@ -417,7 +417,7 @@ describe('POOL FACTORIES & POOLS', function () {
     await expect(upala.connect(nobody).isOwnerOrDelegate(user1.address, user1Id)).to.be.revertedWith(
       'Upala: Parent pool factory is not approved'
     )
-    await expect(upala.connect(nobody).explode(user1Id)).to.be.revertedWith(
+    await expect(upala.connect(nobody).liquidate(user1Id)).to.be.revertedWith(
       'Upala: Parent pool factory is not approved'
     )
     // liquidate from an approved pool address
@@ -427,7 +427,7 @@ describe('POOL FACTORIES & POOLS', function () {
     const signedScoresPool = environment.upalaConstants.getContract('SignedScoresPool', manager1, newPoolAddress)
     const proof = getProof(user1Id, signedScoresPool, manager1, A_SCORE_BUNDLE, ZERO_REWARD)
     await signedScoresPool.connect(user1).attack(user1Id, user1Id, ZERO_REWARD, A_SCORE_BUNDLE, proof)
-    expect(await upala.connect(user1).isExploded(user1Id)).to.eq(true)
+    expect(await upala.connect(user1).isLiquidated(user1Id)).to.eq(true)
     // turn off parent Pool Factory
     await upala.connect(upalaAdmin).approvePoolFactory(poolFactory.address, false)
     const user2Id = await createIdAndDelegate(upala, user2, delegate2)
@@ -438,7 +438,7 @@ describe('POOL FACTORIES & POOLS', function () {
     // turn on again
     await upala.connect(upalaAdmin).approvePoolFactory(poolFactory.address, true)
     await signedScoresPool.connect(user2).attack(user2Id, user2Id, ZERO_REWARD, B_SCORE_BUNDLE, proof2)
-    expect(await upala.connect(user1).isExploded(user2Id)).to.eq(true)
+    expect(await upala.connect(user1).isLiquidated(user2Id)).to.eq(true)
   })
 
   it('can approve only a valid pool factory contract', async function () {

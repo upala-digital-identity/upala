@@ -47,7 +47,7 @@ contract MolochGroup is UpalaGroup {
     GETTERS
     *******/
 
-    // function checkForExplosion () returns(bool res) {
+    // function checkForLiquidation () returns(bool res) {
         
     // }
     

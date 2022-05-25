@@ -115,7 +115,7 @@ contract UpalaGroup is IUpalaGroup, Ownable, UpalaTimer{
 		return _user_score;
 	}
 	
-	// Bot explosion
+	// Bot liquidation
 	function _rewardBot(address payable botAddress, uint user_score) internal { 
 		uint reward = maxBotReward * user_score / 100;
 		
@@ -185,16 +185,16 @@ contract UpalaGroup is IUpalaGroup, Ownable, UpalaTimer{
 // Here is the entity option. 
 contract UpalaUser is UpalaGroup {
     
-    bool exploded = false;
+    bool liquidated = false;
     
     // path
-    function Explode (address[] calldata path) external {  // public for testing
+    function liquidate (address[] calldata path) external {  // public for testing
         
-        require (!exploded, "already exploded");
+        require (!liquidated, "already liquidated");
         
         uint rewardToClaim = IUpalaGroup(path[0]).getMaxBotReward() * calculateScore(msg.sender, path);
         IUpalaGroup(path[path.length-1]).attack(path, msg.sender, rewardToClaim);
-        exploded = true;
+        liquidated = true;
     }
     
     // todo payable fallback?
@@ -203,7 +203,7 @@ contract UpalaUser is UpalaGroup {
 /* todo consider:
 
 - gas costs for calculation and for the attack (consider path length limitation)
-- invitations. what if a very expensive group adds a cheap group. Many could decide to explode
+- invitations. what if a very expensive group adds a cheap group. Many could decide to liquidate
 - loops in social graphs. is nonReentrant enough?
 - who is the owner? it can set scores and it can be a member
 - restirict pool size changes 

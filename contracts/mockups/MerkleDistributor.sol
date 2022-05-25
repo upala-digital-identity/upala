@@ -24,9 +24,9 @@ contract MerkleDistributor {
     function claim(uint256 index, address identityID, uint256 score, bytes32[] calldata merkleProof) external {
         // require(holder == identityHolder[identityID],
         //     "the holder address doesn't own the user id");
-        // require (identityHolder[identityID] != EXPLODED,
-        //     "This user has already exploded");
-        // pool score is sufficient for explosion
+        // require (identityHolder[identityID] != LIQUIDATED,
+        //     "This user has already liquidated");
+        // pool score is sufficient for liquidation
         // Verify the merkle proof.
 
         bytes32 node = keccak256(abi.encodePacked(index, identityID, score));

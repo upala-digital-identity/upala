@@ -20,7 +20,7 @@ contract MinimalWallet is Ownable {
         _transferOwnership(newOwner);
     }
 
-    // function explode(address[] calldata atackPath) external onlyOwner {
+    // function liquidate(address[] calldata atackPath) external onlyOwner {
     //     upala.attack(atackPath);
     // }
 

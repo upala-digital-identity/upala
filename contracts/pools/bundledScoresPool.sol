@@ -38,7 +38,7 @@ contract BundledScoresPool is Initializable, OwnableUpgradeable {  // todo Ownab
     // With base reward we can tweak all users scores simultaneously
     uint256 public baseScore;
 
-    // When verifying their score or exploding, users prove they are in a 
+    // When verifying their score or liquidating, users prove they are in a 
     // score bundle. 
     mapping(bytes32 => uint256) public scoreBundleTimestamp;
 
@@ -140,12 +140,12 @@ contract BundledScoresPool is Initializable, OwnableUpgradeable {  // todo Ownab
 
     // bots are getting paid instantly
     function _payBotReward(address bot, uint256 amount) private {
-        uint256 fee = amount.mul(upala.getExplosionFeePercent()).div(100);
+        uint256 fee = amount.mul(upala.getLiquidationFeePercent()).div(100);
         require(_withdraw(bot, amount.sub(fee)), 
             'Token transfer to bot failed');
-        // UIP-6. Sustainability + mitigating withdrawals by explosion
+        // UIP-6. Sustainability + mitigating withdrawals by liquidation
         require(_withdraw(upala.getTreasury(), fee), 
-            'Explosion fee transfer failed');
+            'Liquidation fee transfer failed');
     }
 
     function _withdraw(address recipient, uint256 amount) private returns (bool) {
@@ -167,7 +167,7 @@ contract BundledScoresPool is Initializable, OwnableUpgradeable {  // todo Ownab
     // }
 
     // // Paywalls charge only DApps. They have their own balances.
-    // // No need to prevent bot explosion front-run
+    // // No need to prevent bot liquidation front-run
     // function appendPaywall(address newPaywall) {
     //     require(upala.isApprovedPaywall(newPaywall) == true,
     //         "Paywall not approved");
@@ -233,8 +233,8 @@ contract BundledScoresPool is Initializable, OwnableUpgradeable {  // todo Ownab
         // calculate reward (and validity)
         uint256 reward = _userScore(msg.sender, upalaID, scoreAssignedTo, score, bundleId, proof);
 
-        // explode (delete id forever)
-        upala.explode(upalaID);
+        // liquidate (delete id forever)
+        upala.liquidate(upalaID);
 
         // payout 💸
         _payBotReward(msg.sender, reward);

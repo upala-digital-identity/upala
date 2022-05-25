@@ -133,7 +133,7 @@ contract('Upala2', function (accounts) {
       'FakeDAI'
     )
 
-    // "Explode"
+    // "Liquidate"
     const user1_balance_before_attack = await fakeDai.balanceOf.call(user_1, { from: user_1 })
     tx = await upalaProtocol.attack(path1, { from: user_1 })
     const user1_balance_after_attack = await fakeDai.balanceOf.call(user_1, { from: user_1 })

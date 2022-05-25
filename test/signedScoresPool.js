@@ -238,8 +238,8 @@ describe('SCORING AND BOT ATTACK', function () {
   // fund pool
   // try myScore on random proof
   // try valid proof
-  // try explode
-  it('you can explode, you can explode, anyone can exploooooode', async function () {
+  // try liquidate
+  it('you can liquidate, you can liquidate, anyone can liquidaaaaate', async function () {
     // deploy Pool and set baseScore
     signedScoresPool = await deployPool('SignedScoresPool', manager1, env.upalaConstants)
 
@@ -289,7 +289,7 @@ describe('SCORING AND BOT ATTACK', function () {
     let poolBalBefore = await fakeDAI.balanceOf(signedScoresPool.address)
     let botBalBefore = await fakeDAI.balanceOf(persona1.address)
     let upalaBalBefore = await fakeDAI.balanceOf(await upala.getTreasury())
-    // explode
+    // liquidate
     await signedScoresPool
       .connect(persona1)
       .attack(persona1id, delegate11.address, USER_RATING_42, A_SCORE_BUNDLE, delegateProof)
@@ -299,7 +299,7 @@ describe('SCORING AND BOT ATTACK', function () {
     let upalaBalAfter = await fakeDAI.balanceOf(await upala.getTreasury())
     // check rewards
     let totalScore = BASE_SCORE.mul(USER_RATING_42)
-    let fee = totalScore.mul(await upala.getExplosionFeePercent()).div(100)
+    let fee = totalScore.mul(await upala.getLiquidationFeePercent()).div(100)
     let reward = totalScore.sub(fee)
     expect(poolBalBefore.sub(poolBalAfter)).to.be.equal(totalScore) // pool balance decreased
     expect(botBalAfter.sub(botBalBefore)).to.be.equal(reward) // bot gets reward
@@ -317,7 +317,7 @@ describe('SCORING AND BOT ATTACK', function () {
           signedScoresPool
             .connect(delegate11)
             .attack(persona1id, scoreAssignedTo, USER_RATING_42, A_SCORE_BUNDLE, prooof)
-        ).to.be.revertedWith('Upala: The id is already exploded')
+        ).to.be.revertedWith('Upala: The id is already liquidated')
       } else {
         await expect(
           signedScoresPool.connect(persona1).attack(persona1id, scoreAssignedTo, USER_RATING_42, A_SCORE_BUNDLE, prooof)
@@ -328,7 +328,7 @@ describe('SCORING AND BOT ATTACK', function () {
 
   // leaving it here for now, learn how it works!
   // (todo is web3.eth.sign deprecated?)
-  // it('you can explode, you can explode, you can explode, anyone can exploooooode', async function () {
+  // it('you can liquidate, you can liquidate, you can liquidate, anyone can liquidaaaaate', async function () {
   //   const TEST_MESSAGE = web3.utils.sha3('Human')
   //   // Create the signature
   //   // web3 adds "\x19Ethereum Signed Message:\n32" to the hashed message
