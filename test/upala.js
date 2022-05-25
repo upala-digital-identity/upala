@@ -384,6 +384,33 @@ describe('POOL FACTORIES & POOLS', function () {
       .withArgs(newPoolAddress2, manager1.address, poolFactory.address)
   })
 
+  it('pool implementation template is a valid pool too', async function () {
+    // deploy pool factory
+    const poolFactory = await upalaManager.deployPoolFactory('SignedScoresPoolFactory', upala.address, dai.address)
+    await upala.connect(upalaAdmin).approvePoolFactory(poolFactory.address, true)
+    // create pool via clones 
+    const poolCreationTx = await poolFactory.connect(manager1).createPool()
+    const newPoolAddress = await getNewPoolAddress(poolCreationTx)
+    await expect(poolCreationTx)
+      .to.emit(upala, 'NewPool')
+      .withArgs(newPoolAddress, manager1.address, poolFactory.address)
+    // register template
+    const implRegTx = await poolFactory.connect(nobody).registerImplementationAsPool()
+    const implPoolAddress = await getNewPoolAddress(implRegTx)
+    await expect(implRegTx)
+      .to.emit(upala, 'NewPool')
+      .withArgs(implPoolAddress, upalaAdmin.address, poolFactory.address)
+    // set base score
+    const implPool = environment.upalaConstants.getContract('SignedScoresPool', upalaAdmin, implPoolAddress)
+    await implPool.connect(upalaAdmin).setBaseScore(10)
+    expect(await implPool.connect(nobody).baseScore()).to.eq(10)
+    // sanity check storage is different
+    const newPool = environment.upalaConstants.getContract('SignedScoresPool', manager1, newPoolAddress)
+    await newPool.connect(manager1).setBaseScore(5)
+    expect(await newPool.connect(nobody).baseScore()).to.eq(5)
+    expect(await implPool.connect(nobody).baseScore()).to.eq(10)
+  })
+
   // (todo future) create mocks for pools and pool factories to test these functions directly
   it('disapproved pool factory child pool cannot validate or liquidate users', async function () {
     // create user and delegate
