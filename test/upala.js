@@ -160,11 +160,11 @@ describe('USERS', function () {
 
     it('registers Upala ID for a third party address', async function () {
       // cannot register to an empty address
-      await expect(upala.connect(user2).newIdentity(NULL_ADDRESS)).to.be.revertedWith('Cannot use an empty addess')
+      await expect(upala.connect(user2).newIdentity(NULL_ADDRESS)).to.be.revertedWith('Upala: Cannot use an empty addess')
       // cannot register to taken address
       await upala.connect(user1).newIdentity(user1.address)
       await expect(upala.connect(user2).newIdentity(user1.address)).to.be.revertedWith(
-        'Address is already an owner or delegate'
+        'Upala: Address is already an owner or delegate'
       )
       // can register a third party address
       tx = await upala.connect(user1).newIdentity(user2.address)
@@ -176,7 +176,7 @@ describe('USERS', function () {
     it('cannot register an Upala id for an existing delegate', async function () {
       const user1Id = await createIdAndDelegate(upala, user1, delegate1)
       await expect(upala.connect(delegate1).newIdentity(delegate1.address)).to.be.revertedWith(
-        'Address is already an owner or delegate'
+        'Upala: Address is already an owner or delegate'
       )
     })
   })
@@ -201,13 +201,13 @@ describe('USERS', function () {
       )
       const user1Id = await registerUpalaId(upala, user1)
       await expect(upala.connect(user1).approveDelegate(delegate1.address)).to.be.revertedWith(
-        'Delegatee must confirm delegation first'
+        'Upala: Delegatee must confirm delegation first'
       )
       // register new delegate
       await upala.connect(delegate1).askDelegation(user1Id)
-      await expect(upala.connect(user1).approveDelegate(NULL_ADDRESS)).to.be.revertedWith('Cannot use an empty addess')
+      await expect(upala.connect(user1).approveDelegate(NULL_ADDRESS)).to.be.revertedWith('Upala: Cannot use an empty addess')
       await expect(upala.connect(user1).approveDelegate(user1.address)).to.be.revertedWith(
-        'Cannot approve oneself as delegate'
+        'Upala: Cannot approve oneself as delegate'
       )
       const createDelegateTx = upala.connect(user1).approveDelegate(delegate1.address)
       await expect(createDelegateTx).to.emit(upala, 'NewDelegate').withArgs(user1Id, delegate1.address)
@@ -228,12 +228,12 @@ describe('USERS', function () {
 
       // try again for the same delegate candidate
       await expect(upala.connect(user1).approveDelegate(delegate1.address)).to.be.revertedWith(
-        'Delegatee must confirm delegation first'
+        'Upala: Delegatee must confirm delegation first'
       )
-      await expect(upala.connect(delegate1).askDelegation(user1Id)).to.be.revertedWith('Already a delegate')
+      await expect(upala.connect(delegate1).askDelegation(user1Id)).to.be.revertedWith('Upala: Already a delegate')
       // try use same delegate for another UpalaId
       const user2Id = await registerUpalaId(upala, user2)
-      await expect(upala.connect(delegate1).askDelegation(user2Id)).to.be.revertedWith('Already a delegate')
+      await expect(upala.connect(delegate1).askDelegation(user2Id)).to.be.revertedWith('Upala: Already a delegate')
     })
 
     it('cannot APPROVE delegate from a delegate address (only owner)', async function () {

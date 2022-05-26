@@ -4,9 +4,6 @@ import '../pools/bundledScoresPool.sol';
 import '@openzeppelin/contracts/proxy/Clones.sol';
 import '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';
 
-// production todo create IPool
-// production todo import vs inheritance check
-
 contract SignedScoresPoolFactory {  // important!!! naming convention poolType + 'Factory'
     Upala public upala;
     address public upalaAddress;
@@ -40,7 +37,7 @@ contract SignedScoresPoolFactory {  // important!!! naming convention poolType +
 
     function _registerPool(address pool, address poolOwner) private {
         require(upala.registerPool(pool, poolOwner) == true, 
-            'Cannot approve new pool on Upala');
+            'Pool: Cannot approve new pool on Upala');
     }
 
     function _initializePool(address pool, address poolOwner) private {
@@ -79,10 +76,6 @@ contract SignedScoresPool is BundledScoresPool {
 
     // Pool-specific way to validate that userID is in bundle
     // SignedScoresPool requires every score to be signed by pool manager
-    // production todo security check (see ECDSA.sol, 
-    // https://solidity-by-example.org/signature/)
-    // https://ethereum.stackexchange.com/questions/76810/sign-message-with-web3-and-verify-with-openzeppelin-solidity-ecdsa-sol
-    // https://docs.openzeppelin.com/contracts/2.x/utilities
     function isInBundle(
         address intraBundleUserID,
         uint8 score,

@@ -47,7 +47,7 @@ describe('MANAGE GROUP', function () {
 
     // cannot publish again
     await expect(signedScoresPool.connect(manager1).publishScoreBundleId(ZERO_BYTES32)).to.be.revertedWith(
-      'Score bundle id already exists'
+      'Pool: Score bundle id already exists'
     )
 
     // delete bundle
@@ -156,7 +156,7 @@ describe('SCORING AND BOT ATTACK', function () {
       signedScoresPool
         .connect(nobody)
         .myScore(RANDOM_ADDRESS, RANDOM_ADDRESS, USER_RATING_42, ZERO_BYTES32, ZERO_BYTES32)
-    ).to.be.revertedWith('Provided score bundle does not exist or deleted')
+    ).to.be.revertedWith('Pool: Provided score bundle does not exist or deleted')
   })
 
   // register UpalaID and delegate
@@ -206,7 +206,7 @@ describe('SCORING AND BOT ATTACK', function () {
         signedScoresPool
           .connect(persona1)
           .myScore(persona1id, scoreAssignedTo, USER_RATING_42, A_SCORE_BUNDLE, ZERO_BYTES32)
-      ).to.be.revertedWith('Pool balance is lower than the total score')
+      ).to.be.revertedWith('Pool: Pool balance is lower than the total score')
     }
   })
 
@@ -261,7 +261,7 @@ describe('SCORING AND BOT ATTACK', function () {
     // check valid proof requirement - no state change
     await expect(
       signedScoresPool.connect(persona1).myScore(persona1id, persona1id, USER_RATING_42 - 1, A_SCORE_BUNDLE, proof)
-    ).to.be.revertedWith("Can't validate that scoreAssignedTo-score pair is in the bundle")
+    ).to.be.revertedWith("Pool: Can't validate that scoreAssignedTo-score pair is in the bundle")
     // check myScore
     expect(
       await signedScoresPool.connect(persona1).myScore(persona1id, persona1id, USER_RATING_42, A_SCORE_BUNDLE, proof)

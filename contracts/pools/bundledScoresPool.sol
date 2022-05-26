@@ -18,7 +18,7 @@ import './i-pool.sol';
 import '../protocol/upala.sol';
 import 'hardhat/console.sol';
 
-contract BundledScoresPool is Initializable, OwnableUpgradeable {  // todo OwnableUpgradable?
+contract BundledScoresPool is Initializable, OwnableUpgradeable {
     using SafeMath for uint256;
 
     Upala public upala;
@@ -73,7 +73,7 @@ contract BundledScoresPool is Initializable, OwnableUpgradeable {  // todo Ownab
         returns (uint256) 
     {
         require(scoreBundleTimestamp[newBundleId] == 0, 
-            'Score bundle id already exists');
+            'Pool: Score bundle id already exists');
         scoreBundleTimestamp[newBundleId] = block.timestamp;
         NewScoreBundleId(newBundleId, block.timestamp);
         return block.timestamp;
@@ -104,7 +104,7 @@ contract BundledScoresPool is Initializable, OwnableUpgradeable {  // todo Ownab
         onlyOwner
     { 
         require(scoreBundleTimestamp[scoreBundleId] != 0, 
-            'Score bundle id does\'t exists');
+            'Pool: Score bundle id does\'t exists');
         delete scoreBundleTimestamp[scoreBundleId];
         ScoreBundleIdDeleted(scoreBundleId);
     }
@@ -142,10 +142,10 @@ contract BundledScoresPool is Initializable, OwnableUpgradeable {  // todo Ownab
     function _payBotReward(address bot, uint256 amount) private {
         uint256 fee = amount.mul(upala.getLiquidationFeePercent()).div(100);
         require(_withdraw(bot, amount.sub(fee)), 
-            'Token transfer to bot failed');
+            'Pool: Token transfer to bot failed');
         // UIP-6. Sustainability + mitigating withdrawals by liquidation
         require(_withdraw(upala.getTreasury(), fee), 
-            'Liquidation fee transfer failed');
+            'Pool: Liquidation fee transfer failed');
     }
 
     function _withdraw(address recipient, uint256 amount) private returns (bool) {
@@ -215,7 +215,7 @@ contract BundledScoresPool is Initializable, OwnableUpgradeable {  // todo Ownab
     )
         external
         view
-        /// future todo paywall modifier goes here
+        /// future. paywall modifier goes here
         returns (uint256)
     {
         return _userScore(userAddress, upalaID, scoreAssignedTo, score, bundleId, proof);
@@ -243,7 +243,6 @@ contract BundledScoresPool is Initializable, OwnableUpgradeable {  // todo Ownab
         return(reward);
     }
 
-    // todo rename score to rating!!! 
     function _userScore(
         address caller,    // user address that shoots the verification call
         address upalaID,            // user Upala ID
@@ -255,7 +254,7 @@ contract BundledScoresPool is Initializable, OwnableUpgradeable {  // todo Ownab
         require(baseScore >0, "Pool baseScore is 0");
 
         require(scoreBundleTimestamp[bundleId] > 0, 
-            "Provided score bundle does not exist or deleted");
+            "Pool: Provided score bundle does not exist or deleted");
         
         // check UpalaID
         upala.isOwnerOrDelegate(caller, upalaID);
@@ -266,10 +265,10 @@ contract BundledScoresPool is Initializable, OwnableUpgradeable {  // todo Ownab
 
         uint256 totalScore = baseScore.mul(score);
         require(_balanceIsAbove(totalScore),
-            "Pool balance is lower than the total score");
+            "Pool: Pool balance is lower than the total score");
 
         require(isInBundle(scoreAssignedTo, score, bundleId, proof) == true,
-            "Can't validate that scoreAssignedTo-score pair is in the bundle");
+            "Pool: Can't validate that scoreAssignedTo-score pair is in the bundle");
 
         return totalScore;
     }

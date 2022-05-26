@@ -1,6 +1,5 @@
 pragma solidity ^0.8.2;
 
-// import "./i-upala.sol"; // todo finalize interface
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
@@ -96,7 +95,7 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
         attackWindow = 30 minutes;
         executionWindow = 1 hours;
         // ASCII to Hex "liquidated"
-        LIQUIDATED = address(0x0000000000000000000000006578706c6f646564);
+        LIQUIDATED = address(0x000000000000000000006C697175696461746564);
         // emit events for subgraph
         NewAttackWindow(attackWindow);
         NewExecutionWindow(executionWindow);
@@ -112,9 +111,9 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
     // Upala ID can be assigned to an address by a third party
     function newIdentity(address newIdentityOwner) external whenNotPaused returns (address) {
         require (newIdentityOwner != address(0x0),
-            "Cannot use an empty addess");
+            "Upala: Cannot use an empty addess");
         require (delegateToIdentity[newIdentityOwner] == address(0x0), 
-            "Address is already an owner or delegate");
+            "Upala: Address is already an owner or delegate");
         // UpalaIDs are n non-deterministic. Cannot assign scores to Upala ID
         // before Upala ID is created. 
         address newId = address(uint160(uint256(keccak256(abi.encodePacked(
@@ -155,7 +154,7 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
     // to cancel delegation request use 0x0 address as UpalaId
     function askDelegation(address upalaId) external whenNotPaused {
         require(delegateToIdentity[msg.sender] == address(0x0), 
-            "Already a delegate");
+            "Upala: Already a delegate");
         candidateDelegateToIdentity[msg.sender] = upalaId;
         NewCandidateDelegate(upalaId, msg.sender);
     }
@@ -163,12 +162,12 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
     // Creates delegate for the UpalaId.
     function approveDelegate(address delegate) external whenNotPaused onlyIdOwner {  // newDelegate // setDelegate
         require(delegate != address(0x0),
-            "Cannot use an empty addess");
+            "Upala: Cannot use an empty addess");
         require(delegate != msg.sender,
-            "Cannot approve oneself as delegate");
+            "Upala: Cannot approve oneself as delegate");
         address upalaId = delegateToIdentity[msg.sender];
         require(candidateDelegateToIdentity[delegate] == upalaId,
-            "Delegatee must confirm delegation first");
+            "Upala: Delegatee must confirm delegation first");
         delegateToIdentity[delegate] = upalaId;
         delete candidateDelegateToIdentity[delegate];
         NewDelegate(upalaId, delegate);
