@@ -160,7 +160,9 @@ describe('USERS', function () {
 
     it('registers Upala ID for a third party address', async function () {
       // cannot register to an empty address
-      await expect(upala.connect(user2).newIdentity(NULL_ADDRESS)).to.be.revertedWith('Upala: Cannot use an empty addess')
+      await expect(upala.connect(user2).newIdentity(NULL_ADDRESS)).to.be.revertedWith(
+        'Upala: Cannot use an empty addess'
+      )
       // cannot register to taken address
       await upala.connect(user1).newIdentity(user1.address)
       await expect(upala.connect(user2).newIdentity(user1.address)).to.be.revertedWith(
@@ -205,7 +207,9 @@ describe('USERS', function () {
       )
       // register new delegate
       await upala.connect(delegate1).askDelegation(user1Id)
-      await expect(upala.connect(user1).approveDelegate(NULL_ADDRESS)).to.be.revertedWith('Upala: Cannot use an empty addess')
+      await expect(upala.connect(user1).approveDelegate(NULL_ADDRESS)).to.be.revertedWith(
+        'Upala: Cannot use an empty addess'
+      )
       await expect(upala.connect(user1).approveDelegate(user1.address)).to.be.revertedWith(
         'Upala: Cannot approve oneself as delegate'
       )
