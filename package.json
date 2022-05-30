@@ -41,7 +41,6 @@
     "@nomiclabs/hardhat-web3": "^2.0.0",
     "@openzeppelin/hardhat-defender": "^1.6.0",
     "@openzeppelin/hardhat-upgrades": "^1.4.0",
-    "@openzeppelin/test-helpers": "^0.5.10",
     "@types/chai": "^4.2.14",
     "@types/mocha": "^9.0.0",
     "@types/node": "^16.9.1",
@@ -61,7 +60,6 @@
   "dependencies": {
     "@openzeppelin/contracts": "^4.5.0",
     "@openzeppelin/contracts-upgradeable": "^4.3.2",
-    "@openzeppelin/upgrades": "^2.8.0",
     "loadash": "^1.0.0"
   }
 }

@@ -3,7 +3,6 @@
 
 import chai, { expect } from 'chai'
 import { ethers } from 'hardhat'
-import { time } from '@openzeppelin/test-helpers'
 import { solidity, MockProvider, deployContract } from 'ethereum-waffle'
 import { Contract, BigNumber, constants } from 'ethers'
 import BalanceTree from '../src/balance-tree'
