@@ -75,6 +75,15 @@ export default {
         mnemonic: secrets.mnemonic,
       },
     },
+    gnosis: {
+      network_id: 100,
+      url: 'https://rpc.gnosischain.com',
+      accounts: {
+        mnemonic: secrets.mnemonic,
+      },
+      gasPrice: 2500000000, //2.5 gwei
+      timeout: 120000,
+    },
   },
   etherscan: {
     // Your API key for Etherscan

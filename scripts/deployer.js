@@ -16,7 +16,7 @@ Update Upala:
 
 */
 
-const UPALA_MANAGER = '0x525437F0C66A85fABf922B2aF642dfBc6BF9EeD5'
+const UPALA_MANAGER = '0xddB1CB4EdBCD83066Abf26E7102dc0e88009DEAB'
 
 async function main() {
   const wallets = await ethers.getSigners()
