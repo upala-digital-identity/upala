@@ -351,7 +351,6 @@ describe('USERS', function () {
       expect(await upala.connect(delegate1).myIdOwner()).to.eq(delegate1.address)
       expect(await upala.connect(delegate1).myId()).to.eq(user1Id)
     })
-    
   })
 })
 
