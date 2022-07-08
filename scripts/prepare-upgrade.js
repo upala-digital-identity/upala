@@ -10,10 +10,11 @@ async function main() {
   const chainId = await wallets[0].getChainId()
   const upalaConst = new UpalaConstants(chainId)
   const upalaAddress = upalaConst.getAddress('Upala')
+  console.log('Upgrade proposal for Upala at:', upalaAddress)
   // deploy upgrade
   const nextVersionUpala = await ethers.getContractFactory('Upala')
   const proposal = await defender.proposeUpgrade(upalaAddress, nextVersionUpala, {
-    description: 'Testing upgrade',
+    description: 'UIP-24',
     multisig: UPALA_MANAGER,
   })
   console.log('Upgrade proposal created at:', proposal.url)

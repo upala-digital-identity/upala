@@ -2,7 +2,6 @@ tenderly.yaml
 .vscode/settings.json
 secrets.js
 contracts/oz/*
-.openzeppelin/*
 cheatsheet
 package-lock.json
 node_modules
