@@ -2,7 +2,9 @@
 const { defender } = require('hardhat')
 const { UpalaConstants } = require('@upala/constants')
 
-const UPALA_MANAGER = '0x525437F0C66A85fABf922B2aF642dfBc6BF9EeD5' // todo move to constants
+// const UPALA_MANAGER = '0x525437F0C66A85fABf922B2aF642dfBc6BF9EeD5' // todo move to constants
+// WARNING!!! different manager for xDAI an Rinkeby! Move to constants ASAP
+const UPALA_MANAGER = '0xddB1CB4EdBCD83066Abf26E7102dc0e88009DEAB'
 
 async function main() {
   // get Upala address from constants
