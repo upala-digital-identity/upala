@@ -268,7 +268,9 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
         onlyApprovedPool
         returns (bool) 
     {
-        require(identity == delegateToIdentity[ownerOrDelegate],
+        require(
+            identity != address(0x0) &&
+            identity == delegateToIdentity[ownerOrDelegate],
             "Upala: No such id, not an owner or not a delegate of the id");
         require (identityOwner[identity] != LIQUIDATED,
             "Upala: The id is already liquidated");
