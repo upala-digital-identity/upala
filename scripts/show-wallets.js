@@ -9,6 +9,8 @@ async function main() {
     console.log('%s: %s, eth: %s', i, wallets[i].address, balance)
   }
 
+  // console.log(await ethers.provider.getGasPrice())
+
   // fund wallets
   // for (let i = 1; i <= 1; i++) {
   //     let tx = await wallets[0].sendTransaction({

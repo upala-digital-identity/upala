@@ -24,7 +24,6 @@ async function deployUpgradableUpala() {
   const Upala = await ethers.getContractFactory('Upala')
   let upala = await upgrades.deployProxy(Upala, [], {
     kind: 'uups',
-    // gasPrice: utils.parseUnits('1.3', 'gwei') // todo gas price!!!
   })
   await upala.deployTransaction.wait(numConf)
   await upala.deployed()

@@ -112,6 +112,8 @@ describe('MANAGE GROUP', function () {
     await signedScoresPool.connect(manager2).transferOwnership(manager1.address)
     expect(await signedScoresPool.owner()).to.be.equal(manager1.address)
   })
+
+  // TODO when changing owner scores will stop working (create a warning in CLI for that too)
 })
 
 /*********************

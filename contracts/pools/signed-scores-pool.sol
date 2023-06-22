@@ -19,6 +19,7 @@ contract SignedScoresPoolFactory {  // important!!! naming convention poolType +
         implementation = _implementation;
         impltnOwner = msg.sender;
         // owner is "address(this)" to prevent ownership transfer before registration
+        // initializig implementation too
         SignedScoresPool(_implementation).initialize(upalaAddress, approvedTokenAddress, address(this));
     }
 

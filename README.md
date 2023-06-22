@@ -10,7 +10,7 @@
 ## Run tests
 
 1. Run hardhat local network - In project root open terminal window and run 'npx hardhat node'
-2. In the same terminal where you deployed Upala run 'npx hardhat test /test/upala.js'
+2. In the same terminal where you deployed Upala run 'npx hardhat test test/upala.js'
 
 ## Deploy Upala to local network:
 
