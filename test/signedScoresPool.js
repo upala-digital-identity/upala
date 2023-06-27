@@ -10,6 +10,7 @@ const { utils } = require('ethers')
 const { setupProtocol } = require('../src/upala-admin.js')
 const { deployPool, PoolManager } = require('@upala/group-manager')
 const { newIdentity } = require('@upala/unique-human')
+const exp = require('constants')
 
 //const scoreChange = oneETH.mul(42).div(100)
 const ZERO_BYTES32 = '0x0000000000000000000000000000000000000000000000000000000000000000'
@@ -195,6 +196,20 @@ describe('SCORING AND BOT ATTACK ADVANCED', function () {
   let upala, fakeDAI
   let signedScoresPool
   let env
+  let proof
+
+  const balances = async () => { return {
+    pool: await fakeDAI.balanceOf(signedScoresPool.address),
+    person: await fakeDAI.balanceOf(persona1.address),
+    treasury: await fakeDAI.balanceOf(await upala.getTreasury())
+    }
+  }
+
+  const checkBalances = (before, after, totalScore, reward, fee) => {
+    expect(before.pool.sub(after.pool)).to.be.equal(totalScore) // pool balance decreased
+    expect(after.person.sub(before.person)).to.be.equal(reward) // bot gets reward
+    expect(after.treasury.sub(before.treasury)).to.be.equal(fee) // upala collects fee 
+  }
 
   beforeEach('setup protocol', async () => {
     env = await setupProtocol({ isSavingConstants: false })
@@ -206,13 +221,20 @@ describe('SCORING AND BOT ATTACK ADVANCED', function () {
     await signedScoresPool.connect(manager1).setBaseScore(BASE_SCORE)
     // register empty score bundle
     await signedScoresPool.connect(manager1).publishScoreBundleId(A_SCORE_BUNDLE)
-  })
-  // register UpalaID and delegate
-
-  it('cannot verify scores without valid UpalaID or delegate', async function () {
     // register persona1 id
     persona1id = await newIdentity(persona1.address, persona1, env.upalaConstants)
+    // fill the pool
+    await fakeDAI.connect(manager1).freeDaiToTheWorld(signedScoresPool.address, BASE_SCORE.mul(USER_RATING_42))
+    // sign user
+    proof = await manager1.signMessage(
+      ethers.utils.arrayify(
+        utils.solidityKeccak256(['address', 'uint8', 'bytes32'], [persona1id, USER_RATING_42, A_SCORE_BUNDLE])
+      )
+    )
+    
+  })
 
+  it('cannot verify scores without valid UpalaID or delegate', async function () {
     let badInput = [
       // [caller, upalaID, scoreAssignedTo]
       [nobody, RANDOM_ADDRESS, RANDOM_ADDRESS], // 000 no UpalaID at all
@@ -233,11 +255,12 @@ describe('SCORING AND BOT ATTACK ADVANCED', function () {
 
   // register persona delegate, try myScore on empty pool
   it('should throw if pool has insufficient funds', async function () {
-    // register persona1 id
-    persona1id = await newIdentity(persona1.address, persona1, env.upalaConstants)
     // register persona1 delegate
     await upala.connect(delegate11).askDelegation(persona1id)
     await upala.connect(persona1).approveDelegate(delegate11.address)
+
+    // withdraw from pool
+    await signedScoresPool.connect(manager1).withdrawFromPool(manager1.address, BASE_SCORE.mul(USER_RATING_42))
 
     let validScoreAssignedTo = [persona1.address, persona1id, delegate11.address]
     for (const scoreAssignedTo of validScoreAssignedTo) {
@@ -249,24 +272,8 @@ describe('SCORING AND BOT ATTACK ADVANCED', function () {
     }
   })
 
-
-  // fund pool
-  // try myScore on random proof
-  // try valid proof
-  // try liquidate
-  it('you can liquidate, you can liquidate, anyone can liquidaaaaate', async function () {
-    // register persona1 id
-    persona1id = await newIdentity(persona1.address, persona1, env.upalaConstants)
-
-    // fill the pool
-    await fakeDAI.connect(manager1).freeDaiToTheWorld(signedScoresPool.address, BASE_SCORE.mul(USER_RATING_42))
-
-    // sign user
-    let proof = await manager1.signMessage(
-      ethers.utils.arrayify(
-        utils.solidityKeccak256(['address', 'uint8', 'bytes32'], [persona1id, USER_RATING_42, A_SCORE_BUNDLE])
-      )
-    )
+  it('User can liquidate', async function () {
+    
     // check valid proof requirement - no state change
     await expect(
       signedScoresPool.connect(persona1).myScore(persona1id, persona1id, USER_RATING_42 - 1, A_SCORE_BUNDLE, proof)
@@ -282,6 +289,33 @@ describe('SCORING AND BOT ATTACK ADVANCED', function () {
         .userScore(persona1.address, persona1id, persona1id, USER_RATING_42, A_SCORE_BUNDLE, proof)
     ).to.be.equal(BASE_SCORE.mul(USER_RATING_42))
 
+    let beforeBals = await balances()
+    // liquidate
+    await signedScoresPool
+      .connect(persona1)
+      .attack(persona1id, persona1id, USER_RATING_42, A_SCORE_BUNDLE, proof)
+    // after
+    let afterBals = await balances()
+    // check rewards
+    let totalScore = BASE_SCORE.mul(USER_RATING_42)
+    let fee = totalScore.mul(await upala.getLiquidationFeePercent()).div(100)
+    let reward = totalScore.sub(fee)
+    checkBalances(beforeBals, afterBals, totalScore, reward, fee)
+  })
+
+  // experimental
+  // it('User cannot create ID after liquidation', async function () {
+  //   await signedScoresPool
+  //     .connect(persona1)
+  //     .attack(persona1id, persona1id, USER_RATING_42, A_SCORE_BUNDLE, proof)
+  //   await expect(
+  //     newIdentity(persona1.address, persona1, env.upalaConstants)
+  //     ).to.be.revertedWith('Upala: No such id, not an owner or not a delegate of the id')
+  // })
+
+
+  // you can liquidate, you can liquidate, anyone can liquidaaaaate
+  it('User can liquidate by address', async function () {
     // bot vs managers check
     // assign a score by address (a platform action)
     let delegateProof = await manager1.signMessage(
@@ -295,24 +329,19 @@ describe('SCORING AND BOT ATTACK ADVANCED', function () {
     await upala.connect(delegate11).askDelegation(persona1id)
     await upala.connect(persona1).approveDelegate(delegate11.address)
     // before
-    let poolBalBefore = await fakeDAI.balanceOf(signedScoresPool.address)
-    let botBalBefore = await fakeDAI.balanceOf(persona1.address)
-    let upalaBalBefore = await fakeDAI.balanceOf(await upala.getTreasury())
+    let beforeBals = await balances()
     // liquidate
     await signedScoresPool
       .connect(persona1)
       .attack(persona1id, delegate11.address, USER_RATING_42, A_SCORE_BUNDLE, delegateProof)
     // after
-    let poolBalAfter = await fakeDAI.balanceOf(signedScoresPool.address)
-    let botBalAfter = await fakeDAI.balanceOf(persona1.address)
-    let upalaBalAfter = await fakeDAI.balanceOf(await upala.getTreasury())
+    let afterBals = await balances()
     // check rewards
     let totalScore = BASE_SCORE.mul(USER_RATING_42)
     let fee = totalScore.mul(await upala.getLiquidationFeePercent()).div(100)
     let reward = totalScore.sub(fee)
-    expect(poolBalBefore.sub(poolBalAfter)).to.be.equal(totalScore) // pool balance decreased
-    expect(botBalAfter.sub(botBalBefore)).to.be.equal(reward) // bot gets reward
-    expect(upalaBalAfter.sub(upalaBalBefore)).to.be.equal(fee) // upala collects fee
+    checkBalances(beforeBals, afterBals, totalScore, reward, fee)
+
     // try expolding again
     let validScoreAssignedTo = [persona1.address, persona1id, delegate11.address]
     for (const scoreAssignedTo of validScoreAssignedTo) {
