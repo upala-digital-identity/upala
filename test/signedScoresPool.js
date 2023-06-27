@@ -303,16 +303,37 @@ describe('SCORING AND BOT ATTACK ADVANCED', function () {
     checkBalances(beforeBals, afterBals, totalScore, reward, fee)
   })
 
-  // experimental
-  // it('User cannot create ID after liquidation', async function () {
-  //   await signedScoresPool
-  //     .connect(persona1)
-  //     .attack(persona1id, persona1id, USER_RATING_42, A_SCORE_BUNDLE, proof)
-  //   await expect(
-  //     newIdentity(persona1.address, persona1, env.upalaConstants)
-  //     ).to.be.revertedWith('Upala: No such id, not an owner or not a delegate of the id')
-  // })
 
+
+
+
+
+  // VULNERABILIY ↓↓↓
+
+
+
+
+
+
+  it('User cannot liquidate again', async function () {
+    let addressProof = await manager1.signMessage(
+      ethers.utils.arrayify(
+        utils.solidityKeccak256(['address', 'uint8', 'bytes32'], [persona1.address, USER_RATING_42, A_SCORE_BUNDLE])
+      )
+    )
+    await signedScoresPool
+      .connect(persona1)
+      .attack(persona1id, persona1.address, USER_RATING_42, A_SCORE_BUNDLE, addressProof)
+
+    // creare a new id for the same address
+    await fakeDAI.connect(manager1).freeDaiToTheWorld(signedScoresPool.address, BASE_SCORE.mul(USER_RATING_42))
+    let newPersona1Id = await newIdentity(persona1.address, persona1, env.upalaConstants)
+    await expect(
+      signedScoresPool
+        .connect(persona1)
+        .attack(newPersona1Id, persona1.address, USER_RATING_42, A_SCORE_BUNDLE, addressProof)
+    ).to.be.revertedWith('Upala: The id is already liquidated')
+  })
 
   // you can liquidate, you can liquidate, anyone can liquidaaaaate
   it('User can liquidate by address', async function () {
@@ -343,6 +364,7 @@ describe('SCORING AND BOT ATTACK ADVANCED', function () {
     checkBalances(beforeBals, afterBals, totalScore, reward, fee)
 
     // try expolding again
+
     let validScoreAssignedTo = [persona1.address, persona1id, delegate11.address]
     for (const scoreAssignedTo of validScoreAssignedTo) {
       let prooof = await manager1.signMessage(
