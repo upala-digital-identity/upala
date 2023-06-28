@@ -170,7 +170,7 @@ describe('USERS', function () {
       )
       // can register a third party address
       tx = await upala.connect(user1).newIdentity(user2.address)
-      const expectedId = user2.address  // await calculateUpalaId(tx, user2.address)
+      const expectedId = user2.address // await calculateUpalaId(tx, user2.address)
       expect(await upala.connect(user2).myId()).to.eq(expectedId)
       await expect(tx).to.emit(upala, 'NewIdentity').withArgs(expectedId, user2.address)
     })

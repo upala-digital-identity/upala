@@ -265,9 +265,7 @@ describe('SCORING AND BOT ATTACK ADVANCED', function () {
     let callers = [persona1, delegate11]
     for (const caller of callers) {
       await expect(
-        signedScoresPool
-          .connect(caller)
-          .myScore(persona1id, persona1id, USER_RATING_42, A_SCORE_BUNDLE, ZERO_BYTES32)
+        signedScoresPool.connect(caller).myScore(persona1id, persona1id, USER_RATING_42, A_SCORE_BUNDLE, ZERO_BYTES32)
       ).to.be.revertedWith('Pool: Pool balance is lower than the total score')
     }
   })
@@ -301,9 +299,7 @@ describe('SCORING AND BOT ATTACK ADVANCED', function () {
     checkBalances(beforeBals, afterBals, totalScore, reward, fee)
     // try liquidating again
     await expect(
-      signedScoresPool
-        .connect(persona1)
-        .attack(persona1id, persona1id, USER_RATING_42, A_SCORE_BUNDLE, proof)
+      signedScoresPool.connect(persona1).attack(persona1id, persona1id, USER_RATING_42, A_SCORE_BUNDLE, proof)
     ).to.be.revertedWith('Upala: No such id, not an owner or not a delegate of the id')
   })
 
@@ -321,9 +317,9 @@ describe('SCORING AND BOT ATTACK ADVANCED', function () {
 
     // creare a new id for the same address
     await fakeDAI.connect(manager1).freeDaiToTheWorld(signedScoresPool.address, BASE_SCORE.mul(USER_RATING_42))
-    await expect(
-        newIdentity(persona1.address, persona1, env.upalaConstants)
-    ).to.be.revertedWith('Upala: Cannot recreate a liquidated ID')
+    await expect(newIdentity(persona1.address, persona1, env.upalaConstants)).to.be.revertedWith(
+      'Upala: Cannot recreate a liquidated ID'
+    )
   })
 
   // you can liquidate, you can liquidate, anyone can liquidaaaaate
@@ -334,9 +330,7 @@ describe('SCORING AND BOT ATTACK ADVANCED', function () {
     // before
     let beforeBals = await balances(delegate11.address)
     // liquidate
-    await signedScoresPool
-      .connect(delegate11)
-      .attack(persona1id, persona1id, USER_RATING_42, A_SCORE_BUNDLE, proof)
+    await signedScoresPool.connect(delegate11).attack(persona1id, persona1id, USER_RATING_42, A_SCORE_BUNDLE, proof)
     // after
     let afterBals = await balances(delegate11.address)
     // check rewards
@@ -347,14 +341,10 @@ describe('SCORING AND BOT ATTACK ADVANCED', function () {
 
     // try expolding again
     await expect(
-      signedScoresPool
-        .connect(persona1)
-        .attack(persona1id, persona1id, USER_RATING_42, A_SCORE_BUNDLE, proof)
+      signedScoresPool.connect(persona1).attack(persona1id, persona1id, USER_RATING_42, A_SCORE_BUNDLE, proof)
     ).to.be.revertedWith('Upala: No such id, not an owner or not a delegate of the id')
     await expect(
-      signedScoresPool
-        .connect(delegate11)
-        .attack(persona1id, persona1id, USER_RATING_42, A_SCORE_BUNDLE, proof)
+      signedScoresPool.connect(delegate11).attack(persona1id, persona1id, USER_RATING_42, A_SCORE_BUNDLE, proof)
     ).to.be.revertedWith('Upala: The id is already liquidated')
   })
 
