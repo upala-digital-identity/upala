@@ -1,5 +1,1 @@
-module.exports = [
-    'FakeDai', 
-    'FakeDai', 
-    'DAI'
-  ];
+module.exports = ['FakeDai', 'FakeDai', 'DAI']

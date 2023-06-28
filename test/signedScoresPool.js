@@ -162,7 +162,7 @@ describe('SCORING AND BOT ATTACK BASIC', function () {
     ).to.be.revertedWith('Pool: Provided score bundle does not exist or deleted')
   })
 
-    // quick way to check the right soup that makes recover work correclty
+  // quick way to check the right soup that makes recover work correclty
   it('signes and recovers address correctly', async function () {
     const message = utils.solidityKeccak256(
       ['address', 'uint8', 'bytes32'],
@@ -186,9 +186,7 @@ describe('SCORING AND BOT ATTACK BASIC', function () {
     signer = await signedScoresPool.testRecover(message, wrongProof)
     expect(signer).to.not.equal(manager1.address)
   })
-
 })
-
 
 describe('SCORING AND BOT ATTACK ADVANCED', function () {
   let upalaAdmin, manager1, persona1, delegate11, dapp, nobody
@@ -198,17 +196,18 @@ describe('SCORING AND BOT ATTACK ADVANCED', function () {
   let env
   let proof
 
-  const balances = async () => { return {
-    pool: await fakeDAI.balanceOf(signedScoresPool.address),
-    person: await fakeDAI.balanceOf(persona1.address),
-    treasury: await fakeDAI.balanceOf(await upala.getTreasury())
+  const balances = async () => {
+    return {
+      pool: await fakeDAI.balanceOf(signedScoresPool.address),
+      person: await fakeDAI.balanceOf(persona1.address),
+      treasury: await fakeDAI.balanceOf(await upala.getTreasury()),
     }
   }
 
   const checkBalances = (before, after, totalScore, reward, fee) => {
     expect(before.pool.sub(after.pool)).to.be.equal(totalScore) // pool balance decreased
     expect(after.person.sub(before.person)).to.be.equal(reward) // bot gets reward
-    expect(after.treasury.sub(before.treasury)).to.be.equal(fee) // upala collects fee 
+    expect(after.treasury.sub(before.treasury)).to.be.equal(fee) // upala collects fee
   }
 
   beforeEach('setup protocol', async () => {
@@ -231,7 +230,6 @@ describe('SCORING AND BOT ATTACK ADVANCED', function () {
         utils.solidityKeccak256(['address', 'uint8', 'bytes32'], [persona1id, USER_RATING_42, A_SCORE_BUNDLE])
       )
     )
-    
   })
 
   it('cannot verify scores without valid UpalaID or delegate', async function () {
@@ -273,7 +271,6 @@ describe('SCORING AND BOT ATTACK ADVANCED', function () {
   })
 
   it('User can liquidate', async function () {
-    
     // check valid proof requirement - no state change
     await expect(
       signedScoresPool.connect(persona1).myScore(persona1id, persona1id, USER_RATING_42 - 1, A_SCORE_BUNDLE, proof)
@@ -291,9 +288,7 @@ describe('SCORING AND BOT ATTACK ADVANCED', function () {
 
     let beforeBals = await balances()
     // liquidate
-    await signedScoresPool
-      .connect(persona1)
-      .attack(persona1id, persona1id, USER_RATING_42, A_SCORE_BUNDLE, proof)
+    await signedScoresPool.connect(persona1).attack(persona1id, persona1id, USER_RATING_42, A_SCORE_BUNDLE, proof)
     // after
     let afterBals = await balances()
     // check rewards
@@ -303,17 +298,7 @@ describe('SCORING AND BOT ATTACK ADVANCED', function () {
     checkBalances(beforeBals, afterBals, totalScore, reward, fee)
   })
 
-
-
-
-
-
   // VULNERABILIY ↓↓↓
-
-
-
-
-
 
   it('User cannot liquidate again', async function () {
     let addressProof = await manager1.signMessage(
@@ -398,7 +383,6 @@ describe('SCORING AND BOT ATTACK ADVANCED', function () {
   //   expect(recovered).to.equal(manager1.address)
   // })
 })
-
 
 describe('POOL MANAGER', function () {
   let upalaAdmin, manager1, persona1, delegate11, persona2, nobody
