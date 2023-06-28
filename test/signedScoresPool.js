@@ -196,10 +196,10 @@ describe('SCORING AND BOT ATTACK ADVANCED', function () {
   let env
   let proof
 
-  const balances = async () => {
+  const balances = async (personAddress) => {
     return {
       pool: await fakeDAI.balanceOf(signedScoresPool.address),
-      person: await fakeDAI.balanceOf(persona1.address),
+      person: await fakeDAI.balanceOf(personAddress),
       treasury: await fakeDAI.balanceOf(await upala.getTreasury()),
     }
   }
@@ -241,7 +241,8 @@ describe('SCORING AND BOT ATTACK ADVANCED', function () {
       [nobody, persona1id, persona1.address], // 011 existing UpalaID, existing delegate, but called by nobody
       [persona1, RANDOM_ADDRESS, RANDOM_ADDRESS], // 100 no UpalaID at all
       [persona1, RANDOM_ADDRESS, persona1.address], // 101
-      [persona1, persona1id, RANDOM_ADDRESS], // 110 existing UpalaID, valid owner but score assigned to non-existant delegate
+      // as of UIP-26 scoreAssignedTo is no longer relevant ↓↓↓
+      // [persona1, persona1id, RANDOM_ADDRESS], // 110 existing UpalaID, valid owner but score assigned to non-existant delegate
       // [persona1, persona1id, persona1.address],  // 111 valid
     ]
     for (const args of badInput) {
@@ -252,6 +253,7 @@ describe('SCORING AND BOT ATTACK ADVANCED', function () {
   })
 
   // register persona delegate, try myScore on empty pool
+  // TODO search all score assigned to and replace with delegation logic
   it('should throw if pool has insufficient funds', async function () {
     // register persona1 delegate
     await upala.connect(delegate11).askDelegation(persona1id)
@@ -260,21 +262,22 @@ describe('SCORING AND BOT ATTACK ADVANCED', function () {
     // withdraw from pool
     await signedScoresPool.connect(manager1).withdrawFromPool(manager1.address, BASE_SCORE.mul(USER_RATING_42))
 
-    let validScoreAssignedTo = [persona1.address, persona1id, delegate11.address]
-    for (const scoreAssignedTo of validScoreAssignedTo) {
+    let callers = [persona1, delegate11]
+    for (const caller of callers) {
       await expect(
         signedScoresPool
-          .connect(persona1)
-          .myScore(persona1id, scoreAssignedTo, USER_RATING_42, A_SCORE_BUNDLE, ZERO_BYTES32)
+          .connect(caller)
+          .myScore(persona1id, persona1id, USER_RATING_42, A_SCORE_BUNDLE, ZERO_BYTES32)
       ).to.be.revertedWith('Pool: Pool balance is lower than the total score')
     }
   })
 
+  // UIP-26. Score may be assigned to an Upala ID before it is created. Ids are deterministic.
   it('User can liquidate', async function () {
     // check valid proof requirement - no state change
     await expect(
       signedScoresPool.connect(persona1).myScore(persona1id, persona1id, USER_RATING_42 - 1, A_SCORE_BUNDLE, proof)
-    ).to.be.revertedWith("Pool: Can't validate that scoreAssignedTo-score pair is in the bundle")
+    ).to.be.revertedWith("Pool: Can't validate that upalaID-score pair is in the bundle")
     // check myScore
     expect(
       await signedScoresPool.connect(persona1).myScore(persona1id, persona1id, USER_RATING_42, A_SCORE_BUNDLE, proof)
@@ -286,21 +289,27 @@ describe('SCORING AND BOT ATTACK ADVANCED', function () {
         .userScore(persona1.address, persona1id, persona1id, USER_RATING_42, A_SCORE_BUNDLE, proof)
     ).to.be.equal(BASE_SCORE.mul(USER_RATING_42))
 
-    let beforeBals = await balances()
+    let beforeBals = await balances(persona1.address)
     // liquidate
     await signedScoresPool.connect(persona1).attack(persona1id, persona1id, USER_RATING_42, A_SCORE_BUNDLE, proof)
     // after
-    let afterBals = await balances()
+    let afterBals = await balances(persona1.address)
     // check rewards
     let totalScore = BASE_SCORE.mul(USER_RATING_42)
     let fee = totalScore.mul(await upala.getLiquidationFeePercent()).div(100)
     let reward = totalScore.sub(fee)
     checkBalances(beforeBals, afterBals, totalScore, reward, fee)
+    // try liquidating again
+    await expect(
+      signedScoresPool
+        .connect(persona1)
+        .attack(persona1id, persona1id, USER_RATING_42, A_SCORE_BUNDLE, proof)
+    ).to.be.revertedWith('Upala: No such id, not an owner or not a delegate of the id')
   })
 
-  // VULNERABILIY ↓↓↓
-
-  it('User cannot liquidate again', async function () {
+  // ex-VULNERABILIY. User could recreate Upala ID and liquidate again
+  // now users cannot create UpalaID for the same address once liquidated
+  it('User cannot recreate a liquidated ID', async function () {
     let addressProof = await manager1.signMessage(
       ethers.utils.arrayify(
         utils.solidityKeccak256(['address', 'uint8', 'bytes32'], [persona1.address, USER_RATING_42, A_SCORE_BUNDLE])
@@ -312,36 +321,24 @@ describe('SCORING AND BOT ATTACK ADVANCED', function () {
 
     // creare a new id for the same address
     await fakeDAI.connect(manager1).freeDaiToTheWorld(signedScoresPool.address, BASE_SCORE.mul(USER_RATING_42))
-    let newPersona1Id = await newIdentity(persona1.address, persona1, env.upalaConstants)
     await expect(
-      signedScoresPool
-        .connect(persona1)
-        .attack(newPersona1Id, persona1.address, USER_RATING_42, A_SCORE_BUNDLE, addressProof)
-    ).to.be.revertedWith('Upala: The id is already liquidated')
+        newIdentity(persona1.address, persona1, env.upalaConstants)
+    ).to.be.revertedWith('Upala: Cannot recreate a liquidated ID')
   })
 
   // you can liquidate, you can liquidate, anyone can liquidaaaaate
-  it('User can liquidate by address', async function () {
-    // bot vs managers check
-    // assign a score by address (a platform action)
-    let delegateProof = await manager1.signMessage(
-      ethers.utils.arrayify(
-        utils.solidityKeccak256(['address', 'uint8', 'bytes32'], [delegate11.address, USER_RATING_42, A_SCORE_BUNDLE])
-      )
-    )
-    // bot actions
-    // 1. register UpalaID (no matter on which address, so using persona1 from above)
-    // 2. register persona1 delegate (use address with score)
+  it('User can liquidate using a delegate', async function () {
+    // register persona1 delegate (use address with score)
     await upala.connect(delegate11).askDelegation(persona1id)
     await upala.connect(persona1).approveDelegate(delegate11.address)
     // before
-    let beforeBals = await balances()
+    let beforeBals = await balances(delegate11.address)
     // liquidate
     await signedScoresPool
-      .connect(persona1)
-      .attack(persona1id, delegate11.address, USER_RATING_42, A_SCORE_BUNDLE, delegateProof)
+      .connect(delegate11)
+      .attack(persona1id, persona1id, USER_RATING_42, A_SCORE_BUNDLE, proof)
     // after
-    let afterBals = await balances()
+    let afterBals = await balances(delegate11.address)
     // check rewards
     let totalScore = BASE_SCORE.mul(USER_RATING_42)
     let fee = totalScore.mul(await upala.getLiquidationFeePercent()).div(100)
@@ -349,26 +346,16 @@ describe('SCORING AND BOT ATTACK ADVANCED', function () {
     checkBalances(beforeBals, afterBals, totalScore, reward, fee)
 
     // try expolding again
-
-    let validScoreAssignedTo = [persona1.address, persona1id, delegate11.address]
-    for (const scoreAssignedTo of validScoreAssignedTo) {
-      let prooof = await manager1.signMessage(
-        ethers.utils.arrayify(
-          utils.solidityKeccak256(['address', 'uint8', 'bytes32'], [scoreAssignedTo, USER_RATING_42, A_SCORE_BUNDLE])
-        )
-      )
-      if (scoreAssignedTo == delegate11.address) {
-        await expect(
-          signedScoresPool
-            .connect(delegate11)
-            .attack(persona1id, scoreAssignedTo, USER_RATING_42, A_SCORE_BUNDLE, prooof)
-        ).to.be.revertedWith('Upala: The id is already liquidated')
-      } else {
-        await expect(
-          signedScoresPool.connect(persona1).attack(persona1id, scoreAssignedTo, USER_RATING_42, A_SCORE_BUNDLE, prooof)
-        ).to.be.revertedWith('Upala: No such id, not an owner or not a delegate of the id')
-      }
-    }
+    await expect(
+      signedScoresPool
+        .connect(persona1)
+        .attack(persona1id, persona1id, USER_RATING_42, A_SCORE_BUNDLE, proof)
+    ).to.be.revertedWith('Upala: No such id, not an owner or not a delegate of the id')
+    await expect(
+      signedScoresPool
+        .connect(delegate11)
+        .attack(persona1id, persona1id, USER_RATING_42, A_SCORE_BUNDLE, proof)
+    ).to.be.revertedWith('Upala: The id is already liquidated')
   })
 
   // leaving it here for now, learn how it works!

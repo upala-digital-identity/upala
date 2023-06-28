@@ -29,7 +29,7 @@ async function calculateUpalaId(txOfIdCreation, userAddress) {
 // helper function to register upala id for a wallet (returns upala id)
 async function registerUpalaId(upalaContract, userWallet) {
   tx = await upalaContract.connect(userWallet).newIdentity(userWallet.address)
-  return calculateUpalaId(tx, userWallet.address)
+  return userWallet.address // calculateUpalaId(tx, userWallet.address)
 }
 
 async function createIdAndDelegate(upalaContract, userWallet, delegateWallet) {
@@ -149,9 +149,9 @@ describe('USERS', function () {
   })
 
   describe('creating upala id', function () {
-    it('registers non-deterministic Upala ID', async function () {
+    it('registers deterministic Upala ID', async function () {
       const tx = await upala.connect(user1).newIdentity(user1.address)
-      const expectedId = await calculateUpalaId(tx, user1.address)
+      const expectedId = user1.address // await calculateUpalaId(tx, user1.address)
       const receivedId = await upala.connect(user1).myId()
       expect(receivedId).to.eq(expectedId)
       expect(await upala.connect(user1).myIdOwner()).to.eq(user1.address)
@@ -170,7 +170,7 @@ describe('USERS', function () {
       )
       // can register a third party address
       tx = await upala.connect(user1).newIdentity(user2.address)
-      const expectedId = await calculateUpalaId(tx, user2.address)
+      const expectedId = user2.address  // await calculateUpalaId(tx, user2.address)
       expect(await upala.connect(user2).myId()).to.eq(expectedId)
       await expect(tx).to.emit(upala, 'NewIdentity').withArgs(expectedId, user2.address)
     })

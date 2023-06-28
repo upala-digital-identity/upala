@@ -246,7 +246,7 @@ contract BundledScoresPool is Initializable, OwnableUpgradeable {
     function _userScore(
         address caller,    // user address that shoots the verification call
         address upalaID,            // user Upala ID
-        address scoreAssignedTo,    // the address or UpalaID used in bundle
+        address scoreAssignedTo,    // as of UIP-26 scores can only be assigned to UpalaID
         uint8 score,                // assigned score
         bytes32 bundleId,           // bundle hash (root if using Merkle pool)
         bytes memory proof    // a proof that verifies user score is in bundle
@@ -258,17 +258,13 @@ contract BundledScoresPool is Initializable, OwnableUpgradeable {
         
         // check UpalaID
         upala.isOwnerOrDelegate(caller, upalaID);
-        // a way to validate by address (UIP-22):
-        if (scoreAssignedTo != upalaID && scoreAssignedTo != caller) {
-            upala.isOwnerOrDelegate(scoreAssignedTo, upalaID);
-        }
 
         uint256 totalScore = baseScore.mul(score);
         require(_balanceIsAbove(totalScore),
             "Pool: Pool balance is lower than the total score");
 
-        require(isInBundle(scoreAssignedTo, score, bundleId, proof) == true,
-            "Pool: Can't validate that scoreAssignedTo-score pair is in the bundle");
+        require(isInBundle(upalaID, score, bundleId, proof) == true,
+            "Pool: Can't validate that upalaID-score pair is in the bundle");
 
         return totalScore;
     }

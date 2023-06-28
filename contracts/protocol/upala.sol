@@ -114,10 +114,11 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
             "Upala: Cannot use an empty addess");
         require (delegateToIdentity[newIdentityOwner] == address(0x0), 
             "Upala: Address is already an owner or delegate");
-        // UpalaIDs are n non-deterministic. Cannot assign scores to Upala ID
-        // before Upala ID is created. 
-        address newId = address(uint160(uint256(keccak256(abi.encodePacked(
-            newIdentityOwner, block.timestamp))))); // UIP-22.
+        // UpalaIDs are deterministic. Can assign scores to Upala ID
+        // before Upala ID is created. UIP-26
+        address newId = newIdentityOwner;
+        require(identityOwner[newId] != LIQUIDATED,
+            "Upala: Cannot recreate a liquidated ID");  
         identityOwner[newId] = newIdentityOwner;
         delegateToIdentity[newIdentityOwner] = newId;
         NewIdentity(newId, newIdentityOwner);
