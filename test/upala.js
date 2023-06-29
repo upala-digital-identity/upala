@@ -280,19 +280,6 @@ describe('USERS', function () {
       await expect(droplTx).to.emit(upala, 'DelegateDeleted').withArgs(user1Id, delegate1.address)
     })
 
-    // must drop or remove all delegations before liquidation
-    it('delegate CANNOT drop delegation rights of a liquidated ID (UIP-24)', async function () {
-      const user1Id = await createIdAndDelegate(upala, user1, delegate1)
-      // exlode (remove upala Id by liquidating with zero reward)
-      const signedScoresPool = await deployPool('SignedScoresPool', manager1, environment.upalaConstants)
-      const proof = getProof(user1Id, signedScoresPool, manager1, A_SCORE_BUNDLE, ZERO_REWARD)
-      await signedScoresPool.connect(user1).attack(user1Id, user1Id, ZERO_REWARD, A_SCORE_BUNDLE, proof)
-      // UIP-24
-      await expect(upala.connect(delegate1).dropDelegation()).to.be.revertedWith(
-        'Upala: Cannot drop delegates of a liquidated ID'
-      )
-    })
-
     it('cannot query Upala ID from a removed address', async function () {
       const user1Id = await createIdAndDelegate(upala, user1, delegate1)
       await upala.connect(delegate1).dropDelegation()
@@ -300,13 +287,15 @@ describe('USERS', function () {
       expect(await upala.connect(delegate1).myIdOwner()).to.eq(NULL_ADDRESS)
     })
 
-    // TODO why this matters? Descibe better
-    it('liquidated id has no link to owner address (GDPR?)', async function () {
+    it('liquidated id has no link to owner address, delegates can be removed', async function () {
       const user1Id = await createIdAndDelegate(upala, user1, delegate1)
       // exlode (remove upala Id by liquidating with zero reward)
       const signedScoresPool = await deployPool('SignedScoresPool', manager1, environment.upalaConstants)
       const proof = getProof(user1Id, signedScoresPool, manager1, A_SCORE_BUNDLE, ZERO_REWARD)
       await signedScoresPool.connect(user1).attack(user1Id, user1Id, ZERO_REWARD, A_SCORE_BUNDLE, proof)
+
+      await upala.connect(delegate1).dropDelegation()
+      expect(await upala.connect(delegate1).myId()).to.eq(NULL_ADDRESS)
       expect(await upala.connect(user1).myId()).to.eq(NULL_ADDRESS)
       expect(await upala.connect(user1).isLiquidated(user1Id)).to.eq(true)
     })

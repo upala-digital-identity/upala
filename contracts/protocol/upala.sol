@@ -31,7 +31,7 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
 
     // Identity owner. Can change owner, can assign delegates
     mapping(address => address) identityOwner; // idOwner
-    // Addresses that can use the associated id (delegates and owner).
+    // Addresses that can use the associated id (delegates and oner).
     // Also used to retrieve id by address
     mapping(address => address) delegateToIdentity;
     // candidates are used in pairing delegates and UpalaID (UIP-23)
@@ -187,16 +187,12 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
 
     function _removeDelegate(address upalaId, address delegate) internal {
         require(upalaId != address(0x0),
-            "Upala: Must be an existing Upala ID");  // do not confuse with liquidated IDs, they are kept forever
+            "Upala: Must be an existing Upala ID");
         require(upalaId == delegateToIdentity[delegate],
             "Upala: Must be an existing delegate");
         address idOwner = identityOwner[upalaId];
         require(idOwner != delegate,
             "Upala: Cannot remove identity owner");
-        // UIP-24. Mitigating pool drain with a signle liquidatoin cheque. 
-        // Affects only dropDelegation function, because removeDelegate is already inaccessible (idOwner == LIQUIDATED)
-        require(idOwner != LIQUIDATED,
-            "Upala: Cannot drop delegates of a liquidated ID");  
         delete delegateToIdentity[delegate];
         DelegateDeleted(upalaId, delegate);
     }
@@ -285,9 +281,7 @@ contract Upala is Initializable, UUPSUpgradeable, OwnableUpgradeable, PausableUp
         onlyApprovedPool
         returns(bool)
     {
-        // deletes identity owner
         delete delegateToIdentity[identityOwner[identity]];
-        // sets special address as id owner
         identityOwner[identity] = LIQUIDATED;
         Liquidated(identity);
         return true;
