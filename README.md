@@ -22,6 +22,10 @@
 1. In upala project root. Copy-paste secrets-template.js to secrets.js (don't need any data there until you deploy to a live network).
 2. To deploy to a network run 'npx hardhat run scripts/upala-admin.js --network test-net-name' where test-net-name = main | rinkeby | goerli | mumbai...
 
+## Upgrade Upala protocol
+
+See instructions in /scripts/prepare-upgrade.js
+
 ## Links
 
 - [Front-end repo](https://github.com/porobov/upala-front)

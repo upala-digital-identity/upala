@@ -1,4 +1,9 @@
-// e.g. npx hardhat run scripts/prepare-upgrade.js --network rinkeby
+// unlock secrets
+// nvm use v16.12.0 (if hardhat not upgraded yet - ERR_OSSL_EVP_UNSUPPORTED error)
+// npx hardhat run scripts/prepare-upgrade.js --network rinkeby (rinkeby is depricated)
+// follow link from terminal to OpenZeppelin Defender
+// repeat for live network
+
 const { defender } = require('hardhat')
 const { UpalaConstants } = require('@upala/constants')
 
@@ -16,7 +21,7 @@ async function main() {
   // deploy upgrade
   const nextVersionUpala = await ethers.getContractFactory('Upala')
   const proposal = await defender.proposeUpgrade(upalaAddress, nextVersionUpala, {
-    description: 'UIP-24',
+    description: 'UIP-26. Deterministic UpalaIDs',
     multisig: UPALA_MANAGER,
   })
   console.log('Upgrade proposal created at:', proposal.url)
